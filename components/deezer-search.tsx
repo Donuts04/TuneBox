@@ -163,7 +163,7 @@ export default function DeezerSearch({
         <Input
           type="text"
           placeholder="Search for a song!"
-          className="pl-12 pr-4 h-14 text-base bg-transparent border-none focus:ring-1 focus:ring-black/20 dark:focus:ring-white/20 placeholder-black/50 dark:placeholder-white/50 text-black dark:text-white font-gotham"
+          className="pl-12 pr-4 h-14 text-base bg-transparent border-none focus:ring-1 focus:ring-black/20 dark:focus:ring-white/20 placeholder-black/50 dark:placeholder-white/50 text-black dark:text-white"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -242,7 +242,7 @@ export default function DeezerSearch({
               exit={{ opacity: 0, y: -20 }}
               className="group rounded-lg border border-black dark:border-white hover:shadow-md transition-all"
             >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center p-4 overflow-hidden">
                 <div className="flex items-center mb-3 sm:mb-0 w-full sm:w-auto">
                   <div
                     className="relative flex-shrink-0 mr-4 cursor-pointer"
@@ -277,7 +277,10 @@ export default function DeezerSearch({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate text-black dark:text-white">
+                    <p
+                      className="font-medium text-black dark:text-white  break-words line-clamp-2"
+                      title={track.title}
+                    >
                       {track.title}
                     </p>
                     <div className="flex items-center">
@@ -294,33 +297,33 @@ export default function DeezerSearch({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 sm:ml-auto">
+                <div className="flex gap-2 mt-2 sm:mt-0 sm:ml-auto w-full sm:w-auto">
                   {track.preview ? (
                     <>
                       {onSelectForSeparation && (
                         <Button
-                          className="h-9 flex items-center justify-center gap-2 font-gotham mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+                          className="w-full h-9 flex items-center justify-center gap-2 mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
                           onClick={() => selectTrackForSeparation(track)}
                         >
                           <Layers className="h-4 w-4" />
-                          <span className="hidden sm:inline">Separate</span>
+                          <span>Separate</span>
                         </Button>
                       )}
 
                       {onSelectForConversion && (
                         <Button
-                          className="h-9 flex items-center justify-center gap-2 font-gotham mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+                          className="w-full h-9 flex items-center justify-center gap-2 mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
                           onClick={() => selectTrackForConversion(track)}
                         >
                           <FileMusic className="h-4 w-4" />
-                          <span className="hidden sm:inline">Convert</span>
+                          <span>Convert</span>
                         </Button>
                       )}
                     </>
                   ) : (
                     <Badge
                       variant="outline"
-                      className="text-md text-gray-700 border-gray-300 dark:border-gray-700 dark:text-gray-300 font-gotham rounded-full"
+                      className="text-md text-gray-700 border-gray-300 dark:border-gray-700 dark:text-gray-300 rounded-full"
                     >
                       No preview, I can't get the track 😔
                     </Badge>

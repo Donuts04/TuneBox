@@ -1,0 +1,7 @@
+<svg>
+  <filter id="grainy">
+    <feTurbulence type="turbulance" baseFrequency="0.65" />
+    <feColorMatrix type="saturate" values="0" />
+  </filter>
+  <rect width="100%" height="100%" filter="url(#grainy)" fill="white" />
+</svg>

@@ -32,6 +32,7 @@ import { NoteVisualization } from "./NoteVisualization";
 import { DeezerTrack } from "@/lib/deezer";
 import { INSTRUMENTS, type Instrument } from "@/lib/instruments";
 import Image from "next/image";
+import CircleLoader from "../loaders/circleLoader";
 
 export interface Note {
   start: number;
@@ -588,7 +589,7 @@ export default function AudioConverter({
   };
 
   return (
-    <Card className="w-full border border-black dark:border-white overflow-hidden">
+    <Card className="w-full border border-black dark:border-white overflow-hidden bg-transparent">
       {showCardHeader && (
         <CardHeader className="border-b border-black dark:border-white">
           <CardTitle className="flex items-center text-lg">
@@ -672,18 +673,10 @@ export default function AudioConverter({
         </CardHeader>
       )}
 
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-4 space-y-4 bg-transparent">
         {isLoading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="relative">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Music className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-            <span className="ml-4 text-muted-foreground">
-              Processing audio and extracting notes...
-            </span>
+            <CircleLoader />
           </div>
         ) : error ? (
           <div className="space-y-4">
