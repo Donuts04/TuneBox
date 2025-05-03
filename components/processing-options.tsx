@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,8 @@ import DeezerSearch from "./deezer-search";
 import AudioSeparator from "./AudioSeperator/audio-separator";
 import AudioConverter from "./ConvertToNotes/audio-converter";
 import { DeezerTrack } from "@/lib/deezer";
-
+import { useTheme } from "next-themes";
+import Image from "next/image";
 type Step = "initial" | "search" | "upload-options" | "separate" | "convert";
 
 interface ProcessingOptionsProps {
@@ -32,6 +33,13 @@ export default function ProcessingOptions({
   const [currentStep, setCurrentStep] = useState<Step>("initial");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
+
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -49,17 +57,17 @@ export default function ProcessingOptions({
   // TODO: Add a how to use dialog
   if (currentStep === "initial") {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-8 md:gap-0 max-w-5xl mx-auto">
         <div className="flex flex-col h-full">
           <Card
-            className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full"
+            className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full bg-transparent"
             onClick={() => setCurrentStep("search")}
           >
             <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full group">
               <div className="w-20 h-20 rounded-full border border-black dark:border-white flex items-center justify-center mb-6 group-hover:bg-black dark:group-hover:bg-white transition-colors">
                 <Search className="h-10 w-10 text-black dark:text-white group-hover:text-white dark:group-hover:text-black transition-colors" />
               </div>
-              <h2 className="text-2xl font-bold mb-3 text-black dark:text-white tracking-tighter">
+              <h2 className="text-2xl font-semibold mb-3 text-black dark:text-white tracking-tight">
                 Find a Song
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-6 font-gotham tracking-normal leading-tight">
@@ -77,13 +85,26 @@ export default function ProcessingOptions({
           </Card>
         </div>
 
+        <div className="flex items-center justify-center px-8">
+          {mounted && (
+            <Image
+              src="/tuney/dance.png"
+              alt="TuneBox Logo"
+              width={150}
+              height={150}
+              className={`object-cover ${theme === "dark" ? "invert" : ""}`}
+              priority
+            />
+          )}
+        </div>
+
         <div className="flex flex-col h-full">
-          <Card className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full">
+          <Card className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full bg-transparent">
             <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full group">
               <div className="w-20 h-20 rounded-full border border-black dark:border-white flex items-center justify-center mb-6 group-hover:bg-black dark:group-hover:bg-white transition-colors">
                 <Upload className="h-10 w-10 text-black dark:text-white group-hover:text-white dark:group-hover:text-black transition-colors" />
               </div>
-              <h2 className="text-2xl font-bold mb-3 text-black dark:text-white tracking-tighter">
+              <h2 className="text-2xl font-semibold mb-3 text-black dark:text-white tracking-tight">
                 Upload Audio
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-6 font-gotham tracking-normal leading-tight">
@@ -115,7 +136,7 @@ export default function ProcessingOptions({
 
   if (currentStep === "upload-options" && uploadedFile) {
     return (
-      <div className="space-y-4 max-w-5xl mx-auto">
+      <div className="space-y-4 max-w-5xl mx-auto bg-transparent">
         <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
           <h2 className="text-xl font-bold flex items-center gap-2 font-gotham">
             <BoomBox className="h-5 w-5 text-black dark:text-white" />
@@ -148,12 +169,12 @@ export default function ProcessingOptions({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-transparent">
           <Card
-            className="border border-black dark:border-white transition-all cursor-pointer"
+            className="border border-black dark:border-white transition-all cursor-pointer bg-transparent"
             onClick={() => setCurrentStep("separate")}
           >
-            <CardContent className="p-8 flex flex-col items-center justify-center text-center">
+            <CardContent className="p-8 flex flex-col items-center justify-center text-center bg-transparent">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-black dark:border-white">
                 <Layers className="h-8 w-8 text-black dark:text-white" />
               </div>
@@ -200,7 +221,7 @@ export default function ProcessingOptions({
     return (
       <div className="space-y-4 max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-bold flex items-center gap-2 font-gotham">
+          <h2 className="text-xl flex items-center gap-2">
             <ListMusic className="h-5 w-5 text-black dark:text-white" />
             Find Songs
           </h2>
@@ -215,23 +236,25 @@ export default function ProcessingOptions({
           </Button>
         </div>
 
-        <DeezerSearch
-          onSelectForSeparation={(track) => {
-            setSelectedTrack(track);
-            setCurrentStep("separate");
-          }}
-          onSelectForConversion={(track) => {
-            setSelectedTrack(track);
-            setCurrentStep("convert");
-          }}
-        />
+        <div className="px-6">
+          <DeezerSearch
+            onSelectForSeparation={(track) => {
+              setSelectedTrack(track);
+              setCurrentStep("separate");
+            }}
+            onSelectForConversion={(track) => {
+              setSelectedTrack(track);
+              setCurrentStep("convert");
+            }}
+          />
+        </div>
       </div>
     );
   }
 
   if (currentStep === "separate") {
     return (
-      <div className="space-y-4 max-w-5xl mx-auto">
+      <div className="space-y-4">
         <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
           <h2 className="text-xl font-bold flex items-center gap-2 font-gotham">
             <Layers className="h-5 w-5 text-black dark:text-white" />
@@ -248,7 +271,9 @@ export default function ProcessingOptions({
           </Button>
         </div>
 
-        <AudioSeparator uploadedFile={uploadedFile} track={selectedTrack} />
+        <div className="px-6">
+          <AudioSeparator uploadedFile={uploadedFile} track={selectedTrack} />
+        </div>
       </div>
     );
   }
@@ -271,7 +296,9 @@ export default function ProcessingOptions({
             Back to Start
           </Button>
         </div>
-        <AudioConverter uploadedFile={uploadedFile} track={selectedTrack} />
+        <div className="px-6">
+          <AudioConverter uploadedFile={uploadedFile} track={selectedTrack} />
+        </div>
       </div>
     );
   }
