@@ -40,6 +40,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Settings } from "lucide-react";
+import VinylLoader from "../Loader/vinyl-loader";
+import HamsterLoader from "../loaders/hamster-loader";
 
 interface AudioSource {
   name: string;
@@ -774,7 +776,11 @@ export default function AudioSeparator({
           </Alert>
         )}
 
-        {isLoading && <LoadingScreen />}
+        {isLoading && (
+          <div className="flex justify-center items-center py-12">
+            <HamsterLoader image={track?.album.cover_medium} size={20} />
+          </div>
+        )}
 
         {Object.keys(stems).length > 0 && (
           <div className="space-y-3">
@@ -912,72 +918,6 @@ function formatTime(seconds: number): string {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
-
-const LoadingScreen = () => {
-  return (
-    <div className="flex flex-col items-center py-8">
-      <div className="w-full max-w-md aspect-video rounded-lg overflow-hidden mb-6 shadow-lg">
-        <iframe
-          src="https://www.youtube.com/embed/videoseries?list=PLnEgJF0UIl_I0CcF7WmKYGkxAKGLgvwRK&autoplay=1&mute=1&controls=0&loop=1"
-          title="Subway Surfers Gameplay"
-          className="w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
-
-      <div className="space-y-3 w-full max-w-md">
-        <h3 className="text-center font-medium text-lg mb-4">
-          Separating your audio tracks...
-        </h3>
-
-        <div className="flex items-center bg-muted/30 p-3 rounded-md animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="bg-green-500/20 p-1.5 rounded-full mr-3">
-            <Music className="h-4 w-4 text-green-600" />
-          </div>
-          <span className="flex-grow">Analyzing audio frequencies</span>
-          <div className="bg-green-100 dark:bg-green-900/30 p-1 rounded-full">
-            <Check className="h-4 w-4 text-green-600" />
-          </div>
-        </div>
-
-        <div className="flex items-center bg-muted/30 p-3 rounded-md animate-in fade-in slide-in-from-bottom-2 duration-300 delay-300">
-          <div className="bg-blue-500/20 p-1.5 rounded-full mr-3">
-            <Mic className="h-4 w-4 text-blue-600" />
-          </div>
-          <span className="flex-grow">Isolating vocal patterns</span>
-          <div className="bg-blue-100 dark:bg-blue-900/30 p-1 rounded-full">
-            <Check className="h-4 w-4 text-blue-600" />
-          </div>
-        </div>
-
-        <div className="flex items-center bg-muted/30 p-3 rounded-md animate-in fade-in slide-in-from-bottom-2 duration-300 delay-500">
-          <div className="bg-purple-500/20 p-1.5 rounded-full mr-3">
-            <Headphones className="h-4 w-4 text-purple-600" />
-          </div>
-          <span className="flex-grow">Separating instruments</span>
-          <div className="animate-pulse">
-            <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-          </div>
-        </div>
-
-        <div className="flex items-center bg-muted/30 p-3 rounded-md animate-in fade-in slide-in-from-bottom-2 duration-300 delay-700 opacity-70">
-          <div className="bg-orange-500/20 p-1.5 rounded-full mr-3">
-            <Wand className="h-4 w-4 text-orange-600" />
-          </div>
-          <span className="flex-grow">Applying AI magic</span>
-          <div className="opacity-0">
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </div>
-        </div>
-
-        <p className="text-center text-sm text-muted-foreground mt-6 animate-pulse">
-          Enjoy this Subway Surfers gameplay while we do the hard work!
-        </p>
-      </div>
-    </div>
-  );
-};
 
 interface LyricsDisplayProps {
   lyrics: LyricsData;
