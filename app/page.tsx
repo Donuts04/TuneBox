@@ -32,6 +32,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+import { FeaturedCarousel } from "@/components/featured-carousel";
+import ComposePage from "./compose/page";
+import { MusicBoxComposer } from "@/components/MusicBoxComposer";
 
 export default function Home() {
   const { theme } = useTheme();
@@ -102,10 +105,10 @@ export default function Home() {
           <Navbar />
         </div>
 
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="py-16 md:py-24">
+        <div className="container mx-auto px-4 max-w-7xl space-y-16">
+          <div className="pt-16 md:pt-24">
             <div className="flex flex-col items-center justify-center">
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tighter px-12 text-center">
+              <h1 className="text-5xl font-bold tracking-tighter px-5 md:px-12 text-center">
                 Transform Your Music Experience
               </h1>
               {mounted && (
@@ -116,82 +119,60 @@ export default function Home() {
                   alt="TuneBox Logo"
                   width={450}
                   height={450}
-                  className={`object-cover ${theme === "dark" ? "invert" : ""}`}
+                  className={`object-cover ${
+                    theme === "dark" ? "invert" : ""
+                  } w-[300px] h-[300px] md:w-[450px] md:h-[450px]`}
                   priority
                 />
               )}
 
-              <p className="text-xl text-gray-700 dark:text-gray-300 max-w-md text-center font-gotham tracking-normal leading-tight">
+              <p className="text-base md:text-xl text-gray-700 dark:text-gray-300 max-w-md text-center tracking-normal leading-tight">
                 Separate audio tracks and convert them into musical notes with
                 TuneBox!
               </p>
             </div>
           </div>
 
-          <div className="flex items-end justify-between gap-4">
+          <div>
+            <div className="flex items-end justify-between gap-4">
+              {mounted && (
+                <Image
+                  src="/tuney/pointRight.png"
+                  alt="TuneBox Logo"
+                  width={150}
+                  height={150}
+                  className={`object-cover ${theme === "dark" ? "invert" : ""}`}
+                  priority
+                />
+              )}
+              <Button
+                variant="outline"
+                className="rounded-full mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+                onClick={() => setShowDialog(true)}
+              >
+                How To Use
+              </Button>
+            </div>
+            <ProcessingOptions />
+          </div>
+
+          <FeaturedCarousel />
+
+          <div className="flex items-center justify-center">
             {mounted && (
               <Image
-                src="/tuney/pointRight.png"
+                src="/tuney/pointDown.png"
                 alt="TuneBox Logo"
-                width={150}
-                height={150}
+                width={250}
+                height={250}
                 className={`object-cover ${theme === "dark" ? "invert" : ""}`}
                 priority
               />
             )}
-            <Button
-              variant="outline"
-              className="rounded-full mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-              onClick={() => setShowDialog(true)}
-            >
-              How To Use
-            </Button>
           </div>
 
-          <ProcessingOptions />
-
-          {/* Features Section */}
-          <div className="py-12 mt-16">
-            <h2 className="text-2xl font-bold text-center mb-10">
-              What You Can Do
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-card/50 p-6 rounded-xl border border-border/50 flex flex-col items-center text-center">
-                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-                  <Layers className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">
-                  Separate Audio Stems
-                </h3>
-                <p className="text-muted-foreground">
-                  Split songs into vocals, drums, bass, and other instruments
-                  for remixing or practice.
-                </p>
-              </div>
-
-              <div className="bg-card/50 p-6 rounded-xl border border-border/50 flex flex-col items-center text-center">
-                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
-                  <FileMusic className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Convert to Notes</h3>
-                <p className="text-muted-foreground">
-                  Transform audio into musical notes and MIDI data to learn
-                  songs or create sheet music.
-                </p>
-              </div>
-
-              <div className="bg-card/50 p-6 rounded-xl border border-border/50 flex flex-col items-center text-center">
-                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-                  <Waveform className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Visualize Audio</h3>
-                <p className="text-muted-foreground">
-                  See your music visualized as waveforms and notes to better
-                  understand its structure.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* TODO: Add compose page */}
+          <MusicBoxComposer />
         </div>
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
