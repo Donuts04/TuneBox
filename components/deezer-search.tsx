@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
+import { useTheme } from "next-themes";
 
 interface DeezerSearchProps {
   onSelectPreviewUrl?: (url: string, trackName: string) => void;
@@ -34,8 +35,14 @@ export default function DeezerSearch({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const { theme } = useTheme();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Create audio element
   useEffect(() => {
@@ -168,6 +175,19 @@ export default function DeezerSearch({
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
+
+      {mounted && !query.trim() && (
+        <div className="flex justify-center">
+          <Image
+            src="/tuney/think.png"
+            alt="TuneBox Logo"
+            width={150}
+            height={150}
+            className={`object-cover ${theme === "dark" ? "invert" : ""}`}
+            priority
+          />
+        </div>
+      )}
 
       <AnimatePresence>
         {error && (

@@ -76,7 +76,7 @@ export default function RootLayout({
       className={`${poppins.variable} ${comfortaa.variable} ${gotham.variable} ${helvetica.variable}`}
     >
       <link rel="icon" href="/favicon3.png" sizes="any" />
-      <body className={`${poppins.className}`}>
+      <body className={`${poppins.className} bg-white dark:bg-black`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
