@@ -594,7 +594,7 @@ export default function AudioSeparator({
   };
 
   return (
-    <Card className="w-full border border-black dark:border-white overflow-hidden bg-transparent font-gotham">
+    <Card className="w-full border border-black dark:border-white overflow-hidden bg-transparent">
       <CardHeader className="border-b border-black dark:border-white p-3 sm:p-4">
         <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center text-lg gap-3">
           {track ? (
