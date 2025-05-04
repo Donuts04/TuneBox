@@ -70,13 +70,13 @@ export default function ProcessingOptions({
               <h2 className="text-2xl font-semibold mb-3 text-black dark:text-white tracking-tight">
                 Find a Song
               </h2>
-              <p className="text-gray-700 dark:text-gray-300 mb-6 font-gotham tracking-normal leading-tight">
+              <p className="text-gray-700 dark:text-gray-300 mb-6 tracking-normal leading-tight">
                 Search for songs to process or separate. Choose from millions of
                 tracks to analyze.
               </p>
               <Button
                 size="lg"
-                className="flex items-center justify-center gap-2 font-gotham mt-auto border border-black/50 dark:border-white/50 text-black dark:text-white group-hover:text-white group-hover:dark:text-black bg-transparent group-hover:bg-black dark:group-hover:bg-white transition-colors"
+                className="flex items-center justify-center gap-2 mt-auto border border-black/50 dark:border-white/50 text-black dark:text-white group-hover:text-white group-hover:dark:text-black bg-transparent group-hover:bg-black dark:group-hover:bg-white transition-colors"
               >
                 <Search className="h-5 w-5" />
                 Search Songs
@@ -107,13 +107,13 @@ export default function ProcessingOptions({
               <h2 className="text-2xl font-semibold mb-3 text-black dark:text-white tracking-tight">
                 Upload Audio
               </h2>
-              <p className="text-gray-700 dark:text-gray-300 mb-6 font-gotham tracking-normal leading-tight">
+              <p className="text-gray-700 dark:text-gray-300 mb-6 tracking-normal leading-tight">
                 Upload your own audio files to process. Works with MP3, WAV, and
                 other common audio formats.
               </p>
               <Button
                 size="lg"
-                className="flex items-center justify-center gap-2 font-gotham mt-auto border border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+                className="flex items-center justify-center gap-2 mt-auto border border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
                 asChild
               >
                 <label className="cursor-pointer flex items-center">
@@ -138,7 +138,7 @@ export default function ProcessingOptions({
     return (
       <div className="space-y-4 max-w-5xl mx-auto bg-transparent">
         <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-bold flex items-center gap-2 font-gotham">
+          <h2 className="text-xl font-bold flex items-center gap-2">
             <BoomBox className="h-5 w-5 text-black dark:text-white" />
             Choose an Option
           </h2>
@@ -146,7 +146,7 @@ export default function ProcessingOptions({
             variant="ghost"
             size="sm"
             onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white font-gotham flex gap-2"
+            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Start
@@ -221,15 +221,14 @@ export default function ProcessingOptions({
     return (
       <div className="space-y-4 max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl flex items-center gap-2">
-            <ListMusic className="h-5 w-5 text-black dark:text-white" />
+          <h2 className="text-xl font-semibold flex items-center gap-2">
             Find Songs
           </h2>
           <Button
             variant="ghost"
             size="sm"
             onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white font-gotham flex gap-2"
+            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Start
@@ -256,15 +255,14 @@ export default function ProcessingOptions({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-bold flex items-center gap-2 font-gotham">
-            <Layers className="h-5 w-5 text-black dark:text-white" />
+          <h2 className="text-xl font-semibold flex items-center gap-2">
             Audio Separator
           </h2>
           <Button
             variant="ghost"
             size="sm"
             onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white font-gotham flex gap-2"
+            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Start
@@ -282,15 +280,14 @@ export default function ProcessingOptions({
     return (
       <div className="space-y-4 max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-bold flex items-center gap-2 font-gotham">
-            <FileMusic className="h-5 w-5 text-black dark:text-white" />
+          <h2 className="text-xl font-semibold flex items-center gap-2">
             Notes Converter
           </h2>
           <Button
             variant="ghost"
             size="sm"
             onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white font-gotham flex gap-2"
+            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Start
