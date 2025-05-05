@@ -248,4 +248,22 @@ export const INSTRUMENTS: Instrument[] = [
     },
     baseUrl: "/sounds/cat/",
   },
+  {
+    id: "cat2",
+    name: "Cat 2",
+    type: "sampler",
+    urls: {
+      G3: "cat-meow-sound-effect_G_minor.wav",
+    },
+    baseUrl: "/sounds/cat/",
+  },
+  {
+    id: "musicBox",
+    name: "Music Box",
+    type: "sampler",
+    urls: {
+      C4: "music-box-note-c_C_major.wav",
+    },
+    baseUrl: "/",
+  },
 ];

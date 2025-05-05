@@ -35,7 +35,9 @@ import { motion } from "framer-motion";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import ComposePage from "./compose/page";
 import { MusicBoxComposer } from "@/components/MusicBoxComposer";
-
+import { ArtworkGallery } from "@/components/artwork-gallery";
+import { AboutSection } from "@/components/about-section";
+import Footer from "@/components/footer";
 export default function Home() {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -105,8 +107,8 @@ export default function Home() {
           <Navbar />
         </div>
 
-        <div className="container mx-auto px-4 max-w-7xl space-y-16">
-          <div className="pt-16 md:pt-24">
+        <div className="container mx-auto px-4 max-w-7xl space-y-16 py-16 md:py-24">
+          <div>
             <div className="flex flex-col items-center justify-center">
               <h1 className="text-5xl font-bold tracking-tighter px-5 md:px-12 text-center">
                 Transform Your Music Experience
@@ -158,21 +160,10 @@ export default function Home() {
 
           <FeaturedCarousel />
 
-          <div className="flex items-center justify-center">
-            {mounted && (
-              <Image
-                src="/tuney/pointDown.png"
-                alt="TuneBox Logo"
-                width={250}
-                height={250}
-                className={`object-cover ${theme === "dark" ? "invert" : ""}`}
-                priority
-              />
-            )}
-          </div>
-
-          {/* TODO: Add compose page */}
           <MusicBoxComposer />
+          <ArtworkGallery />
+          <AboutSection />
+          <Footer />
         </div>
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>

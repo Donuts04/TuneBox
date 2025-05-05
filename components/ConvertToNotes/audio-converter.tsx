@@ -591,68 +591,118 @@ export default function AudioConverter({
   return (
     <Card className="w-full border border-black dark:border-white overflow-hidden bg-transparent">
       {showCardHeader && (
-        <CardHeader className="border-b border-black dark:border-white">
-          <CardTitle className="flex items-center text-lg">
+        <CardHeader className="border-b border-black dark:border-white p-3 sm:p-4">
+          <CardTitle className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
             {track ? (
-              <div className="flex items-center w-full">
-                {track.album.cover_medium && (
-                  <div className="mr-3 flex-shrink-0">
-                    <Image
-                      src={track.album.cover_medium || "/placeholder.svg"}
-                      alt={track.album.title}
-                      width={60}
-                      height={60}
-                      className="rounded-md"
-                    />
-                  </div>
-                )}
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-4">
+              <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
+                <div className="flex items-end gap-3 flex-1 min-w-0">
+                  {track.album.cover_medium && (
+                    <div className="flex-shrink-0">
+                      <Image
+                        src={track.album.cover_medium || "/placeholder.svg"}
+                        alt={track.album.title}
+                        width={60}
+                        height={60}
+                        className="rounded-md border border-black dark:border-white"
+                      />
+                    </div>
+                  )}
+                  <div className="flex flex-col justify-between min-w-0">
                     <h3 className="font-semibold truncate">{track.title}</h3>
-                    {musicData && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs rounded-full"
-                      >
-                        {musicData.notes.length} notes
-                      </Badge>
-                    )}
+                    <p className="text-sm font-medium text-muted-foreground truncate">
+                      {track.artist.name} • {track.album.title}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {track.artist.name} • {track.album.title}
-                  </p>
                 </div>
-                <audio src={track.preview} controls className="w-32 h-8 ml-2" />
+
+                <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
+                  <Button
+                    className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
+                      isPlaying
+                        ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                        : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
+                    }`}
+                    onClick={togglePlayback}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-3 w-3" />
+                    ) : (
+                      <Play className="h-3 w-3" />
+                    )}
+                  </Button>
+
+                  <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                    <span className="text-xs font-mono whitespace-nowrap">
+                      {formatTime(currentTime)}
+                    </span>
+                    <Slider
+                      value={[currentTime]}
+                      min={0}
+                      max={calculateTotalDuration(musicData?.notes || [])}
+                      step={0.1}
+                      onValueChange={handleSeek}
+                      className="flex-grow"
+                    />
+                    <span className="text-xs font-mono w-8">
+                      {formatTime(
+                        calculateTotalDuration(musicData?.notes || [])
+                      )}
+                    </span>
+                  </div>
+                </div>
               </div>
             ) : uploadedFile ? (
-              <div className="flex items-center w-full">
-                <div className="mr-3 flex-shrink-0 bg-muted/30 rounded-md p-3">
-                  <FileAudio className="h-6 w-6" />
-                </div>
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-4">
+              <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
+                <div className="flex items-end gap-3 flex-1 min-w-0">
+                  <div className="flex-shrink-0 bg-muted/30 rounded-md p-3 border border-black dark:border-white">
+                    <FileAudio className="h-6 w-6" />
+                  </div>
+                  <div className="flex flex-col justify-between min-w-0">
                     <h3 className="font-semibold truncate">
                       {uploadedFile.name}
                     </h3>
-                    {musicData && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs rounded-full"
-                      >
-                        {musicData.notes.length} notes
-                      </Badge>
-                    )}
+                    <p className="text-sm font-medium text-muted-foreground truncate">
+                      {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB •{" "}
+                      {uploadedFile.type}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB •{" "}
-                    {uploadedFile.type}
-                  </p>
                 </div>
-                <audio
-                  src={URL.createObjectURL(uploadedFile)}
-                  controls
-                  className="w-32 h-8 ml-2"
-                />
+
+                <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
+                  <Button
+                    className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
+                      isPlaying
+                        ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                        : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
+                    }`}
+                    onClick={togglePlayback}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-3 w-3" />
+                    ) : (
+                      <Play className="h-3 w-3" />
+                    )}
+                  </Button>
+
+                  <div className="flex items-center gap-3 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                    <span className="text-xs font-mono whitespace-nowrap">
+                      {formatTime(currentTime)}
+                    </span>
+                    <Slider
+                      value={[currentTime]}
+                      min={0}
+                      max={calculateTotalDuration(musicData?.notes || [])}
+                      step={0.1}
+                      onValueChange={handleSeek}
+                      className="flex-grow"
+                    />
+                    <span className="text-xs font-mono w-8">
+                      {formatTime(
+                        calculateTotalDuration(musicData?.notes || [])
+                      )}
+                    </span>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-3">
