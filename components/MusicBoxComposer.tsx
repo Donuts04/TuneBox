@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, Save, Upload, Trash2, Music } from "lucide-react";
+import { Play, Pause, Music, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import * as Tone from "tone";
@@ -13,6 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 
 const NOTES = [
   "C4",
@@ -36,7 +44,6 @@ const NOTES = [
 ];
 const COLUMNS = 32;
 
-// Templates for popular songs
 const TEMPLATES = {
   twinkle: {
     name: "Twinkle Twinkle Little Star",
@@ -125,44 +132,32 @@ export function MusicBoxComposer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentColumn, setCurrentColumn] = useState(0);
   const [tempo, setTempo] = useState(120);
-  const synthRef = useRef<Tone.PolySynth | null>(null);
+  const playerRef = useRef<Tone.Player | null>(null);
   const playbackIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only showing content after mount
   useEffect(() => {
-    // Initialize Tone.js with a more authentic music box sound
-    synthRef.current = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        type: "sine",
-        modulationType: "sine",
-        modulationIndex: 0.2,
-        harmonicity: 1.5,
-      },
-      envelope: {
-        attack: 0.001,
-        decay: 0.2,
-        sustain: 0.1,
-        release: 1.2,
-      },
-      volume: -8,
-    }).toDestination();
+    setMounted(true);
+  }, []);
 
-    // Add a subtle vibrato for more character
-    const vibrato = new Tone.Vibrato({
-      frequency: 5,
-      depth: 0.1,
-      wet: 0.3,
-    }).toDestination();
-    synthRef.current.connect(vibrato);
-
-    // Add a gentle reverb for natural space
+  useEffect(() => {
+    // Initialize Tone.js with the music box sample
     const reverb = new Tone.Reverb({
-      decay: 1.5,
+      decay: 0.8,
       wet: 0.2,
     }).toDestination();
-    synthRef.current.connect(reverb);
+
+    playerRef.current = new Tone.Player({
+      url: "/music-box-note-c_C_major.wav",
+      volume: 0,
+    }).connect(reverb);
 
     return () => {
-      synthRef.current?.dispose();
+      playerRef.current?.dispose();
+      reverb.dispose();
     };
   }, []);
 
@@ -175,10 +170,18 @@ export function MusicBoxComposer() {
   };
 
   const playNote = (note: string) => {
-    if (!synthRef.current) return;
+    if (!playerRef.current) return;
     // Add a slight delay between notes for more mechanical feel
     const now = Tone.now();
-    synthRef.current.triggerAttackRelease(note, "8n", now);
+
+    // Calculate the playback rate based on the note
+    const baseNote = "C4";
+    const semitones =
+      Tone.Frequency(note).toMidi() - Tone.Frequency(baseNote).toMidi();
+    const playbackRate = Math.pow(2, semitones / 12);
+
+    playerRef.current.playbackRate = playbackRate;
+    playerRef.current.start(now);
   };
 
   const playColumn = (column: number) => {
@@ -254,118 +257,159 @@ export function MusicBoxComposer() {
   };
 
   return (
-    <div className="p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-2xl font-medium text-center">Music Box</h1>
+    <div className="space-y-6">
+      <div className="flex items-end justify-between">
+        <div className="flex flex-col items-start justify-center">
+          <h1 className="text-3xl font-bold sm:text-4xl">Music Box</h1>
+          <p className="text-sm text-gray-500">
+            Create your own music box compositions ;)
+          </p>
+        </div>
+        {mounted && (
+          <Image
+            src="/tuney/pointDown.png"
+            alt="TuneBox Logo"
+            width={100}
+            height={100}
+            className={`object-cover ${theme === "dark" ? "invert" : ""}`}
+            priority
+          />
+        )}
+      </div>
 
-        <div className="bg-background border rounded-md shadow-sm">
-          <div className="relative">
-            {/* Fixed note names column */}
-            <div className="absolute left-0 top-0 z-10 bg-background">
-              <div className="w-10 h-6 border-r border-b" />{" "}
-              {/* Empty cell for column numbers */}
-              {NOTES.map((note) => (
-                <div
-                  key={`note-label-${note}`}
-                  className="w-10 h-6 flex items-center justify-center text-xs font-medium border-r border-b"
-                >
-                  {note}
-                </div>
-              ))}
-            </div>
-
-            {/* Scrollable grid */}
-            <div className="overflow-x-auto pl-10">
+      <div className="bg-background border rounded-md">
+        <div className="relative">
+          <div className="absolute left-0 top-0 z-10 bg-background">
+            <div className="w-10 h-6 border-r border-b" />{" "}
+            {/* Empty cell for column numbers */}
+            {NOTES.map((note) => (
               <div
-                className="grid min-w-[800px]"
-                style={{ gridTemplateColumns: `repeat(${COLUMNS}, 1fr)` }}
+                key={`note-label-${note}`}
+                className="w-10 h-6 flex items-center justify-center text-xs font-medium border-r border-b"
               >
-                {/* Column numbers */}
-                {Array(COLUMNS)
-                  .fill(0)
-                  .map((_, col) => (
-                    <div
-                      key={col}
-                      className={`h-6 border-r border-b flex items-center justify-center text-[10px]
-                      ${currentColumn === col ? "bg-primary/10" : ""}`}
-                    >
-                      {col + 1}
-                    </div>
-                  ))}
+                {note}
+              </div>
+            ))}
+          </div>
 
-                {/* Grid cells */}
-                {NOTES.map((note, row) => (
-                  <React.Fragment key={`note-${note}`}>
-                    {Array(COLUMNS)
-                      .fill(0)
-                      .map((_, col) => (
-                        <button
-                          key={`${row}-${col}`}
-                          onClick={() => toggleNote(row, col)}
-                          className={`h-6 border-r border-b transition-colors
+          {/* Scrollable grid */}
+          <div className="overflow-x-auto pl-10">
+            <div
+              className="grid min-w-[800px]"
+              style={{ gridTemplateColumns: `repeat(${COLUMNS}, 1fr)` }}
+            >
+              {/* Column numbers */}
+              {Array(COLUMNS)
+                .fill(0)
+                .map((_, col) => (
+                  <div
+                    key={col}
+                    className={`h-6 border-r border-b flex items-center justify-center text-[10px]
+                      ${
+                        isPlaying && currentColumn === col
+                          ? "bg-primary/10"
+                          : ""
+                      }`}
+                  >
+                    {col + 1}
+                  </div>
+                ))}
+
+              {/* Grid cells */}
+              {NOTES.map((note, row) => (
+                <React.Fragment key={`note-${note}`}>
+                  {Array(COLUMNS)
+                    .fill(0)
+                    .map((_, col) => (
+                      <button
+                        key={`${row}-${col}`}
+                        onClick={() => toggleNote(row, col)}
+                        className={`h-6 border-r border-b transition-colors
                           ${
                             grid[row][col] ? "bg-primary" : "hover:bg-primary/5"
                           }
-                          ${currentColumn === col ? "bg-primary/10" : ""}`}
-                        />
-                      ))}
-                  </React.Fragment>
-                ))}
-              </div>
+                          ${
+                            isPlaying && currentColumn === col
+                              ? "bg-primary/10"
+                              : ""
+                          }`}
+                      />
+                    ))}
+                </React.Fragment>
+              ))}
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center justify-center gap-6">
-          <Button
-            size="lg"
-            className="h-12 w-12 rounded-full shadow-sm"
-            onClick={togglePlayback}
-          >
-            {isPlaying ? (
-              <Pause className="h-6 w-6" />
-            ) : (
-              <Play className="h-6 w-6" />
-            )}
-          </Button>
+      <TooltipProvider>
+        <div className="flex flex-col md:flex-row gap-4 justify-between">
+          <div className="flex items-center gap-4 flex-1">
+            <Button
+              className={`h-10 w-10 flex-shrink-0 rounded-full transition-transform hover:scale-105 ${
+                isPlaying
+                  ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
+              }`}
+              onClick={togglePlayback}
+            >
+              {isPlaying ? (
+                <Pause className="h-6 w-6" />
+              ) : (
+                <Play className="h-6 w-6" />
+              )}
+            </Button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Tempo:</span>
-            <Slider
-              className="w-32"
-              value={[tempo]}
-              onValueChange={(value) => setTempo(value[0])}
-              min={60}
-              max={240}
-              step={1}
-            />
-            <span className="text-sm font-mono w-8">{tempo}</span>
+            <div className="flex items-center gap-3 bg-white dark:bg-black border border-black dark:border-white rounded-full px-4 py-2 shadow-sm flex-grow min-w-[180px]">
+              <span className="text-sm font-medium whitespace-nowrap">
+                Tempo:
+              </span>
+              <Slider
+                className="w-full"
+                value={[tempo]}
+                onValueChange={(value) => setTempo(value[0])}
+                min={60}
+                max={240}
+                step={1}
+              />
+              <span className="text-sm font-mono w-8">{tempo}</span>
+            </div>
           </div>
 
-          <Select onValueChange={loadTemplate}>
-            <SelectTrigger className="w-[160px]">
-              <Music className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Select a song" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(TEMPLATES).map(([id, template]) => (
-                <SelectItem key={id} value={id}>
-                  {template.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 justify-start sm:justify-end flex-1">
+            <div className="w-full">
+              <Select onValueChange={loadTemplate}>
+                <SelectTrigger className="w-full border-black dark:border-white bg-white dark:bg-black h-10 w-full rounded-full">
+                  <Music className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Load template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TEMPLATES).map(([id, template]) => (
+                    <SelectItem key={id} value={id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={clearGrid}
-            className="hover:bg-destructive/10 hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-10 w-10 sm:w-auto sm:px-4 border-black dark:border-white bg-white dark:bg-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                  onClick={clearGrid}
+                >
+                  <RefreshCw className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Clear</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Clear the composition</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
-      </div>
+      </TooltipProvider>
     </div>
   );
 }

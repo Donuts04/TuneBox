@@ -15,13 +15,8 @@ import {
   Upload,
   Mic,
   FileAudio,
-  Check,
-  Headphones,
-  Wand,
   SpellCheck2,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useAudioProcessing } from "@/contexts/audio-processing-context";
 import type { DeezerTrack } from "@/lib/deezer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -40,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Settings } from "lucide-react";
-import VinylLoader from "../Loader/vinyl-loader";
 import HamsterLoader from "../loaders/hamster-loader";
 
 interface AudioSource {
@@ -54,6 +48,8 @@ interface AudioSource {
 interface AudioSeparatorProps {
   uploadedFile?: File | null;
   track?: DeezerTrack | null;
+  featured?: boolean;
+  preloadedStems?: Record<string, AudioSource>;
 }
 
 interface LyricsSegment {
@@ -75,11 +71,16 @@ interface LyricsData {
 export default function AudioSeparator({
   uploadedFile,
   track,
+  featured = false,
+  preloadedStems,
 }: AudioSeparatorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stems, setStems] = useState<Record<string, AudioSource>>({});
+  const [stems, setStems] = useState<Record<string, AudioSource>>(
+    preloadedStems || {}
+  );
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [pausedStem, setPausedStem] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [lyrics, setLyrics] = useState<LyricsData | null>(null);
@@ -163,7 +164,7 @@ export default function AudioSeparator({
   const [isHeaderPlaying, setIsHeaderPlaying] = useState(false);
   const [headerAudioDuration, setHeaderAudioDuration] = useState(0);
   const [headerAudioCurrentTime, setHeaderAudioCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(0.7);
+  const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const headerAudioRef = useRef<HTMLAudioElement | null>(null);
   const headerAudioIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -195,6 +196,7 @@ export default function AudioSeparator({
   useEffect(() => {
     const processAudio = async () => {
       if (!track && !uploadedFile) return;
+      if (preloadedStems) return;
 
       setIsLoading(true);
       setError(null);
@@ -227,7 +229,7 @@ export default function AudioSeparator({
     };
 
     processAudio();
-  }, [track, uploadedFile, selectedOption]);
+  }, [track, uploadedFile, selectedOption, preloadedStems]);
 
   // Initialize header audio player
   useEffect(() => {
@@ -376,12 +378,13 @@ export default function AudioSeparator({
     if (!audioSource || !audioSource.audioUrl) return;
 
     if (currentlyPlaying === audioId) {
-      // Stop current playback
+      // Pause current playback
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
       setCurrentlyPlaying(null);
+      setPausedStem(audioId);
 
       // Stop lyrics tracking
       if (lyricsIntervalRef.current) {
@@ -417,20 +420,20 @@ export default function AudioSeparator({
 
       // Set currently playing audio
       setCurrentlyPlaying(audioId);
+      setPausedStem(null);
 
-      // Start tracking time for lyrics if lyrics exist (for any stem)
-      if (lyrics) {
-        setCurrentLyricTime(0);
-        const startTime = Date.now();
-        lyricsIntervalRef.current = setInterval(() => {
-          const elapsed = (Date.now() - startTime) / 1000;
-          setCurrentLyricTime(elapsed);
-        }, 100);
-      }
+      // Start tracking time for all stems
+      setCurrentLyricTime(0);
+      const startTime = Date.now();
+      lyricsIntervalRef.current = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        setCurrentLyricTime(elapsed);
+      }, 100);
 
       // Handle when audio ends
       audioRef.current.onended = () => {
         setCurrentlyPlaying(null);
+        setPausedStem(null);
         if (lyricsIntervalRef.current) {
           clearInterval(lyricsIntervalRef.current);
           lyricsIntervalRef.current = null;
@@ -596,62 +599,49 @@ export default function AudioSeparator({
   return (
     <Card className="w-full border border-black dark:border-white overflow-hidden bg-transparent">
       <CardHeader className="border-b border-black dark:border-white p-3 sm:p-4">
-        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center text-lg gap-3">
+        <CardTitle className="flex flex-col md:flex-row items-start md:items-center text-lg gap-3">
           {track ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center w-full gap-3">
-              {track.album.cover_medium && (
-                <div className="flex-shrink-0">
-                  <Image
-                    src={track.album.cover_medium || "/placeholder.svg"}
-                    alt={track.album.title}
-                    width={60}
-                    height={60}
-                    className="rounded-md"
-                  />
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
+              <div className="flex items-end gap-3 flex-1 min-w-0">
+                {track.album.cover_medium && (
+                  <div className="flex-shrink-0">
+                    <Image
+                      src={track.album.cover_medium || "/placeholder.svg"}
+                      alt={track.album.title}
+                      width={60}
+                      height={60}
+                      className="rounded-md border border-black dark:border-white"
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col justify-between min-w-0">
+                  <h3 className="font-semibold truncate">{track.title}</h3>
+                  <p className="text-sm font-medium text-muted-foreground truncate">
+                    {track.artist.name} • {track.album.title}
+                  </p>
                 </div>
-              )}
-              <div className="flex-grow min-w-0 w-full">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 sm:mb-0">
-                  <h3 className="font-semibold truncate max-w-[200px] sm:max-w-none">
-                    {track.title}
-                  </h3>
-
-                  <Badge
-                    variant="secondary"
-                    className="text-xs rounded-full w-fit"
-                  >
-                    {
-                      modelOptions.find(
-                        (option) => option.id === selectedOption
-                      )?.name
-                    }
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground truncate">
-                  {track.artist.name} • {track.album.title}
-                </p>
               </div>
 
-              <div className="flex flex-col gap-3 w-full sm:w-64 mt-2 sm:mt-0">
-                <div className="flex items-center justify-between">
-                  <div
-                    className="hover:text-primary/70 rounded-full"
-                    onClick={toggleHeaderPlayback}
-                  >
-                    {isHeaderPlaying ? (
-                      <Pause className="h-4 w-4" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
-                  </div>
+              <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
+                <Button
+                  className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
+                    isHeaderPlaying
+                      ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                      : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
+                  }`}
+                  onClick={toggleHeaderPlayback}
+                >
+                  {isHeaderPlaying ? (
+                    <Pause className="h-3 w-3" />
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
+                </Button>
 
-                  <div className="text-xs">
-                    {formatTime(headerAudioCurrentTime)} /{" "}
-                    {formatTime(headerAudioDuration)}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                  <span className="text-xs font-mono whitespace-nowrap">
+                    {formatTime(headerAudioCurrentTime)}
+                  </span>
                   <Slider
                     value={[headerAudioCurrentTime]}
                     min={0}
@@ -660,58 +650,49 @@ export default function AudioSeparator({
                     onValueChange={handleSeek}
                     className="flex-grow"
                   />
+                  <span className="text-xs font-mono w-8">
+                    {formatTime(headerAudioDuration)}
+                  </span>
                 </div>
               </div>
             </div>
           ) : uploadedFile ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center w-full gap-3">
-              <div className="flex-shrink-0 bg-muted/30 rounded-md p-3">
-                <FileAudio className="h-6 w-6" />
-              </div>
-              <div className="flex-grow min-w-0 w-full">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 sm:mb-0">
-                  <h3 className="font-semibold truncate max-w-[200px] sm:max-w-none">
+            <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
+              <div className="flex items-end gap-3 flex-1 min-w-0">
+                <div className="flex-shrink-0 bg-muted/30 rounded-md p-3 border border-black dark:border-white">
+                  <FileAudio className="h-6 w-6" />
+                </div>
+                <div className="flex flex-col justify-between min-w-0">
+                  <h3 className="font-semibold truncate">
                     {uploadedFile.name}
                   </h3>
-                  <Badge
-                    variant="secondary"
-                    className="text-xs rounded-full w-fit"
-                  >
-                    {
-                      modelOptions.find(
-                        (option) => option.id === selectedOption
-                      )?.name
-                    }
-                  </Badge>
+                  <p className="text-sm font-medium text-muted-foreground truncate">
+                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB •{" "}
+                    {uploadedFile.type}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB •{" "}
-                  {uploadedFile.type}
-                </p>
               </div>
 
-              <div className="flex flex-col gap-1 w-full sm:w-64 mt-2 sm:mt-0">
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-primary/10"
-                    onClick={toggleHeaderPlayback}
-                  >
-                    {isHeaderPlaying ? (
-                      <Pause className="h-4 w-4" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
-                  </Button>
+              <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
+                <Button
+                  className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
+                    isHeaderPlaying
+                      ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                      : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
+                  }`}
+                  onClick={toggleHeaderPlayback}
+                >
+                  {isHeaderPlaying ? (
+                    <Pause className="h-3 w-3" />
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
+                </Button>
 
-                  <div className="text-xs">
-                    {formatTime(headerAudioCurrentTime)} /{" "}
-                    {formatTime(headerAudioDuration)}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                  <span className="text-xs font-mono whitespace-nowrap">
+                    {formatTime(headerAudioCurrentTime)}
+                  </span>
                   <Slider
                     value={[headerAudioCurrentTime]}
                     min={0}
@@ -720,6 +701,9 @@ export default function AudioSeparator({
                     onValueChange={handleSeek}
                     className="flex-grow"
                   />
+                  <span className="text-xs font-mono w-8">
+                    {formatTime(headerAudioDuration)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -747,28 +731,30 @@ export default function AudioSeparator({
       </CardHeader>
 
       <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2 w-full">
-          <Settings className="h-5 w-5 flex-shrink-0 text-black dark:text-white" />
-          <Select
-            value={selectedOption}
-            onValueChange={setSelectedOption}
-            disabled={isLoading}
-          >
-            <SelectTrigger className="w-full min-w-0 border-black/50 dark:border-white/50">
-              <SelectValue placeholder="Select model" className="truncate" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Models</SelectLabel>
-                {modelOptions.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+        {!featured && (
+          <div className="flex items-center gap-2 w-full">
+            <Settings className="h-5 w-5 flex-shrink-0 text-black dark:text-white" />
+            <Select
+              value={selectedOption}
+              onValueChange={setSelectedOption}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-full min-w-0 border-black dark:border-white bg-white dark:bg-black">
+                <SelectValue placeholder="Select model" className="truncate" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Models</SelectLabel>
+                  {modelOptions.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {error && (
           <Alert variant="destructive" className="animate-in fade-in-50">
@@ -784,7 +770,7 @@ export default function AudioSeparator({
 
         {Object.keys(stems).length > 0 && (
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-end">
               <h4 className="font-medium text-sm">Separated Stems</h4>
 
               <Button
@@ -820,7 +806,7 @@ export default function AudioSeparator({
                   className="border border-black dark:border-white rounded-lg overflow-hidden transition-all"
                 >
                   <div className="flex flex-col">
-                    <div className="flex items-center justify-between p-3 border-b border-black dark:border-white">
+                    <div className="flex items-center justify-between p-3">
                       <div className="flex items-center">
                         <div className="w-9 h-9 rounded-full border border-black dark:border-white flex items-center justify-center mr-3">
                           {audioSource.icon}
@@ -834,18 +820,56 @@ export default function AudioSeparator({
                         variant="outline"
                         size="icon"
                         className={`h-9 w-9 rounded-full transition-colors ${
-                          currentlyPlaying === audioId
+                          currentlyPlaying === audioId || pausedStem === audioId
                             ? "bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white"
                             : "border border-black/50 dark:border-white/50 bg-transparent text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                         }`}
                         onClick={() => togglePlayback(audioId)}
                       >
-                        {currentlyPlaying === audioId ? (
+                        {currentlyPlaying === audioId ||
+                        pausedStem === audioId ? (
                           <Pause className="h-4 w-4" />
                         ) : (
                           <Play className="h-4 w-4" />
                         )}
                       </Button>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white dark:bg-black border-y border-black dark:border-white px-3 py-1.5">
+                      {currentlyPlaying === audioId ||
+                      pausedStem === audioId ? (
+                        <>
+                          <span className="text-xs font-mono whitespace-nowrap">
+                            {formatTime(currentLyricTime)}
+                          </span>
+                          <Slider
+                            value={[currentLyricTime]}
+                            min={0}
+                            max={headerAudioDuration}
+                            step={0.1}
+                            onValueChange={(value) => {
+                              if (audioRef.current) {
+                                audioRef.current.currentTime = value[0];
+                                setCurrentLyricTime(value[0]);
+                              }
+                            }}
+                            className="flex-grow"
+                          />
+                          <span className="text-xs font-mono w-8">
+                            {formatTime(headerAudioDuration)}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs font-mono whitespace-nowrap">
+                            {formatTime(0)}
+                          </span>
+                          <div className="flex-grow h-2 bg-transparent border border-black dark:border-white rounded-full" />
+                          <span className="text-xs font-mono w-8">
+                            {formatTime(headerAudioDuration)}
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     <div className="p-3 flex justify-between items-center gap-2">
