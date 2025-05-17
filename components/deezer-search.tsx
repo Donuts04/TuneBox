@@ -65,6 +65,7 @@ export default function DeezerSearch({
 
     if (!query.trim()) {
       setTracks([]);
+      setLoading(false);
       return;
     }
 
@@ -176,7 +177,7 @@ export default function DeezerSearch({
         />
       </div>
 
-      {mounted && !query.trim() && (
+      {mounted && !query.trim() && !loading && (
         <div className="flex justify-center">
           <Image
             src="/tuney/think.png"

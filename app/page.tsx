@@ -26,14 +26,12 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { FeaturedCarousel } from "@/components/featured-carousel";
-import ComposePage from "./compose/page";
 import { MusicBoxComposer } from "@/components/MusicBoxComposer";
 import { ArtworkGallery } from "@/components/artwork-gallery";
 import { AboutSection } from "@/components/about-section";

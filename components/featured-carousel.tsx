@@ -53,260 +53,286 @@ interface Song {
 const featuredSongs: Song[] = [
   {
     id: "1",
-    title: "Bathed In Gray",
-    artist: "Luna Rivers",
-    coverImage: "/TuneBoxLogo.png",
-    audioUrl: "/featured/bathedInGray.mp3",
-    separations: ["Vocals", "Piano", "Strings", "Percussion"],
-    notes:
-      "This piece features a haunting melody with subtle string arrangements that build throughout the track.",
+    title: "Mystery of Love",
+    artist: "Sufjan Stevens",
+    coverImage: "/featured/mysteryOfLove/mysteryOfLove.jpg",
+    audioUrl: "/featured/mysteryOfLove/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
+    notes: "Calm",
     stems: {
-      vocals: {
-        name: "Vocals",
+      instrumental: {
+        name: "Instrumental",
         color: "bg-purple-500 hover:bg-purple-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/midnight-serenade-vocals.mp3",
+        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
       },
-      piano: {
-        name: "Piano",
+      vocals: {
+        name: "Vocals",
         color: "bg-green-500 hover:bg-green-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/midnight-serenade-piano.mp3",
+        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
       },
-      strings: {
-        name: "Strings",
+      bass: {
+        name: "Bass",
         color: "bg-blue-500 hover:bg-blue-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/midnight-serenade-strings.mp3",
+        audioUrl: "/featured/mysteryOfLove/bass.mp3",
       },
-      percussion: {
-        name: "Percussion",
+      drums: {
+        name: "Drums",
         color: "bg-red-500 hover:bg-red-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/midnight-serenade-percussion.mp3",
+        audioUrl: "/featured/mysteryOfLove/drums.mp3",
       },
     },
   },
   {
     id: "2",
-    title: "Sunlight Dance",
-    artist: "The Rhythm Collective",
-    coverImage: "/placeholder.svg?key=g6osp",
-    audioUrl: "/songs/sunlight-dance.mp3",
-    separations: ["Vocals", "Guitar", "Bass", "Drums", "Synth"],
-    notes:
-      "An upbeat summer track with layered vocal harmonies and a catchy guitar hook.",
+    title: "Sunsetz",
+    artist: "Cigarettes After Sex",
+    coverImage: "/featured/sunsetz/sunsetz.jpg",
+    audioUrl: "/featured/sunsetz/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
+    notes: "CAS",
     stems: {
+      instrumental: {
+        name: "Instrumental",
+        color: "bg-amber-500 hover:bg-amber-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/sunsetz/instrumental.mp3",
+      },
       vocals: {
         name: "Vocals",
         color: "bg-purple-500 hover:bg-purple-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/sunlight-dance-vocals.mp3",
-      },
-      guitar: {
-        name: "Guitar",
-        color: "bg-amber-500 hover:bg-amber-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/sunlight-dance-guitar.mp3",
+        audioUrl: "/featured/sunsetz/vocals.mp3",
       },
       bass: {
         name: "Bass",
         color: "bg-blue-500 hover:bg-blue-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/sunlight-dance-bass.mp3",
+        audioUrl: "/featured/sunsetz/bass.mp3",
       },
       drums: {
         name: "Drums",
         color: "bg-red-500 hover:bg-red-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/sunlight-dance-drums.mp3",
-      },
-      synth: {
-        name: "Synth",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/sunlight-dance-synth.mp3",
+        audioUrl: "/featured/sunsetz/drums.mp3",
       },
     },
   },
   {
     id: "3",
-    title: "Electric Dreams",
-    artist: "Neon Pulse",
-    coverImage: "/placeholder.svg?key=6yuqn",
-    audioUrl: "/songs/electric-dreams.mp3",
-    separations: [
-      "Lead Vocals",
-      "Backing Vocals",
-      "Synth Bass",
-      "Drums",
-      "Lead Synth",
-      "Pads",
-    ],
+    title: "My Love Mine All Mine",
+    artist: "Mitski",
+    coverImage: "/featured/myLoveMineAllMine/myLoveMineAllMine.jpg",
+    audioUrl: "/featured/myLoveMineAllMine/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
     notes:
       "A synthwave-inspired track with retro electronic sounds and modern production techniques.",
     stems: {
-      leadVocals: {
-        name: "Lead Vocals",
+      instrumental: {
+        name: "Instrumental",
         color: "bg-purple-500 hover:bg-purple-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/electric-dreams-lead-vocals.mp3",
+        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
       },
-      backingVocals: {
-        name: "Backing Vocals",
-        color: "bg-indigo-500 hover:bg-indigo-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/electric-dreams-backing-vocals.mp3",
-      },
-      synthBass: {
-        name: "Synth Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/electric-dreams-synth-bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/electric-dreams-drums.mp3",
-      },
-      leadSynth: {
-        name: "Lead Synth",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/electric-dreams-lead-synth.mp3",
-      },
-      pads: {
-        name: "Pads",
-        color: "bg-teal-500 hover:bg-teal-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/electric-dreams-pads.mp3",
-      },
-    },
-  },
-  {
-    id: "4",
-    title: "Autumn Leaves",
-    artist: "Acoustic Ensemble",
-    coverImage: "/placeholder.svg?key=zdq0a",
-    audioUrl: "/songs/autumn-leaves.mp3",
-    separations: [
-      "Vocals",
-      "Acoustic Guitar",
-      "Cello",
-      "Piano",
-      "Light Percussion",
-    ],
-    notes:
-      "A gentle acoustic ballad with warm cello lines and delicate piano accompaniment.",
-    stems: {
       vocals: {
         name: "Vocals",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/autumn-leaves-vocals.mp3",
-      },
-      acousticGuitar: {
-        name: "Acoustic Guitar",
-        color: "bg-amber-500 hover:bg-amber-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/autumn-leaves-acoustic-guitar.mp3",
-      },
-      cello: {
-        name: "Cello",
-        color: "bg-orange-500 hover:bg-orange-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/autumn-leaves-cello.mp3",
-      },
-      piano: {
-        name: "Piano",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/autumn-leaves-piano.mp3",
-      },
-      percussion: {
-        name: "Light Percussion",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/autumn-leaves-percussion.mp3",
-      },
-    },
-  },
-  {
-    id: "5",
-    title: "Urban Echoes",
-    artist: "City Soundscape",
-    coverImage: "/placeholder.svg?key=svtjf",
-    audioUrl: "/songs/urban-echoes.mp3",
-    separations: ["Vocals", "Beats", "Samples", "Synth", "Bass"],
-    notes:
-      "A fusion of urban sounds and electronic beats with layered vocal samples.",
-    stems: {
-      vocals: {
-        name: "Vocals",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/urban-echoes-vocals.mp3",
-      },
-      beats: {
-        name: "Beats",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/urban-echoes-beats.mp3",
-      },
-      samples: {
-        name: "Samples",
-        color: "bg-yellow-500 hover:bg-yellow-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/urban-echoes-samples.mp3",
-      },
-      synth: {
-        name: "Synth",
         color: "bg-green-500 hover:bg-green-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/urban-echoes-synth.mp3",
+        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
       },
       bass: {
         name: "Bass",
         color: "bg-blue-500 hover:bg-blue-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/urban-echoes-bass.mp3",
+        audioUrl: "/featured/mysteryOfLove/bass.mp3",
+      },
+      drums: {
+        name: "Drums",
+        color: "bg-red-500 hover:bg-red-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/drums.mp3",
       },
     },
   },
   {
+    id: "4",
+    title: "Glue Song",
+    artist: "Beabadoobee",
+    coverImage: "/featured/glueSong/glueSong.jpg",
+    audioUrl: "/featured/glueSong/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
+    notes:
+      "A gentle acoustic ballad with warm cello lines and delicate piano accompaniment.",
+    stems: {
+      instrumental: {
+        name: "Instrumental",
+        color: "bg-purple-500 hover:bg-purple-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
+      },
+      vocals: {
+        name: "Vocals",
+        color: "bg-green-500 hover:bg-green-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
+      },
+      bass: {
+        name: "Bass",
+        color: "bg-blue-500 hover:bg-blue-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/bass.mp3",
+      },
+      drums: {
+        name: "Drums",
+        color: "bg-red-500 hover:bg-red-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/drums.mp3",
+      },
+    },
+  },
+  {
+    id: "5",
+    title: "I'm Not Them",
+    artist: "Them & I",
+    coverImage: "/featured/imNotThem/imNotThem.jpg",
+    audioUrl: "/featured/imNotThem/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
+    notes:
+      "A fusion of urban sounds and electronic beats with layered vocal samples.",
+    stems: {
+      instrumental: {
+        name: "Instrumental",
+        color: "bg-purple-500 hover:bg-purple-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
+      },
+      vocals: {
+        name: "Vocals",
+        color: "bg-green-500 hover:bg-green-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
+      },
+      bass: {
+        name: "Bass",
+        color: "bg-blue-500 hover:bg-blue-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/bass.mp3",
+      },
+      drums: {
+        name: "Drums",
+        color: "bg-red-500 hover:bg-red-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/drums.mp3",
+      },
+    },
+  },
+
+  {
     id: "6",
-    title: "Ocean Waves",
-    artist: "Coastal Vibes",
-    coverImage: "/placeholder.svg?key=hyx4a",
-    audioUrl: "/songs/ocean-waves.mp3",
-    separations: ["Ambient Sounds", "Piano", "Synth Pads", "Percussion"],
+    title: "Pretty Boy",
+    artist: "The Neighbourhood",
+    coverImage: "/featured/prettyBoy/prettyBoy.jpg",
+    audioUrl: "/featured/prettyBoy/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
     notes:
       "A relaxing ambient piece inspired by the sounds of the ocean and coastal landscapes.",
     stems: {
-      ambientSounds: {
-        name: "Ambient Sounds",
-        color: "bg-cyan-500 hover:bg-cyan-600",
+      instrumental: {
+        name: "Instrumental",
+        color: "bg-purple-500 hover:bg-purple-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/ocean-waves-ambient.mp3",
+        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
       },
-      piano: {
-        name: "Piano",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/ocean-waves-piano.mp3",
-      },
-      synthPads: {
-        name: "Synth Pads",
+      vocals: {
+        name: "Vocals",
         color: "bg-green-500 hover:bg-green-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/ocean-waves-synth-pads.mp3",
+        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
       },
-      percussion: {
-        name: "Percussion",
+      bass: {
+        name: "Bass",
+        color: "bg-blue-500 hover:bg-blue-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/bass.mp3",
+      },
+      drums: {
+        name: "Drums",
         color: "bg-red-500 hover:bg-red-600",
         icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/songs/ocean-waves-percussion.mp3",
+        audioUrl: "/featured/mysteryOfLove/drums.mp3",
+      },
+    },
+  },
+  {
+    id: "7",
+    title: "Stargazing",
+    artist: "The Neighbourhood",
+    coverImage: "/featured/stargazing/stargazing.jpg",
+    audioUrl: "/featured/stargazing/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
+    notes: "Calm",
+    stems: {
+      instrumental: {
+        name: "Instrumental",
+        color: "bg-purple-500 hover:bg-purple-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/stargazing/instrumental.mp3",
+      },
+      vocals: {
+        name: "Vocals",
+        color: "bg-green-500 hover:bg-green-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/stargazing/vocals.mp3",
+      },
+      bass: {
+        name: "Bass",
+        color: "bg-blue-500 hover:bg-blue-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/stargazing/bass.mp3",
+      },
+      drums: {
+        name: "Drums",
+        color: "bg-red-500 hover:bg-red-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/stargazing/drums.mp3",
+      },
+    },
+  },
+  {
+    id: "8",
+    title: "Lost",
+    artist: "Frank Ocean",
+    coverImage: "/featured/lost/lost.jpg",
+    audioUrl: "/featured/lost/original.mp3",
+    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
+    notes: "Calm",
+    stems: {
+      instrumental: {
+        name: "Instrumental",
+        color: "bg-purple-500 hover:bg-purple-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/stargazing/instrumental.mp3",
+      },
+      vocals: {
+        name: "Vocals",
+        color: "bg-green-500 hover:bg-green-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
+      },
+      bass: {
+        name: "Bass",
+        color: "bg-blue-500 hover:bg-blue-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/bass.mp3",
+      },
+      drums: {
+        name: "Drums",
+        color: "bg-red-500 hover:bg-red-600",
+        icon: <Disc className="h-4 w-4" />,
+        audioUrl: "/featured/mysteryOfLove/drums.mp3",
       },
     },
   },
@@ -459,7 +485,7 @@ export function FeaturedCarousel() {
                                 alt={`${song.title} by ${song.artist}`}
                                 fill
                                 className={cn(
-                                  "object-cover grayscale transition-all duration-700 rounded-full border-[4px] border-black dark:border-white overflow-hidden",
+                                  "object-cover transition-all duration-700 rounded-full border-2 border-black dark:border-white overflow-hidden",
                                   currentlyPlaying === song.id &&
                                     !audioRef.current?.paused
                                     ? "animate-[spin_20s_linear_infinite]"
