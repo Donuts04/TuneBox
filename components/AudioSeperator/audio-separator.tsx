@@ -16,6 +16,7 @@ import {
   Mic,
   FileAudio,
   SpellCheck2,
+  Volume2,
 } from "lucide-react";
 import type { DeezerTrack } from "@/lib/deezer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,15 +80,19 @@ export default function AudioSeparator({
   const [stems, setStems] = useState<Record<string, AudioSource>>(
     preloadedStems || {}
   );
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [pausedStem, setPausedStem] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingStems, setPlayingStems] = useState<Set<string>>(new Set());
+  const [pausedStems, setPausedStems] = useState<Set<string>>(new Set());
+  const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [lyrics, setLyrics] = useState<LyricsData | null>(null);
   const [showLyrics, setShowLyrics] = useState<boolean>(false);
   const [currentLyricTime, setCurrentLyricTime] = useState(0);
   const lyricsIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [stemVolumes, setStemVolumes] = useState<Record<string, number>>({});
+  const [stemCurrentTime, setStemCurrentTime] = useState(0);
+  const [headerCurrentTime, setHeaderCurrentTime] = useState(0);
+  const timeUpdateRef = useRef<((time: number) => void) | null>(null);
 
   const [selectedOption, setSelectedOption] = useState<string>("spleeter-2");
 
@@ -122,6 +127,18 @@ export default function AudioSeparator({
   ];
 
   const stemTypes = {
+    other: {
+      name: "Instrumental",
+      color: "bg-green-500 hover:bg-green-600",
+      icon: <Music className="h-4 w-4" />,
+      filename: "other.mp3",
+    },
+    accompaniment: {
+      name: "Instrumental",
+      color: "bg-green-500 hover:bg-green-600",
+      icon: <Music className="h-4 w-4" />,
+      filename: "accompaniment.mp3",
+    },
     vocals: {
       name: "Vocals",
       color: "bg-purple-500 hover:bg-purple-600",
@@ -146,51 +163,15 @@ export default function AudioSeparator({
       icon: <Music className="h-4 w-4" />,
       filename: "piano.mp3",
     },
-    other: {
-      name: "Other",
-      color: "bg-green-500 hover:bg-green-600",
-      icon: <Music className="h-4 w-4" />,
-      filename: "other.mp3",
-    },
-    accompaniment: {
-      name: "Other",
-      color: "bg-green-500 hover:bg-green-600",
-      icon: <Music className="h-4 w-4" />,
-      filename: "accompaniment.mp3",
-    },
   };
 
   // Audio player state
   const [isHeaderPlaying, setIsHeaderPlaying] = useState(false);
   const [headerAudioDuration, setHeaderAudioDuration] = useState(0);
-  const [headerAudioCurrentTime, setHeaderAudioCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const headerAudioRef = useRef<HTMLAudioElement | null>(null);
   const headerAudioIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (headerAudioRef.current) {
-        headerAudioRef.current.pause();
-        headerAudioRef.current = null;
-      }
-      if (lyricsIntervalRef.current) {
-        clearInterval(lyricsIntervalRef.current);
-      }
-      if (headerAudioIntervalRef.current) {
-        clearInterval(headerAudioIntervalRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-    };
-  }, []);
 
   // Single useEffect for processing audio
   useEffect(() => {
@@ -250,8 +231,15 @@ export default function AudioSeparator({
         }
       });
 
+      headerAudioRef.current.addEventListener("timeupdate", () => {
+        if (headerAudioRef.current) {
+          setHeaderCurrentTime(headerAudioRef.current.currentTime);
+        }
+      });
+
       headerAudioRef.current.addEventListener("ended", () => {
         setIsHeaderPlaying(false);
+        setHeaderCurrentTime(0);
         if (headerAudioIntervalRef.current) {
           clearInterval(headerAudioIntervalRef.current);
         }
@@ -265,6 +253,7 @@ export default function AudioSeparator({
       if (headerAudioRef.current) {
         headerAudioRef.current.pause();
         headerAudioRef.current.removeEventListener("loadedmetadata", () => {});
+        headerAudioRef.current.removeEventListener("timeupdate", () => {});
         headerAudioRef.current.removeEventListener("ended", () => {});
       }
     };
@@ -373,34 +362,34 @@ export default function AudioSeparator({
     }
   };
 
+  // Set up the time update handler
+  useEffect(() => {
+    timeUpdateRef.current = (time: number) => {
+      setStemCurrentTime(time);
+      setCurrentLyricTime(time);
+    };
+  }, []);
+
   const togglePlayback = (audioId: string) => {
     const audioSource = stems[audioId];
     if (!audioSource || !audioSource.audioUrl) return;
 
-    if (currentlyPlaying === audioId) {
-      // Pause current playback
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+    if (playingStems.has(audioId)) {
+      // Pause this stem
+      if (audioRefs.current[audioId]) {
+        audioRefs.current[audioId].pause();
       }
-      setCurrentlyPlaying(null);
-      setPausedStem(audioId);
-
-      // Stop lyrics tracking
-      if (lyricsIntervalRef.current) {
-        clearInterval(lyricsIntervalRef.current);
-        lyricsIntervalRef.current = null;
-      }
+      setPlayingStems((prev) => {
+        const next = new Set(prev);
+        next.delete(audioId);
+        return next;
+      });
+      setPausedStems((prev) => {
+        const next = new Set(prev);
+        next.add(audioId);
+        return next;
+      });
     } else {
-      // Stop any current playback
-      if (audioRef.current) {
-        audioRef.current.pause();
-        if (lyricsIntervalRef.current) {
-          clearInterval(lyricsIntervalRef.current);
-          lyricsIntervalRef.current = null;
-        }
-      }
-
       // Stop header audio if playing
       if (headerAudioRef.current && isHeaderPlaying) {
         headerAudioRef.current.pause();
@@ -411,34 +400,63 @@ export default function AudioSeparator({
         }
       }
 
-      // Play the selected audio
-      audioRef.current = new Audio(audioSource.audioUrl);
-      audioRef.current.play().catch((err) => {
+      // Create or get audio element for this stem
+      if (!audioRefs.current[audioId]) {
+        audioRefs.current[audioId] = new Audio(audioSource.audioUrl);
+
+        // Add timeupdate event listener
+        audioRefs.current[audioId].addEventListener("timeupdate", () => {
+          if (timeUpdateRef.current) {
+            timeUpdateRef.current(audioRefs.current[audioId].currentTime);
+          }
+        });
+
+        audioRefs.current[audioId].onended = () => {
+          audioRefs.current[audioId].currentTime = 0;
+          setPlayingStems((prev) => {
+            const next = new Set(prev);
+            next.delete(audioId);
+            return next;
+          });
+          setPausedStems((prev) => {
+            const next = new Set(prev);
+            next.add(audioId);
+            return next;
+          });
+        };
+      }
+
+      // If this is the first stem to play, reset the time
+      if (playingStems.size === 0) {
+        setStemCurrentTime(0);
+        setCurrentLyricTime(0);
+      }
+
+      // Sync with other playing stems
+      if (playingStems.size > 0) {
+        const firstPlayingStem = Array.from(playingStems)[0];
+        if (firstPlayingStem && audioRefs.current[firstPlayingStem]) {
+          audioRefs.current[audioId].currentTime =
+            audioRefs.current[firstPlayingStem].currentTime;
+        }
+      }
+
+      // Play the stem
+      audioRefs.current[audioId].play().catch((err) => {
         console.error("Error playing audio:", err);
         setError("Failed to play audio");
       });
 
-      // Set currently playing audio
-      setCurrentlyPlaying(audioId);
-      setPausedStem(null);
-
-      // Start tracking time for all stems
-      setCurrentLyricTime(0);
-      const startTime = Date.now();
-      lyricsIntervalRef.current = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 1000;
-        setCurrentLyricTime(elapsed);
-      }, 100);
-
-      // Handle when audio ends
-      audioRef.current.onended = () => {
-        setCurrentlyPlaying(null);
-        setPausedStem(null);
-        if (lyricsIntervalRef.current) {
-          clearInterval(lyricsIntervalRef.current);
-          lyricsIntervalRef.current = null;
-        }
-      };
+      setPlayingStems((prev) => {
+        const next = new Set(prev);
+        next.add(audioId);
+        return next;
+      });
+      setPausedStems((prev) => {
+        const next = new Set(prev);
+        next.delete(audioId);
+        return next;
+      });
     }
   };
 
@@ -453,18 +471,14 @@ export default function AudioSeparator({
         clearInterval(headerAudioIntervalRef.current);
         headerAudioIntervalRef.current = null;
       }
-
-      // Stop lyrics tracking
-      if (lyricsIntervalRef.current) {
-        clearInterval(lyricsIntervalRef.current);
-        lyricsIntervalRef.current = null;
-      }
     } else {
       // Stop any stem playback
-      if (audioRef.current) {
-        audioRef.current.pause();
-        setCurrentlyPlaying(null);
-      }
+      Object.values(audioRefs.current).forEach((audio) => {
+        audio.pause();
+      });
+      setPlayingStems(new Set());
+      setPausedStems(new Set());
+      setStemCurrentTime(0);
 
       // Start playback
       headerAudioRef.current.play().catch((err) => {
@@ -473,36 +487,30 @@ export default function AudioSeparator({
       });
 
       setIsHeaderPlaying(true);
-
-      // Start tracking time
-      headerAudioIntervalRef.current = setInterval(() => {
-        if (headerAudioRef.current) {
-          setHeaderAudioCurrentTime(headerAudioRef.current.currentTime);
-        }
-      }, 100);
-
-      // Start tracking time for lyrics if lyrics exist
-      if (lyrics) {
-        setCurrentLyricTime(0);
-        lyricsIntervalRef.current = setInterval(() => {
-          if (headerAudioRef.current) {
-            setCurrentLyricTime(headerAudioRef.current.currentTime);
-          }
-        }, 100);
-      }
     }
   };
 
-  const handleSeek = (value: number[]) => {
-    if (!headerAudioRef.current) return;
-
+  const handleHeaderSeek = (value: number[]) => {
     const newTime = value[0];
-    headerAudioRef.current.currentTime = newTime;
-    setHeaderAudioCurrentTime(newTime);
+    setHeaderCurrentTime(newTime);
 
-    if (lyrics) {
-      setCurrentLyricTime(newTime);
+    // Update header audio if playing
+    if (headerAudioRef.current && isHeaderPlaying) {
+      headerAudioRef.current.currentTime = newTime;
     }
+  };
+
+  const handleStemSeek = (value: number[]) => {
+    const newTime = value[0];
+    setStemCurrentTime(newTime);
+    setCurrentLyricTime(newTime);
+
+    // Update all playing stems
+    Object.entries(audioRefs.current).forEach(([id, audio]) => {
+      if (playingStems.has(id)) {
+        audio.currentTime = newTime;
+      }
+    });
   };
 
   const generateLyrics = async () => {
@@ -596,6 +604,35 @@ export default function AudioSeparator({
     setShowProcessedStem(showProcessedStem === audioId ? null : audioId);
   };
 
+  const handleVolumeChange = (audioId: string, value: number) => {
+    if (audioRefs.current[audioId]) {
+      audioRefs.current[audioId].volume = value;
+    }
+    setStemVolumes((prev) => ({
+      ...prev,
+      [audioId]: value,
+    }));
+  };
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      Object.values(audioRefs.current).forEach((audio) => {
+        audio.pause();
+      });
+      audioRefs.current = {};
+      if (lyricsIntervalRef.current) {
+        clearInterval(lyricsIntervalRef.current);
+      }
+      if (headerAudioIntervalRef.current) {
+        clearInterval(headerAudioIntervalRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   return (
     <Card className="w-full border border-black dark:border-white overflow-hidden bg-transparent">
       <CardHeader className="border-b border-black dark:border-white p-3 sm:p-4">
@@ -640,14 +677,14 @@ export default function AudioSeparator({
 
                 <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
                   <span className="text-xs font-mono whitespace-nowrap">
-                    {formatTime(headerAudioCurrentTime)}
+                    {formatTime(headerCurrentTime)}
                   </span>
                   <Slider
-                    value={[headerAudioCurrentTime]}
+                    value={[headerCurrentTime]}
                     min={0}
                     max={headerAudioDuration || 100}
                     step={0.1}
-                    onValueChange={handleSeek}
+                    onValueChange={handleHeaderSeek}
                     className="flex-grow"
                   />
                   <span className="text-xs font-mono w-8">
@@ -689,16 +726,16 @@ export default function AudioSeparator({
                   )}
                 </Button>
 
-                <div className="flex items-center gap-3 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
                   <span className="text-xs font-mono whitespace-nowrap">
-                    {formatTime(headerAudioCurrentTime)}
+                    {formatTime(headerCurrentTime)}
                   </span>
                   <Slider
-                    value={[headerAudioCurrentTime]}
+                    value={[headerCurrentTime]}
                     min={0}
                     max={headerAudioDuration || 100}
                     step={0.1}
-                    onValueChange={handleSeek}
+                    onValueChange={handleHeaderSeek}
                     className="flex-grow"
                   />
                   <span className="text-xs font-mono w-8">
@@ -820,15 +857,16 @@ export default function AudioSeparator({
                         variant="outline"
                         size="icon"
                         className={`h-9 w-9 rounded-full transition-colors ${
-                          currentlyPlaying === audioId || pausedStem === audioId
+                          playingStems.has(audioId) || pausedStems.has(audioId)
                             ? "bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white"
                             : "border border-black/50 dark:border-white/50 bg-transparent text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                         }`}
                         onClick={() => togglePlayback(audioId)}
                       >
-                        {currentlyPlaying === audioId ||
-                        pausedStem === audioId ? (
+                        {playingStems.has(audioId) ? (
                           <Pause className="h-4 w-4" />
+                        ) : pausedStems.has(audioId) ? (
+                          <Play className="h-4 w-4" />
                         ) : (
                           <Play className="h-4 w-4" />
                         )}
@@ -836,40 +874,20 @@ export default function AudioSeparator({
                     </div>
 
                     <div className="flex items-center gap-3 bg-white dark:bg-black border-y border-black dark:border-white px-3 py-1.5">
-                      {currentlyPlaying === audioId ||
-                      pausedStem === audioId ? (
-                        <>
-                          <span className="text-xs font-mono whitespace-nowrap">
-                            {formatTime(currentLyricTime)}
-                          </span>
-                          <Slider
-                            value={[currentLyricTime]}
-                            min={0}
-                            max={headerAudioDuration}
-                            step={0.1}
-                            onValueChange={(value) => {
-                              if (audioRef.current) {
-                                audioRef.current.currentTime = value[0];
-                                setCurrentLyricTime(value[0]);
-                              }
-                            }}
-                            className="flex-grow"
-                          />
-                          <span className="text-xs font-mono w-8">
-                            {formatTime(headerAudioDuration)}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-xs font-mono whitespace-nowrap">
-                            {formatTime(0)}
-                          </span>
-                          <div className="flex-grow h-2 bg-transparent border border-black dark:border-white rounded-full" />
-                          <span className="text-xs font-mono w-8">
-                            {formatTime(headerAudioDuration)}
-                          </span>
-                        </>
-                      )}
+                      <span className="text-xs font-mono whitespace-nowrap">
+                        {formatTime(stemCurrentTime)}
+                      </span>
+                      <Slider
+                        value={[stemCurrentTime]}
+                        min={0}
+                        max={headerAudioDuration}
+                        step={0.1}
+                        onValueChange={handleStemSeek}
+                        className="flex-grow"
+                      />
+                      <span className="text-xs font-mono w-8">
+                        {formatTime(headerAudioDuration)}
+                      </span>
                     </div>
 
                     <div className="p-3 flex justify-between items-center gap-2">
@@ -902,6 +920,20 @@ export default function AudioSeparator({
                         <span>Process</span>
                       </Button>
                     </div>
+
+                    <div className="px-3 pb-3 flex items-center gap-2">
+                      <Volume2 className="h-4 w-4 text-muted-foreground" />
+                      <Slider
+                        value={[stemVolumes[audioId] ?? 1]}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        onValueChange={(value) =>
+                          handleVolumeChange(audioId, value[0])
+                        }
+                        className="flex-grow"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -913,7 +945,9 @@ export default function AudioSeparator({
           <LyricsDisplay
             lyrics={lyrics}
             currentLyricTime={currentLyricTime}
-            currentlyPlaying={currentlyPlaying}
+            currentlyPlaying={
+              playingStems.size > 0 ? Object.keys(stems)[0] : null
+            }
             isHeaderPlaying={isHeaderPlaying}
             headerAudioDuration={headerAudioDuration}
             formatTime={formatTime}
