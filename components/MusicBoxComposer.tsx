@@ -132,7 +132,7 @@ export function MusicBoxComposer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentColumn, setCurrentColumn] = useState(0);
   const [tempo, setTempo] = useState(120);
-  const playerRef = useRef<Tone.Player | null>(null);
+  const playerRef = useRef<Tone.Sampler | null>(null);
   const playbackIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const { theme } = useTheme();
@@ -145,19 +145,21 @@ export function MusicBoxComposer() {
 
   useEffect(() => {
     // Initialize Tone.js with the music box sample
-    const reverb = new Tone.Reverb({
-      decay: 0.8,
-      wet: 0.2,
+    playerRef.current = new Tone.Sampler({
+      urls: {
+        C4: "/music-box-note-c_C_major.wav",
+      },
+      baseUrl: "/",
+      onload: () => {
+        console.log("Music box sample loaded");
+      },
+      onerror: (err) => {
+        console.error("Error loading music box sample:", err);
+      },
     }).toDestination();
-
-    playerRef.current = new Tone.Player({
-      url: "/music-box-note-c_C_major.wav",
-      volume: 0,
-    }).connect(reverb);
 
     return () => {
       playerRef.current?.dispose();
-      reverb.dispose();
     };
   }, []);
 
@@ -174,14 +176,12 @@ export function MusicBoxComposer() {
     // Add a slight delay between notes for more mechanical feel
     const now = Tone.now();
 
-    // Calculate the playback rate based on the note
-    const baseNote = "C4";
-    const semitones =
-      Tone.Frequency(note).toMidi() - Tone.Frequency(baseNote).toMidi();
-    const playbackRate = Math.pow(2, semitones / 12);
+    // Calculate note duration based on tempo (in seconds)
+    // At 120 BPM, a quarter note is 0.5 seconds
+    // We'll use a half note duration for smoother transitions
+    const noteDuration = (60 / tempo) * 2;
 
-    playerRef.current.playbackRate = playbackRate;
-    playerRef.current.start(now);
+    playerRef.current.triggerAttackRelease(note, noteDuration, now, 0.5);
   };
 
   const playColumn = (column: number) => {
