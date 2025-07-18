@@ -3,17 +3,11 @@
 import Navbar from "@/components/Navbar/Navbar";
 import ProcessingOptions from "@/components/processing-options";
 import { AudioProcessingProvider } from "@/contexts/audio-processing-context";
-import { useTheme } from "next-themes";
 import {
-  Layers,
-  FileMusic,
-  AudioWaveformIcon as Waveform,
   Search,
   SplitSquareVertical,
   Music,
   Sparkles,
-  Zap,
-  Cat,
   Piano,
   Clock,
   Mic2,
@@ -21,7 +15,7 @@ import {
   Info,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,18 +27,11 @@ import {
 import { motion } from "framer-motion";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { MusicBoxComposer } from "@/components/MusicBoxComposer";
-import { ArtworkGallery } from "@/components/artwork-gallery";
 import { AboutSection } from "@/components/about-section";
 import Footer from "@/components/footer";
-export default function Home() {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [showDialog, setShowDialog] = useState(false);
 
-  // Prevent hydration mismatch by only showing content after mount
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+export default function Home() {
+  const [showDialog, setShowDialog] = useState(false);
 
   const steps = [
     {
@@ -111,20 +98,15 @@ export default function Home() {
               <h1 className="text-5xl font-bold tracking-tighter px-5 md:px-12 text-center">
                 Transform Your Music Experience
               </h1>
-              {mounted && (
-                <Image
-                  src={
-                    theme === "dark" ? "/tuneboxLogo.png" : "/tuneboxLogo.png"
-                  }
-                  alt="TuneBox Logo"
-                  width={450}
-                  height={450}
-                  className={`object-cover ${
-                    theme === "dark" ? "invert" : ""
-                  } w-[300px] h-[300px] md:w-[450px] md:h-[450px]`}
-                  priority
-                />
-              )}
+
+              <Image
+                src="/tuneboxLogo.png"
+                alt="TuneBox Logo"
+                width={450}
+                height={450}
+                className="object-cover dark:invert w-[300px] h-[300px] md:w-[450px] md:h-[450px]"
+                priority
+              />
 
               <p className="text-base md:text-xl text-gray-700 dark:text-gray-300 max-w-md text-center tracking-normal leading-tight">
                 Separate audio tracks and convert them into musical notes with
@@ -135,16 +117,15 @@ export default function Home() {
 
           <div>
             <div className="flex items-end justify-between gap-4">
-              {mounted && (
-                <Image
-                  src="/tuney/pointRight.png"
-                  alt="TuneBox Logo"
-                  width={150}
-                  height={150}
-                  className={`object-cover ${theme === "dark" ? "invert" : ""}`}
-                  priority
-                />
-              )}
+              <Image
+                src="/tuney/pointRight.png"
+                alt="TuneBox Logo"
+                width={150}
+                height={150}
+                className="object-cover dark:invert"
+                priority
+              />
+
               <Button
                 variant="outline"
                 className="rounded-full mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
@@ -159,7 +140,7 @@ export default function Home() {
           <FeaturedCarousel />
 
           <MusicBoxComposer />
-          <ArtworkGallery />
+          {/* <ArtworkGallery /> */}
           <AboutSection />
           <Footer />
         </div>
@@ -167,23 +148,19 @@ export default function Home() {
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent className="sm:max-w-md md:max-w-lg max-h-[90vh] flex flex-col bg-white dark:bg-black border border-gray-200 dark:border-gray-800 shadow-xl">
             <div className="w-full flex justify-center">
-              {mounted && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                >
-                  <Image
-                    src="/tuney/coolCross.png"
-                    alt="TuneBox How To Use"
-                    width={150}
-                    height={150}
-                    className={`object-contain ${
-                      theme === "dark" ? "invert" : ""
-                    }`}
-                  />
-                </motion.div>
-              )}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              >
+                <Image
+                  src="/tuney/coolCross.png"
+                  alt="TuneBox How To Use"
+                  width={150}
+                  height={150}
+                  className="object-contain dark:invert"
+                />
+              </motion.div>
             </div>
 
             <DialogHeader className="flex-shrink-0">

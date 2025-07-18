@@ -22,7 +22,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AudioSeparator from "@/components/AudioSeperator/audio-separator";
-import type { DeezerTrack } from "@/lib/deezer";
 
 interface AudioSource {
   name: string;

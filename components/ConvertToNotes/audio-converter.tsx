@@ -4,9 +4,15 @@ import type React from "react";
 
 import { useState, useEffect, useRef } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Music, Loader2, FileAudio, KeyboardMusic } from "lucide-react";
-import { useAudioProcessing } from "@/contexts/audio-processing-context";
-import * as Tone from "tone";
+import {
+  Music,
+  Loader2,
+  FileAudio,
+  KeyboardMusic,
+  Upload,
+  Speaker,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,19 +26,19 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Play, Pause, Square, Download, Volume2, Settings } from "lucide-react";
+import { Play, Pause, Settings } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { NoteVisualization } from "./NoteVisualization";
 import { DeezerTrack } from "@/lib/deezer";
-import { INSTRUMENTS, type Instrument } from "@/lib/instruments";
+import { INSTRUMENTS } from "@/lib/instruments";
 import Image from "next/image";
 import CircleLoader from "../loaders/circleLoader";
+import { Midi } from "@tonejs/midi";
+import TonePlayer from "./TonePlayer";
 
 export interface Note {
   start: number;
@@ -63,6 +69,37 @@ interface AudioProcessingParams {
   tempo_override?: number | null;
 }
 
+type ModelType = "basic" | "advanced";
+
+interface ComposerOption {
+  id: string;
+  label: string;
+}
+
+const COMPOSER_OPTIONS: ComposerOption[] = [
+  { id: "composer1", label: "Classic Pop Ballad" },
+  { id: "composer2", label: "Jazz-Inspired Arrangement" },
+  { id: "composer3", label: "Upbeat Dance Style" },
+  { id: "composer4", label: "Acoustic Singer-Songwriter" },
+  { id: "composer5", label: "R&B Smooth Groove" },
+  { id: "composer6", label: "Rock Piano Version" },
+  { id: "composer7", label: "Minimalist Interpretation" },
+  { id: "composer8", label: "Orchestral Pop Fusion" },
+  { id: "composer9", label: "Soulful Expression" },
+  { id: "composer10", label: "Funky Rhythmic Style" },
+  { id: "composer11", label: "Electronic Remix" },
+  { id: "composer12", label: "Latin Pop Flavor" },
+  { id: "composer13", label: "Indie Pop Arrangement" },
+  { id: "composer14", label: "Gospel-Inspired Harmony" },
+  { id: "composer15", label: "Ambient Chill Version" },
+  { id: "composer16", label: "Retro 80s Vibe" },
+  { id: "composer17", label: "Country Ballad Style" },
+  { id: "composer18", label: "Experimental Fusion" },
+  { id: "composer19", label: "Cinematic Score Approach" },
+  { id: "composer20", label: "Bluesy Interpretation" },
+  { id: "composer21", label: "Contemporary Classical" },
+];
+
 interface AudioConverterProps {
   uploadedFile?: File | null;
   stemKey?: string;
@@ -82,28 +119,19 @@ export default function AudioConverter({
   showCardHeader = true,
   audioUrl,
 }: AudioConverterProps) {
-  const { getAudioMusicData, markAudioAsProcessed } = useAudioProcessing();
-
   const [audioSource, setAudioSource] = useState<AudioSource | null>(null);
   const [audioId, setAudioId] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<ModelType>("advanced");
+  const [selectedComposer, setSelectedComposer] = useState<string>("composer1");
 
-  // Initialize musicData from context if available
-  const initialMusicData =
-    isProcessed && audioId ? getAudioMusicData(audioId) : null;
-  const [musicData, setMusicData] = useState<MusicData | null>(
-    initialMusicData
-  );
+  const [musicData, setMusicData] = useState<MusicData | null>(null);
 
   const isInitialRender = useRef(true);
   const [isLoading, setIsLoading] = useState(!isProcessed);
   const [error, setError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(0.8);
   const [selectedInstrument, setSelectedInstrument] = useState(
     INSTRUMENTS[0].id
   );
-  const [isInstrumentLoaded, setIsInstrumentLoaded] = useState(false);
   const [processingAudio, setProcessingAudio] = useState(false);
 
   // Audio processing parameters
@@ -118,18 +146,69 @@ export default function AudioConverter({
       tempo_override: null,
     });
 
-  const sampler = useRef<Tone.Sampler | null>(null);
-  const notesRef = useRef<Tone.Part | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
+  const [isHeaderPlaying, setIsHeaderPlaying] = useState(false);
+  const [headerCurrentTime, setHeaderCurrentTime] = useState(0);
+  const [headerAudioDuration, setHeaderAudioDuration] = useState(0);
+  const headerAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Track-based audio
+  const [midiData, setMidiData] = useState<Midi | null>(null);
+  const [duration, setDuration] = useState(0);
+
+  const toggleHeaderPlayback = () => {
+    if (!headerAudioRef.current) return;
+
+    if (isHeaderPlaying) {
+      headerAudioRef.current.pause();
+    } else {
+      headerAudioRef.current.play();
+    }
+    setIsHeaderPlaying(!isHeaderPlaying);
+  };
+
+  const handleHeaderSeek = (value: number[]) => {
+    if (!headerAudioRef.current) return;
+    const newTime = value[0];
+    headerAudioRef.current.currentTime = newTime;
+    setHeaderCurrentTime(newTime);
+  };
+
+  useEffect(() => {
+    if (track?.preview || uploadedFile || audioUrl) {
+      const audio = new Audio(
+        track?.preview || audioUrl || URL.createObjectURL(uploadedFile!)
+      );
+      headerAudioRef.current = audio;
+
+      audio.addEventListener("timeupdate", () => {
+        setHeaderCurrentTime(audio.currentTime);
+      });
+
+      audio.addEventListener("loadedmetadata", () => {
+        setHeaderAudioDuration(audio.duration);
+      });
+
+      audio.addEventListener("ended", () => {
+        setIsHeaderPlaying(false);
+        setHeaderCurrentTime(0);
+      });
+
+      return () => {
+        audio.pause();
+        audio.removeEventListener("timeupdate", () => {});
+        audio.removeEventListener("loadedmetadata", () => {});
+        audio.removeEventListener("ended", () => {});
+        if (uploadedFile) {
+          URL.revokeObjectURL(audio.src);
+        }
+      };
+    }
+  }, [track, uploadedFile, audioUrl]);
+
   useEffect(() => {
     if (track) {
       setIsLoading(true);
       setError(null);
 
-      // Create a unique ID for this audio
       const uniqueId = `track-${stemKey}-${Date.now()}`;
       setAudioId(uniqueId);
 
@@ -145,7 +224,6 @@ export default function AudioConverter({
     }
   }, [track, stemKey]);
 
-  // Uploaded file
   useEffect(() => {
     if (uploadedFile) {
       setIsLoading(true);
@@ -168,7 +246,6 @@ export default function AudioConverter({
 
       setIsLoading(false);
 
-      // Clean up the URL when component unmounts
       return () => {
         URL.revokeObjectURL(fileUrl);
       };
@@ -199,227 +276,10 @@ export default function AudioConverter({
 
   // Process the audio when component mounts if not already processed
   useEffect(() => {
-    if (!isProcessed && audioSource && !initialMusicData) {
+    if (!isProcessed && audioSource && !musicData) {
       processAudio();
     }
-  }, [isProcessed, audioSource, initialMusicData]);
-
-  // Initialize the selected instrument
-  useEffect(() => {
-    if (!musicData) return;
-
-    setIsInstrumentLoaded(false);
-
-    // Find the selected instrument config
-    const instrumentConfig = INSTRUMENTS.find(
-      (inst) => inst.id === selectedInstrument
-    );
-    if (!instrumentConfig) return;
-
-    // Dispose previous sampler if it exists
-    if (sampler.current) {
-      sampler.current.dispose();
-    }
-
-    if (instrumentConfig.type === "sampler") {
-      // Create a new sampler with the selected instrument
-      const newSampler = new Tone.Sampler({
-        urls: instrumentConfig.urls,
-        baseUrl: instrumentConfig.baseUrl,
-        onload: () => {
-          setIsInstrumentLoaded(true);
-          console.log(`${instrumentConfig.name} loaded`);
-        },
-        onerror: (err: Error) => {
-          console.error("Error loading instrument:", err);
-          setError(`Failed to load ${instrumentConfig.name} samples`);
-        },
-      }).toDestination();
-      sampler.current = newSampler;
-    } else if (instrumentConfig.type === "synth") {
-      // Create a new synth
-      const newSynth = new Tone.Synth(instrumentConfig.options).toDestination();
-      sampler.current = newSynth as unknown as Tone.Sampler;
-      setIsInstrumentLoaded(true);
-    } else if (instrumentConfig.type === "amSynth") {
-      // Create a new AM synth
-      const newSynth = new Tone.AMSynth(
-        instrumentConfig.options
-      ).toDestination();
-      sampler.current = newSynth as unknown as Tone.Sampler;
-      setIsInstrumentLoaded(true);
-    } else if (instrumentConfig.type === "fmSynth") {
-      // Create a new FM synth
-      const newSynth = new Tone.FMSynth(
-        instrumentConfig.options
-      ).toDestination();
-      sampler.current = newSynth as unknown as Tone.Sampler;
-      setIsInstrumentLoaded(true);
-    }
-
-    // Set the volume
-    if (sampler.current) {
-      sampler.current.volume.value = Tone.gainToDb(volume);
-    }
-
-    // Clean up on unmount
-    return () => {
-      if (sampler.current) {
-        sampler.current.dispose();
-      }
-    };
-  }, [selectedInstrument, musicData]);
-
-  // Update volume when it changes
-  useEffect(() => {
-    if (sampler.current) {
-      sampler.current.volume.value = Tone.gainToDb(volume);
-    }
-  }, [volume]);
-
-  // Set up the notes for playback
-  useEffect(() => {
-    if (!musicData || !isInstrumentLoaded || !sampler.current) return;
-
-    // Dispose previous part if it exists
-    if (notesRef.current) {
-      notesRef.current.dispose();
-    }
-
-    // Create a new part with the notes
-    notesRef.current = new Tone.Part(
-      (time, note) => {
-        // Convert MIDI pitch to note name
-        const noteName = Tone.Frequency(note.pitch, "midi").toNote();
-
-        // Calculate duration in seconds
-        const duration = note.end - note.start;
-
-        // Play the note
-        if (sampler.current) {
-          sampler.current.triggerAttackRelease(
-            noteName,
-            duration,
-            time,
-            note.velocity
-          );
-        }
-      },
-      musicData.notes.map((note) => ({
-        time: note.start,
-        ...note,
-      }))
-    ).start(0);
-
-    // Set the tempo
-    if (processingParams.tempo_override) {
-      Tone.Transport.bpm.value = processingParams.tempo_override;
-    }
-
-    // Clean up on unmount
-    return () => {
-      if (notesRef.current) {
-        notesRef.current.dispose();
-      }
-    };
-  }, [musicData, isInstrumentLoaded, processingParams]);
-
-  // Handle playback animation
-  useEffect(() => {
-    if (!isPlaying || !musicData) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
-      }
-      return;
-    }
-
-    // Start Tone.js transport if it's not started
-    if (Tone.Transport.state !== "started") {
-      Tone.Transport.start();
-    }
-
-    // Set the start time reference
-    if (!startTimeRef.current) {
-      startTimeRef.current = Tone.now() - currentTime;
-    }
-
-    // Animation loop for playback position
-    const animate = () => {
-      if (!startTimeRef.current || !musicData) return;
-
-      const elapsed = Tone.now() - startTimeRef.current;
-      setCurrentTime(elapsed);
-
-      const totalDuration = calculateTotalDuration(musicData.notes);
-
-      // Stop at the end
-      if (elapsed >= totalDuration) {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        Tone.Transport.stop();
-        startTimeRef.current = null;
-        return;
-      }
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlaying, musicData, currentTime]);
-
-  // Toggle playback
-  const togglePlayback = async () => {
-    // Start audio context if it's not started
-    if (Tone.context.state !== "running") {
-      await Tone.start();
-    }
-
-    if (isPlaying) {
-      Tone.Transport.pause();
-      // Keep the current time position
-    } else {
-      if (!musicData) return;
-
-      // If at the end, restart from beginning
-      if (musicData && currentTime >= calculateTotalDuration(musicData.notes)) {
-        setCurrentTime(0);
-        startTimeRef.current = Tone.now();
-      } else {
-        // Resume from current position
-        startTimeRef.current = Tone.now() - currentTime;
-      }
-
-      Tone.Transport.start();
-    }
-
-    setIsPlaying(!isPlaying);
-  };
-
-  // Stop playback
-  const stopPlayback = () => {
-    Tone.Transport.stop();
-    setIsPlaying(false);
-    setCurrentTime(0);
-    startTimeRef.current = null;
-  };
-
-  // Handle seeking in the timeline
-  const handleSeek = (value: number[]) => {
-    const newTime = value[0];
-    setCurrentTime(newTime);
-
-    // Update the start time reference if playing
-    if (isPlaying && startTimeRef.current) {
-      startTimeRef.current = Tone.now() - newTime;
-    }
-  };
+  }, [isProcessed, audioSource, musicData]);
 
   // Process audio to extract notes
   const processAudio = async () => {
@@ -430,131 +290,123 @@ export default function AudioConverter({
     setProcessingAudio(true);
 
     try {
-      console.log("Starting to process audio:", audioSource.name);
-
-      // Fetch the audio file from the URL
       const response = await fetch(audioSource.downloadLink);
       if (!response.ok) {
         throw new Error(`Failed to fetch audio: ${response.statusText}`);
       }
-      console.log("Successfully fetched audio from:", audioSource.downloadLink);
 
-      // Convert the response to a blob
       const blob = await response.blob();
-      console.log("Converted response to blob, size:", blob.size);
 
-      // Create a File object from the blob
       const file = new File([blob], `${audioSource.name}.mp3`, {
         type: "audio/mpeg",
       });
 
-      // Create a FormData object
       const formData = new FormData();
       formData.append("file", file);
 
-      // Add processing parameters to FormData only if they are not null
-      Object.entries(processingParams).forEach(([key, value]) => {
-        if (value !== null) {
-          formData.append(key, value.toString());
-        }
-      });
-
-      // Send to the audio processing API
-      const apiResponse = await fetch("http://localhost:8000/process-audio/", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!apiResponse.ok) {
-        throw new Error(`Server responded with status: ${apiResponse.status}`);
-      }
-
-      const data = await apiResponse.json();
-      console.log("API Response:", data);
-
-      // Validate the response data structure
-      if (!data) {
-        console.error("API returned empty data");
-        setError("API returned empty data");
-        return;
-      }
-
-      if (!data.notes) {
-        console.error("API response is missing notes array:", data);
-        setError("API response is missing notes array");
-        return;
-      }
-
-      if (!Array.isArray(data.notes)) {
-        console.error("API notes is not an array:", data.notes);
-        setError("API response notes is not an array");
-        return;
-      }
-
-      console.log(`Received ${data.notes.length} notes from API`);
-
-      // Display the exact shape of the first few notes
-      if (data.notes.length > 0) {
-        console.log("Sample notes:", data.notes.slice(0, 3));
-      }
-
-      if (data.notes && Array.isArray(data.notes)) {
-        console.log(`Received ${data.notes.length} notes from API`);
-
-        // Use tempo override if provided, otherwise use detected tempo or default to 120
-        const tempo = processingParams.tempo_override || data.tempo || 120;
-
-        // Calculate total duration if not provided
-        const totalDuration =
-          data.total_duration ||
-          (data.notes.length > 0
-            ? Math.max(...data.notes.map((n: Note) => n.end)) + 1
-            : 30);
-
-        console.log("Calculated tempo:", tempo, "and duration:", totalDuration);
-
-        // Create a complete new object for the musicData state
-        const newMusicData: MusicData = {
-          notes: data.notes,
-          "X-Processing-Time-Seconds": data["X-Processing-Time-Seconds"] || 0,
-        };
-
-        // Log the exact fields we found
-        console.log("API field mapping:", {
-          "data.notes": data.notes,
-          "data.X-Processing-Time-Seconds": data["X-Processing-Time-Seconds"],
+      if (selectedModel === "basic") {
+        Object.entries(processingParams).forEach(([key, value]) => {
+          if (value !== null) {
+            formData.append(key, value.toString());
+          }
         });
 
-        console.log("Setting musicData:", newMusicData);
+        const apiResponse = await fetch("/api/process-audio", {
+          method: "POST",
+          body: formData,
+        });
 
-        // Reset the ref to ensure it renders correctly
-        isInitialRender.current = true;
-
-        // Use a function update to ensure we don't depend on the previous state
-        setMusicData(() => ({ ...newMusicData }));
-
-        // Immediately update loading state to trigger a rerender
-        setIsLoading(false);
-
-        // Save to context if we have an audioId
-        if (audioId) {
-          markAudioAsProcessed(audioId, newMusicData);
+        if (!apiResponse.ok) {
+          throw new Error(
+            `Server responded with status: ${apiResponse.status}`
+          );
         }
 
-        // Force a rerender - this is a hack but will ensure the component updates
-        setTimeout(() => {
-          if (onProcessed) {
-            onProcessed(newMusicData);
-          }
-        }, 50);
-      } else {
-        console.error("Invalid API response format:", data);
-        throw new Error(
-          "Invalid response format from server: notes array is missing or not an array"
-        );
+        const data = await apiResponse.json();
+
+        if (!data) {
+          setError("API returned empty data");
+          return;
+        }
+
+        if (!data.notes) {
+          setError("API response is missing notes array");
+          return;
+        }
+
+        if (!Array.isArray(data.notes)) {
+          setError("API response notes is not an array");
+          return;
+        }
+
+        if (data.notes && Array.isArray(data.notes)) {
+          const newMusicData: MusicData = {
+            notes: data.notes,
+            "X-Processing-Time-Seconds": data["X-Processing-Time-Seconds"] || 0,
+          };
+
+          isInitialRender.current = true;
+
+          // Use a function update to ensure we don't depend on the previous state
+          setMusicData(() => ({ ...newMusicData }));
+
+          // Immediately update loading state to trigger a rerender
+          setIsLoading(false);
+
+          // Force a rerender - this is a hack but will ensure the component updates
+          setTimeout(() => {
+            if (onProcessed) {
+              onProcessed(newMusicData);
+            }
+          }, 50);
+        } else {
+          throw new Error(
+            "Invalid response format from server: notes array is missing or not an array"
+          );
+        }
+      } else if (selectedModel === "advanced") {
+        formData.append("composer", selectedComposer);
+        const apiResponse = await fetch("/api/generate-midi", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!apiResponse.ok) {
+          throw new Error(
+            `Server responded with status: ${apiResponse.status}`
+          );
+        }
+
+        const midiBlob = await apiResponse.blob();
+        const arrayBuffer = await midiBlob.arrayBuffer();
+        const midi = new Midi(arrayBuffer);
+        setMidiData(midi);
+        setDuration(midi.duration);
+
+        // Convert MIDI to our note format
+        const notes: Note[] = [];
+        midi.tracks.forEach((track) => {
+          track.notes.forEach((note) => {
+            notes.push({
+              start: note.time,
+              end: note.time + note.duration,
+              pitch: note.midi,
+              velocity: note.velocity,
+            });
+          });
+        });
+
+        const newMusicData: MusicData = {
+          notes,
+          "X-Processing-Time-Seconds": 0,
+        };
+
+        setMusicData(newMusicData);
+        if (onProcessed) {
+          onProcessed(newMusicData);
+        }
       }
     } catch (error) {
-      console.error("Error processing audio:", error);
       setError(
         error instanceof Error
           ? error.message
@@ -583,16 +435,50 @@ export default function AudioConverter({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Calculate total duration from notes
   const calculateTotalDuration = (notes: Note[]) => {
     return notes.length > 0 ? Math.max(...notes.map((n) => n.end)) + 1 : 30;
+  };
+
+  useEffect(() => {
+    if (audioSource && !isInitialRender.current && selectedModel === "basic") {
+      processAudio();
+    }
+  }, [selectedModel, audioSource]);
+
+  useEffect(() => {
+    if (
+      audioSource &&
+      // !isInitialRender.current &&
+      selectedModel === "advanced" &&
+      selectedComposer
+    ) {
+      processAudio();
+    }
+  }, [selectedComposer]);
+
+  const separateAudio = async (file: File) => {
+    if (!file) return;
+
+    // Create a unique ID for this audio
+    const uniqueId = `upload-${stemKey}-${Date.now()}`;
+    setAudioId(uniqueId);
+
+    // Create audio source object
+    setAudioSource({
+      name: file.name,
+      downloadLink: URL.createObjectURL(file),
+      color: "bg-amber-500 hover:bg-amber-600",
+      icon: <Music className="h-4 w-4" />,
+    });
+
+    setIsLoading(false);
   };
 
   return (
     <Card className="w-full border border-black dark:border-white overflow-hidden bg-transparent">
       {showCardHeader && (
         <CardHeader className="border-b border-black dark:border-white p-3 sm:p-4">
-          <CardTitle className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
+          <CardTitle className="flex flex-col md:flex-row items-start md:items-center text-lg gap-3">
             {track ? (
               <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
                 <div className="flex items-end gap-3 flex-1 min-w-0">
@@ -618,13 +504,13 @@ export default function AudioConverter({
                 <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
                   <Button
                     className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
-                      isPlaying
+                      isHeaderPlaying
                         ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                         : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
                     }`}
-                    onClick={togglePlayback}
+                    onClick={toggleHeaderPlayback}
                   >
-                    {isPlaying ? (
+                    {isHeaderPlaying ? (
                       <Pause className="h-3 w-3" />
                     ) : (
                       <Play className="h-3 w-3" />
@@ -633,20 +519,18 @@ export default function AudioConverter({
 
                   <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
                     <span className="text-xs font-mono whitespace-nowrap">
-                      {formatTime(currentTime)}
+                      {formatTime(headerCurrentTime)}
                     </span>
                     <Slider
-                      value={[currentTime]}
+                      value={[headerCurrentTime]}
                       min={0}
-                      max={calculateTotalDuration(musicData?.notes || [])}
+                      max={headerAudioDuration || 100}
                       step={0.1}
-                      onValueChange={handleSeek}
+                      onValueChange={handleHeaderSeek}
                       className="flex-grow"
                     />
                     <span className="text-xs font-mono w-8">
-                      {formatTime(
-                        calculateTotalDuration(musicData?.notes || [])
-                      )}
+                      {formatTime(headerAudioDuration)}
                     </span>
                   </div>
                 </div>
@@ -671,53 +555,56 @@ export default function AudioConverter({
                 <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
                   <Button
                     className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
-                      isPlaying
+                      isHeaderPlaying
                         ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                         : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
                     }`}
-                    onClick={togglePlayback}
+                    onClick={toggleHeaderPlayback}
                   >
-                    {isPlaying ? (
+                    {isHeaderPlaying ? (
                       <Pause className="h-3 w-3" />
                     ) : (
                       <Play className="h-3 w-3" />
                     )}
                   </Button>
 
-                  <div className="flex items-center gap-3 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                  <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
                     <span className="text-xs font-mono whitespace-nowrap">
-                      {formatTime(currentTime)}
+                      {formatTime(headerCurrentTime)}
                     </span>
                     <Slider
-                      value={[currentTime]}
+                      value={[headerCurrentTime]}
                       min={0}
-                      max={calculateTotalDuration(musicData?.notes || [])}
+                      max={headerAudioDuration || 100}
                       step={0.1}
-                      onValueChange={handleSeek}
+                      onValueChange={handleHeaderSeek}
                       className="flex-grow"
                     />
                     <span className="text-xs font-mono w-8">
-                      {formatTime(
-                        calculateTotalDuration(musicData?.notes || [])
-                      )}
+                      {formatTime(headerAudioDuration)}
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                {audioSource?.icon || <Music className="h-5 w-5" />}
-                <div className="flex items-center gap-4">
-                  <h3 className="font-semibold truncate">
-                    {audioSource?.name}
-                  </h3>
-                  {musicData && (
-                    <Badge variant="secondary" className="text-xs rounded-full">
-                      {musicData.notes.length} notes
-                    </Badge>
-                  )}
-                </div>
-              </div>
+              <Button variant="outline" size="sm" className="h-10" asChild>
+                <label className="cursor-pointer flex items-center">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Audio
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="audio/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        separateAudio(file);
+                      }
+                    }}
+                    disabled={isLoading}
+                  />
+                </label>
+              </Button>
             )}
           </CardTitle>
         </CardHeader>
@@ -752,28 +639,73 @@ export default function AudioConverter({
         ) : (
           <div className="space-y-4">
             <div className="flex items-center gap-2 w-full">
-              <KeyboardMusic className="h-5 w-5 flex-shrink-0 text-black dark:text-white" />
+              <Settings className="h-5 w-5 flex-shrink-0 text-black dark:text-white" />
               <Select
-                value={selectedInstrument}
-                onValueChange={setSelectedInstrument}
+                value={selectedModel}
+                onValueChange={(value) => setSelectedModel(value as ModelType)}
                 disabled={isLoading}
               >
                 <SelectTrigger className="w-full min-w-0 border-black/50 dark:border-white/50">
                   <SelectValue
-                    placeholder="Select an instrument"
+                    placeholder="Select model"
                     className="truncate"
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {INSTRUMENTS.map((instrument) => (
-                    <SelectItem key={instrument.id} value={instrument.id}>
-                      {instrument.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="advanced">Advanced</SelectItem>
+                  <SelectItem value="basic">Basic</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {!isProcessed && (
+
+            <div className="flex items-center gap-4 w-full md:flex-row flex-col">
+              <div className="flex items-center gap-2 w-full">
+                <KeyboardMusic className="h-5 w-5 flex-shrink-0 text-black dark:text-white" />
+                <Select
+                  value={selectedInstrument}
+                  onValueChange={setSelectedInstrument}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="w-full min-w-0 border-black/50 dark:border-white/50">
+                    <SelectValue
+                      placeholder="Select an instrument"
+                      className="truncate"
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INSTRUMENTS.map((instrument) => (
+                      <SelectItem key={instrument.id} value={instrument.id}>
+                        {instrument.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedModel === "advanced" && (
+                <div className="flex items-center gap-2 w-full">
+                  <Speaker className="h-5 w-5 flex-shrink-0 text-black dark:text-white" />
+                  <Select
+                    value={selectedComposer}
+                    onValueChange={setSelectedComposer}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="w-full min-w-0 border-black/50 dark:border-white/50">
+                      <SelectValue placeholder="Select a composer style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPOSER_OPTIONS.map((composer) => (
+                        <SelectItem key={composer.id} value={composer.id}>
+                          {composer.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {!isProcessed && selectedModel === "basic" && (
               <Accordion type="single" collapsible className="mb-4">
                 <AccordionItem
                   value="processing-settings"
@@ -956,100 +888,12 @@ export default function AudioConverter({
             {musicData && musicData.notes && musicData.notes.length > 0 ? (
               <div>
                 <div className="w-full">
-                  <div className="flex flex-col gap-4">
-                    <NoteVisualization
-                      notes={musicData.notes}
-                      totalDuration={calculateTotalDuration(musicData.notes)}
-                      isPlaying={isPlaying}
-                      currentTime={currentTime}
-                    />
-
-                    {/* Playback controls */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            onClick={togglePlayback}
-                            variant="outline"
-                            size="icon"
-                            disabled={!isInstrumentLoaded}
-                            className="h-10 w-10 rounded-full border border-black/20 dark:border-white/20"
-                          >
-                            {isPlaying ? (
-                              <Pause className="h-5 w-5" />
-                            ) : (
-                              <Play className="h-5 w-5" />
-                            )}
-                          </Button>
-                          <Button
-                            onClick={stopPlayback}
-                            variant="outline"
-                            size="icon"
-                            disabled={!isPlaying}
-                            className="h-10 w-10 rounded-full border border-black/20 dark:border-white/20"
-                          >
-                            <Square className="h-5 w-5" />
-                          </Button>
-                          <div className="text-sm font-medium ml-1">
-                            {formatTime(currentTime)} /{" "}
-                            {formatTime(
-                              calculateTotalDuration(musicData.notes)
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Volume2 className="h-4 w-4 text-muted-foreground" />
-                          <Slider
-                            value={[volume]}
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            className="w-24"
-                            onValueChange={(value) => setVolume(value[0])}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Seek bar */}
-                      <Slider
-                        value={[currentTime]}
-                        min={0}
-                        max={calculateTotalDuration(musicData.notes)}
-                        step={0.01}
-                        className="w-full"
-                        onValueChange={handleSeek}
-                      />
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">
-                          Tempo:{" "}
-                          {processingParams.tempo_override?.toFixed(1) || "120"}{" "}
-                          BPM
-                        </Label>
-                        <Slider
-                          value={[processingParams.tempo_override || 120]}
-                          min={60}
-                          max={200}
-                          step={1}
-                          onValueChange={(value) => {
-                            setProcessingParams((prev) => ({
-                              ...prev,
-                              tempo_override: value[0],
-                            }));
-                            Tone.Transport.bpm.value = value[0];
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {!isInstrumentLoaded && (
-                      <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
-                        Loading instrument samples...
-                      </div>
-                    )}
-                  </div>
+                  <TonePlayer
+                    musicData={musicData}
+                    midiData={midiData}
+                    selectedModel={selectedModel}
+                    selectedInstrument={selectedInstrument}
+                  />
                 </div>
               </div>
             ) : (

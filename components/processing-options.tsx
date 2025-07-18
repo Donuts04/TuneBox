@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,34 +12,19 @@ import {
   Upload,
   Search,
   ArrowLeft,
-  ListMusic,
   BoomBox,
 } from "lucide-react";
 import DeezerSearch from "./deezer-search";
 import AudioSeparator from "./AudioSeperator/audio-separator";
 import AudioConverter from "./ConvertToNotes/audio-converter";
 import { DeezerTrack } from "@/lib/deezer";
-import { useTheme } from "next-themes";
 import Image from "next/image";
 type Step = "initial" | "search" | "upload-options" | "separate" | "convert";
 
-interface ProcessingOptionsProps {
-  onThemeToggle?: () => void;
-}
-
-export default function ProcessingOptions({
-  onThemeToggle,
-}: ProcessingOptionsProps) {
+export default function ProcessingOptions() {
   const [currentStep, setCurrentStep] = useState<Step>("initial");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
-
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -86,16 +71,14 @@ export default function ProcessingOptions({
         </div>
 
         <div className="flex items-center justify-center px-8">
-          {mounted && (
-            <Image
-              src="/tuney/dance.png"
-              alt="TuneBox Logo"
-              width={150}
-              height={150}
-              className={`object-cover ${theme === "dark" ? "invert" : ""}`}
-              priority
-            />
-          )}
+          <Image
+            src="/tuney/dance.png"
+            alt="TuneBox Logo"
+            width={150}
+            height={150}
+            className="object-cover dark:invert"
+            priority
+          />
         </div>
 
         <div className="flex flex-col h-full">

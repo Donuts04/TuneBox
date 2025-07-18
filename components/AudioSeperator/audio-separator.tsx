@@ -21,9 +21,7 @@ import {
 import type { DeezerTrack } from "@/lib/deezer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import axios from "axios";
 import AudioConverter from "../ConvertToNotes/audio-converter";
-import JSZip from "jszip";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
@@ -37,13 +35,15 @@ import {
 } from "@/components/ui/select";
 import { Settings } from "lucide-react";
 import HamsterLoader from "../loaders/hamster-loader";
+import { separateAudio } from "@/actions/separateAudio";
+import { transcribeAudio } from "@/actions/transcribeAudio";
 
 interface AudioSource {
   name: string;
-  downloadLink: string;
   color: string;
   icon: React.ReactNode;
   audioUrl?: string;
+  audioData?: Uint8Array;
 }
 
 interface AudioSeparatorProps {
@@ -88,7 +88,6 @@ export default function AudioSeparator({
   const [showLyrics, setShowLyrics] = useState<boolean>(false);
   const [currentLyricTime, setCurrentLyricTime] = useState(0);
   const lyricsIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
   const [stemVolumes, setStemVolumes] = useState<Record<string, number>>({});
   const [stemCurrentTime, setStemCurrentTime] = useState(0);
   const [headerCurrentTime, setHeaderCurrentTime] = useState(0);
@@ -113,14 +112,14 @@ export default function AudioSeparator({
     },
     {
       id: "spleeter-5",
-      name: "Extended (Vocals, Drums, Bass, Piano, Other)",
+      name: "Basic Extended (Vocals, Drums, Bass, Piano, Other)",
       model: "SPLEETER",
       stems: 5,
       description: "Advanced separation with piano as a separate stem",
     },
     {
       id: "demucs",
-      name: "Advanced Separation (Vocals, Drums, Bass, Other)",
+      name: "ADVANCED SEPARATION (Vocals, Drums, Bass, Other)",
       model: "DEMUCS",
       description: "High-quality separation using Meta's Demucs model",
     },
@@ -194,9 +193,9 @@ export default function AudioSeparator({
           const file = new File([blob], `${track.title}.mp3`, {
             type: "audio/mpeg",
           });
-          await separateAudio(file);
+          await handleSeparateAudio(file);
         } else if (uploadedFile) {
-          await separateAudio(uploadedFile);
+          await handleSeparateAudio(uploadedFile);
         }
       } catch (error) {
         setError(
@@ -266,13 +265,11 @@ export default function AudioSeparator({
     }
   }, [volume, isMuted]);
 
-  const separateAudio = async (file: File) => {
+  const handleSeparateAudio = async (file: File) => {
     setIsLoading(true);
     setError(null);
     setStems({});
     setLyrics(null);
-
-    abortControllerRef.current = new AbortController();
 
     const selectedModelOption = modelOptions.find(
       (option) => option.id === selectedOption
@@ -284,73 +281,51 @@ export default function AudioSeparator({
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("model", selectedModelOption.model);
-    if (selectedModelOption.model === "SPLEETER" && selectedModelOption.stems) {
-      formData.append("stems", selectedModelOption.stems.toString());
-    }
-
     try {
-      const separationStartTime = performance.now();
-      const response = await axios.post(
-        "http://localhost:8000/separate-sources/",
-        formData,
-        {
-          headers: {
-            Authorization: "Bearer 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",
-          },
-          signal: abortControllerRef.current.signal,
-          responseType: "blob",
-        }
-      );
+      // Prepare form data for /api/separate
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("model", selectedModelOption.model);
+      if (selectedModelOption.stems) {
+        formData.append("stems", selectedModelOption.stems.toString());
+      }
 
-      const separationEndTime = performance.now();
-      console.log(
-        `Audio separation completed in ${(
-          (separationEndTime - separationStartTime) /
-          1000
-        ).toFixed(2)} seconds`
-      );
+      const response = await fetch("/api/separate", {
+        method: "POST",
+        body: formData,
+      });
 
-      const zipBlob = response.data;
-      const zipUrl = URL.createObjectURL(zipBlob);
-      const extractionStartTime = performance.now();
+      if (!response.ok) {
+        setError("Failed to separate audio");
+        setIsLoading(false);
+        return;
+      }
+
+      // Get the zip as arrayBuffer
+      const zipBuffer = await response.arrayBuffer();
+      // Use JSZip on the client to extract stems
+      const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
-      const zipContent = await zip.loadAsync(zipBlob);
-
-      // Create a download link for each stem type and extract audio files
+      const zipContent = await zip.loadAsync(zipBuffer);
       const processedStems: Record<string, AudioSource> = {};
       for (const [key, value] of Object.entries(stemTypes)) {
         const audioFile = zipContent.file(value.filename);
         if (audioFile) {
-          const audioBlob = await audioFile.async("blob");
-          const audioUrl = URL.createObjectURL(audioBlob);
+          const uint8 = new Uint8Array(await audioFile.async("uint8array"));
+          const blob = new Blob([uint8], { type: "audio/mp3" });
+          const audioUrl = URL.createObjectURL(blob);
           processedStems[key] = {
             name: value.name,
-            downloadLink: zipUrl,
-            audioUrl: audioUrl,
             color: value.color,
             icon: value.icon,
+            audioUrl: audioUrl,
+            audioData: uint8,
           };
         }
       }
-
-      const extractionEndTime = performance.now();
-      console.log(
-        `Zip extraction completed in ${(
-          (extractionEndTime - extractionStartTime) /
-          1000
-        ).toFixed(2)} seconds`
-      );
-
       setStems(processedStems);
     } catch (error) {
       console.error("Error separating audio:", error);
-      if (axios.isCancel(error)) {
-        console.log("Request was aborted");
-        return;
-      }
       setError(
         error instanceof Error
           ? error.message
@@ -358,7 +333,6 @@ export default function AudioSeparator({
       );
     } finally {
       setIsLoading(false);
-      abortControllerRef.current = null;
     }
   };
 
@@ -550,32 +524,24 @@ export default function AudioSeparator({
     setIsTranscribing(true);
     setError(null);
 
-    abortControllerRef.current = new AbortController();
-
     try {
+      // Prepare form data for /api/transcribe
       const formData = new FormData();
       formData.append("file", audioBlob, "audio.mp3");
-
-      const apiResponse = await axios.post(
-        "https://donutss-demucs.hf.space/transcribe",
-        formData,
-        {
-          headers: {
-            Authorization: "Bearer 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",
-          },
-          signal: abortControllerRef.current.signal,
-        }
-      );
-
-      const data = apiResponse.data;
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        setError("Failed to transcribe lyrics");
+        setIsTranscribing(false);
+        return;
+      }
+      const data = await response.json();
       setLyrics(data);
       setShowLyrics(true);
     } catch (error) {
       console.error("Error transcribing lyrics:", error);
-      if (axios.isCancel(error)) {
-        console.log("Transcription request was aborted");
-        return;
-      }
       setError(
         error instanceof Error
           ? error.message
@@ -583,17 +549,12 @@ export default function AudioSeparator({
       );
     } finally {
       setIsTranscribing(false);
-      abortControllerRef.current = null;
     }
   };
 
   const cancelRequest = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-      setIsLoading(false);
-      setError("Request cancelled");
-    }
+    setIsLoading(false);
+    setError("Request cancelled");
   };
 
   const [showProcessedStem, setShowProcessedStem] = useState<string | null>(
@@ -626,9 +587,6 @@ export default function AudioSeparator({
       }
       if (headerAudioIntervalRef.current) {
         clearInterval(headerAudioIntervalRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
       }
     };
   }, []);
@@ -756,7 +714,7 @@ export default function AudioSeparator({
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      separateAudio(file);
+                      handleSeparateAudio(file);
                     }
                   }}
                   disabled={isLoading}
@@ -903,6 +861,25 @@ export default function AudioSeparator({
                             download={`${audioSource.name.toLowerCase()}.mp3`}
                             title={`Download ${audioSource.name}`}
                             className="flex items-center gap-2"
+                            onClick={(e) => {
+                              if (audioSource.audioData) {
+                                const uint8 = new Uint8Array(
+                                  audioSource.audioData as any
+                                );
+                                const blob = new Blob([uint8], {
+                                  type: "audio/mp3",
+                                });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `${audioSource.name.toLowerCase()}.mp3`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                e.preventDefault();
+                              }
+                            }}
                           >
                             <Download className="h-4 w-4" />
                             <span className="hidden sm:inline">Download</span>

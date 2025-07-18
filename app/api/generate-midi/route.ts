@@ -4,28 +4,30 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const model = formData.get("model") as string;
-    const stems = formData.get("stems") as string | null;
+    const composer = formData.get("composer") as string;
 
-    if (!file || !model) {
+    if (!file) {
       return NextResponse.json(
-        { error: "Missing file or model parameter" },
+        { error: "No audio file provided" },
+        { status: 400 }
+      );
+    }
+
+    if (!composer) {
+      return NextResponse.json(
+        { error: "No composer style provided" },
         { status: 400 }
       );
     }
 
     const backendForm = new FormData();
     backendForm.append("file", file, file.name);
-    backendForm.append("model", model);
-    if (stems) backendForm.append("stems", stems);
+    backendForm.append("composer", composer);
 
     const backendResponse = await fetch(
-      "http://localhost:8000/separate-sources/",
+      "https://notesconverter-918217662266.me-west1.run.app/generate-midi/",
       {
         method: "POST",
-        headers: {
-          Authorization: "Bearer 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",
-        },
         body: backendForm,
       }
     );
@@ -37,18 +39,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const zipBuffer = await backendResponse.arrayBuffer();
-    return new Response(zipBuffer, {
+    const midiBuffer = await backendResponse.arrayBuffer();
+    return new Response(midiBuffer, {
       status: 200,
       headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="stems.zip"`,
+        "Content-Type": "audio/midi",
+        "Content-Disposition": `attachment; filename="generated.mid"`,
       },
     });
   } catch (error) {
-    console.error("Error proxying audio separation:", error);
+    console.error("Error generating MIDI:", error);
     return NextResponse.json(
-      { error: "Failed to process audio file" },
+      { error: "Failed to generate MIDI file" },
       { status: 500 }
     );
   }
