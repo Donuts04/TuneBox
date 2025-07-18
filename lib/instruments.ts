@@ -37,6 +37,15 @@ export type Instrument =
 
 export const INSTRUMENTS: Instrument[] = [
   {
+    id: "musicBox",
+    name: "Music Box",
+    type: "sampler",
+    urls: {
+      C4: "music-box-note-c_C_major.wav",
+    },
+    baseUrl: "/",
+  },
+  {
     id: "piano",
     name: "Piano",
     type: "sampler",
@@ -256,14 +265,5 @@ export const INSTRUMENTS: Instrument[] = [
       G3: "cat-meow-sound-effect_G_minor.wav",
     },
     baseUrl: "/sounds/cat/",
-  },
-  {
-    id: "musicBox",
-    name: "Music Box",
-    type: "sampler",
-    urls: {
-      C4: "music-box-note-c_C_major.wav",
-    },
-    baseUrl: "/",
   },
 ];

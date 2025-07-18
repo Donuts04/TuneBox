@@ -6,7 +6,6 @@ import {
   NavItems,
   MobileNav,
   NavbarLogo,
-  NavbarButton,
   MobileNavHeader,
   MobileNavToggle,
   MobileNavMenu,
@@ -17,16 +16,28 @@ import ThemeToggle from "@/components/theme-toggle";
 const NavbarComponent = () => {
   const navItems = [
     {
-      name: "Features",
-      link: "#features",
+      name: "Home",
+      link: "/",
     },
     {
-      name: "Convert",
-      link: "#convert",
+      name: "Start",
+      link: "#start",
     },
     {
-      name: "Separate",
-      link: "#separate",
+      name: "Featured",
+      link: "#featured",
+    },
+    {
+      name: "Music Box",
+      link: "#music-box",
+    },
+    // {
+    //   name: "Gallery",
+    //   link: "#gallery",
+    // },
+    {
+      name: "About",
+      link: "#about",
     },
   ];
 
