@@ -36,16 +36,16 @@ export function AboutSection() {
                 <p className="mb-6">
                   TuneBox is a platform designed to explore the intersection of
                   music and technology. It provides tools for music separation,
-                  visualization, and discovery.
+                  converting music into notes, and discovery.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-xl font-semibold mb-3">About Me</h4>
                 <p className="mb-6">
-                  I'm a passionate developer with a love for music and
+                  I&apos;m a passionate developer with a love for music and
                   technology. This platform combines both of my interests to
-                  create an interactive space for music lovers.
+                  create an interactive space.
                 </p>
               </div>
 

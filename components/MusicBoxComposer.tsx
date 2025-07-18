@@ -20,7 +20,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
-import { useTheme } from "next-themes";
 
 const NOTES = [
   "C4",
@@ -135,21 +134,12 @@ export function MusicBoxComposer() {
   const playerRef = useRef<Tone.Sampler | null>(null);
   const playbackIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Prevent hydration mismatch by only showing content after mount
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    // Initialize Tone.js with the music box sample
     playerRef.current = new Tone.Sampler({
       urls: {
         C4: "/music-box-note-c_C_major.wav",
       },
-      baseUrl: "/",
+      baseUrl: "",
       onload: () => {
         console.log("Music box sample loaded");
       },
@@ -219,33 +209,6 @@ export function MusicBoxComposer() {
     clearInterval(playbackIntervalRef.current);
   };
 
-  const saveComposition = () => {
-    const data = JSON.stringify(grid);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "music-box-composition.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const loadComposition = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const loadedGrid = JSON.parse(event.target?.result as string);
-        setGrid(loadedGrid);
-      } catch (error) {
-        console.error("Error loading composition:", error);
-      }
-    };
-    reader.readAsText(file);
-  };
-
   const loadTemplate = (templateId: string) => {
     const template = TEMPLATES[templateId as keyof typeof TEMPLATES];
     if (template) {
@@ -265,16 +228,15 @@ export function MusicBoxComposer() {
             Create your own music box compositions ;)
           </p>
         </div>
-        {mounted && (
-          <Image
-            src="/tuney/pointDown.png"
-            alt="TuneBox Logo"
-            width={100}
-            height={100}
-            className={`object-cover ${theme === "dark" ? "invert" : ""}`}
-            priority
-          />
-        )}
+
+        <Image
+          src="/tuney/pointDown.png"
+          alt="TuneBox Logo"
+          width={100}
+          height={100}
+          className="object-cover dark:invert"
+          priority
+        />
       </div>
 
       <div className="bg-background border rounded-md">

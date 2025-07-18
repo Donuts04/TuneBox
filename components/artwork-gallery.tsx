@@ -1,5 +1,4 @@
 "use client";
-import { useState, useEffect } from "react";
 import Image from "next/image";
 
 interface ArtworkItem {
@@ -47,21 +46,10 @@ interface ArtworkGalleryProps {
   title?: string;
 }
 
-export function ArtworkGallery({
+export default function ArtworkGallery({
   items = sampleArtwork,
   title = "Artwork Gallery",
 }: ArtworkGalleryProps) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Use useEffect to avoid hydration mismatch with hover effects
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return null; // Return null on server-side to avoid hydration mismatch
-  }
-
   return (
     <section className="py-12">
       <div className="container px-4 mx-auto">
@@ -76,7 +64,6 @@ export function ArtworkGallery({
               key={item.id}
               className="group relative aspect-square overflow-hidden border border-black dark:border-white"
             >
-              {/* Square image */}
               <Image
                 src={item.imageUrl || "/placeholder.svg"}
                 alt={item.title}

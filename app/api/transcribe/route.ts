@@ -4,23 +4,18 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const model = formData.get("model") as string;
-    const stems = formData.get("stems") as string | null;
-
-    if (!file || !model) {
+    if (!file) {
       return NextResponse.json(
-        { error: "Missing file or model parameter" },
+        { error: "No audio file provided" },
         { status: 400 }
       );
     }
 
     const backendForm = new FormData();
     backendForm.append("file", file, file.name);
-    backendForm.append("model", model);
-    if (stems) backendForm.append("stems", stems);
 
     const backendResponse = await fetch(
-      "http://localhost:8000/separate-sources/",
+      "https://donutss-demucs.hf.space/transcribe",
       {
         method: "POST",
         headers: {
@@ -37,18 +32,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const zipBuffer = await backendResponse.arrayBuffer();
-    return new Response(zipBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="stems.zip"`,
-      },
-    });
+    const data = await backendResponse.json();
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Error proxying audio separation:", error);
+    console.error("Error proxying audio transcription:", error);
     return NextResponse.json(
-      { error: "Failed to process audio file" },
+      { error: "Failed to transcribe audio file" },
       { status: 500 }
     );
   }
