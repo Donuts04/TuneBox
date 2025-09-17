@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     backendForm.append("composer", composer);
 
     const backendResponse = await fetch(
-      "http://127.0.0.1:8000/api/v1/generate-midi",
+      `${process.env.API_URL}/api/v1/generate-midi`,
       {
         method: "POST",
         body: backendForm,

@@ -141,7 +141,6 @@ export default function Home() {
           </div>
 
           <MusicBoxComposer />
-          <AudioHeader />
           {/* <ArtworkGallery /> */}
           <AboutSection />
           <Footer />
