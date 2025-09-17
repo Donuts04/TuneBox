@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Play, Pause, Square, Volume2 } from "lucide-react";
-import { INSTRUMENTS } from "@/lib/instruments";
+import { INSTRUMENTS } from "@/lib/constants";
 import { Midi } from "@tonejs/midi";
 import { NoteVisualization } from "./NoteVisualization2";
 
@@ -200,12 +200,18 @@ export default function TonePlayer({
     }
   }, [volume]);
 
-  // Set up the notes for playback
+  // Set up the notes for playback (ensure clearing schedules when midi/instrument changes)
   useEffect(() => {
+    if (!transportRef.current) return;
+    // Clear any previously scheduled events to avoid duplicates
+    try {
+      transportRef.current.cancel?.();
+      transportRef.current.stop?.();
+      transportRef.current.seconds = 0;
+    } catch {}
     if (!midiData || !isInstrumentLoaded || !sampler.current) return;
-
-    transportRef.current && (transportRef.current.bpm.value = playbackTempo);
-  }, [midiData, isInstrumentLoaded, playbackTempo]);
+    transportRef.current.bpm.value = playbackTempo;
+  }, [midiData, isInstrumentLoaded]);
 
   // Handle playback animation - removed manual animation loop
   // Progress tracking is now handled by Tone.js transport scheduling

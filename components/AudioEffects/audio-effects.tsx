@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -12,31 +12,46 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Play, Pause, Square, Repeat, Download } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Square,
+  Repeat,
+  Download,
+  AlertCircle,
+} from "lucide-react";
 import type { DeezerTrack } from "@/lib/deezer";
 import { formatTime } from "@/lib/utils";
+import ChaoticOrbitLoader from "@/components/loaders/chaotic-orbit-loader";
 
 interface AudioEffectsProps {
   uploadedFile?: File | null;
   track?: DeezerTrack | null;
+  initialSpeed?: number;
+  initialReverbWet?: number; // 0-1 (e.g., 0.7 for 70%)
+  initialReverbDecay?: number; // seconds (e.g., 6.5)
 }
 
 export default function AudioEffects({
   uploadedFile,
   track,
+  initialSpeed = 1,
+  initialReverbWet = 0.7,
+  initialReverbDecay = 6.5,
 }: AudioEffectsProps) {
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8);
-  const [speed, setSpeed] = useState(1);
-  const [reverbWet, setReverbWet] = useState(0.2);
-  const [reverbDecay, setReverbDecay] = useState(2.5);
+  const [speed, setSpeed] = useState(initialSpeed);
+  const [reverbWet, setReverbWet] = useState(initialReverbWet);
+  const [reverbDecay, setReverbDecay] = useState(initialReverbDecay);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [isBufferLoaded, setIsBufferLoaded] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -94,6 +109,7 @@ export default function AudioEffects({
       } catch {}
     }
     sourceUrlRef.current = null;
+    setLoadError(null);
 
     if (track?.preview) {
       sourceUrlRef.current = track.preview;
@@ -122,10 +138,15 @@ export default function AudioEffects({
     const url = sourceUrlRef.current;
     if (!Tone || !ctx || !url) {
       cleanupNodes();
+      setLoadError(
+        !url ? "No audio source selected." : "Audio context not ready."
+      );
       return;
     }
 
     cleanupNodes();
+    setIsBufferLoaded(false);
+    setLoadError(null);
 
     const reverb = new Tone.Reverb({
       decay: reverbDecay,
@@ -154,6 +175,11 @@ export default function AudioEffects({
         setTotalDuration(dur);
         setCurrentTime(0);
         setIsBufferLoaded(true);
+      },
+      onerror: (e: any) => {
+        setIsBufferLoaded(false);
+        setLoadError("Failed to load audio. Please try again.");
+        console.error("Tone.Player load error:", e);
       },
     });
     try {
@@ -424,183 +450,213 @@ export default function AudioEffects({
   const disabled = !sourceUrlRef.current || !isReady || !isBufferLoaded;
 
   return (
-    <Card className="w-full border border-black dark:border-white bg-transparent">
+    <Card className="w-full border border-black dark:border-white bg-transparent rounded-lg">
       {/* <AudioHeader uploadedFile={uploadedFile} track={track} /> */}
       <CardContent className="p-4 space-y-6">
-        {/* Transport + Seek bar in one row */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2 border border-black dark:border-white rounded-full px-3 py-1.5 w-full md:w-auto md:flex-1">
-            <span className="text-xs font-mono whitespace-nowrap">
-              {formatTime(currentTime)}
-            </span>
-            <Slider
-              value={[currentTime]}
-              min={0}
-              max={totalDuration || 0}
-              step={0.01}
-              className="flex-grow"
-              onValueChange={onSeek}
-            />
-            <span className="text-xs font-mono w-8 text-right">
-              {formatTime(totalDuration)}
-            </span>
-          </div>
-          <TooltipProvider>
-            <div className="flex items-center justify-between w-full md:w-auto gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={onTogglePlay}
-                    variant="outline"
-                    size="icon"
-                    disabled={disabled}
-                    className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
-                  >
-                    {isPlaying ? (
-                      <Pause className="h-3 w-3" />
-                    ) : (
-                      <Play className="h-3 w-3" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isPlaying ? "Pause" : "Play"}</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={onStop}
-                    variant="outline"
-                    size="icon"
-                    disabled={disabled}
-                    className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
-                  >
-                    <Square className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Stop</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={handleLoopToggle}
-                    variant="outline"
-                    size="icon"
-                    disabled={disabled}
-                    className={`h-8 w-8 rounded-full border border-black/20 dark:border-white/20 ${
-                      isLooping
-                        ? "bg-black text-white dark:bg-white dark:text-black"
-                        : ""
-                    }`}
-                  >
-                    <Repeat className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isLooping ? "Disable Loop" : "Enable Loop"}</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    variant="outline"
-                    size="icon"
-                    disabled={disabled}
-                    className={`h-8 w-8 rounded-full border border-black/20 dark:border-white/20`}
-                  >
-                    <div
-                      className={`w-2.5 h-2.5 rounded-full bg-red-500 ${
-                        isRecording ? "animate-pulse" : ""
-                      }`}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isRecording ? "Stop Recording" : "Start Recording"}</p>
-                </TooltipContent>
-              </Tooltip>
-
-              {recordedAudio && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={downloadRecordedAudio}
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
-                    >
-                      <Download className="h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Download Recording</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+        {loadError ? (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              <span>{loadError}</span>
             </div>
-          </TooltipProvider>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              Volume: {(volume * 100).toFixed(0)}%
-            </Label>
-            <Slider
-              value={[volume]}
-              min={0}
-              max={1}
-              step={0.01}
-              onValueChange={(v) => setVolume(v[0])}
-            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setLoadError(null);
+                void setupGraph();
+              }}
+              className="h-7"
+            >
+              Retry
+            </Button>
           </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              Speed: {speed.toFixed(2)}x
-            </Label>
-            <Slider
-              value={[speed]}
-              min={0.5}
-              max={2}
-              step={0.01}
-              onValueChange={(v) => setSpeed(v[0])}
-            />
+        ) : sourceUrlRef.current && (!isReady || !isBufferLoaded) ? (
+          <div className="flex w-full items-center justify-center py-6">
+            <div className="text-black dark:text-white">
+              <ChaoticOrbitLoader size={30} />
+            </div>
           </div>
+        ) : (
+          <>
+            {/* Transport + Seek bar in one row */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+              <div className="flex items-center gap-2 border border-black dark:border-white rounded-full px-3 py-1.5 w-full md:w-auto md:flex-1">
+                <span className="text-xs font-mono whitespace-nowrap">
+                  {formatTime(currentTime)}
+                </span>
+                <Slider
+                  value={[currentTime]}
+                  min={0}
+                  max={totalDuration || 0}
+                  step={0.01}
+                  className="flex-grow"
+                  onValueChange={onSeek}
+                />
+                <span className="text-xs font-mono w-8 text-right">
+                  {formatTime(totalDuration)}
+                </span>
+              </div>
+              <TooltipProvider>
+                <div className="flex items-center justify-between w-full md:w-auto gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={onTogglePlay}
+                        variant="outline"
+                        size="icon"
+                        disabled={disabled}
+                        className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
+                      >
+                        {isPlaying ? (
+                          <Pause className="h-3 w-3" />
+                        ) : (
+                          <Play className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isPlaying ? "Pause" : "Play"}</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Reverb Mix: {(reverbWet * 100).toFixed(0)}%
-            </Label>
-            <Slider
-              value={[reverbWet]}
-              min={0}
-              max={1}
-              step={0.01}
-              onValueChange={(v) => setReverbWet(v[0])}
-            />
-          </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={onStop}
+                        variant="outline"
+                        size="icon"
+                        disabled={disabled}
+                        className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
+                      >
+                        <Square className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Stop</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Reverb Decay: {reverbDecay.toFixed(1)}s
-            </Label>
-            <Slider
-              value={[reverbDecay]}
-              min={0.1}
-              max={10}
-              step={0.1}
-              onValueChange={(v) => setReverbDecay(v[0])}
-            />
-          </div>
-        </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleLoopToggle}
+                        variant="outline"
+                        size="icon"
+                        disabled={disabled}
+                        className={`h-8 w-8 rounded-full border border-black/20 dark:border-white/20 ${
+                          isLooping
+                            ? "bg-black text-white dark:bg-white dark:text-black"
+                            : ""
+                        }`}
+                      >
+                        <Repeat className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isLooping ? "Disable Loop" : "Enable Loop"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={isRecording ? stopRecording : startRecording}
+                        variant="outline"
+                        size="icon"
+                        disabled={disabled}
+                        className={`h-8 w-8 rounded-full border border-black/20 dark:border-white/20`}
+                      >
+                        <div
+                          className={`w-2.5 h-2.5 rounded-full bg-red-500 ${
+                            isRecording ? "animate-pulse" : ""
+                          }`}
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {isRecording ? "Stop Recording" : "Start Recording"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {recordedAudio && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={downloadRecordedAudio}
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Download Recording</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </TooltipProvider>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  Volume: {(volume * 100).toFixed(0)}%
+                </Label>
+                <Slider
+                  value={[volume]}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onValueChange={(v) => setVolume(v[0])}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  Speed: {speed.toFixed(2)}x
+                </Label>
+                <Slider
+                  value={[speed]}
+                  min={0.5}
+                  max={2}
+                  step={0.01}
+                  onValueChange={(v) => setSpeed(v[0])}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Reverb Mix: {(reverbWet * 100).toFixed(0)}%
+                </Label>
+                <Slider
+                  value={[reverbWet]}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onValueChange={(v) => setReverbWet(v[0])}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Reverb Decay: {reverbDecay.toFixed(1)}s
+                </Label>
+                <Slider
+                  value={[reverbDecay]}
+                  min={0.1}
+                  max={10}
+                  step={0.1}
+                  onValueChange={(v) => setReverbDecay(v[0])}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     backendForm.append("file", file, file.name);
 
     const backendResponse = await fetch(
-      "http://127.0.0.1:8000/api/v1/separate-sources",
+      `${process.env.API_URL}/api/v1/separate-sources`,
       {
         method: "POST",
         body: backendForm,
