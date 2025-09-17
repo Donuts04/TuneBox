@@ -23,21 +23,26 @@ type Step =
   | "initial"
   | "search"
   | "upload-options"
+  | "process"
   | "separate"
   | "convert"
   | "effects";
 import AudioEffects from "./AudioEffects/audio-effects";
+import AudioHeader from "./AudioCard.tsx/AudioHeader";
 
 export default function ProcessingOptions() {
   const [currentStep, setCurrentStep] = useState<Step>("initial");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
+  const [showSeparator, setShowSeparator] = useState(false);
+  const [showConverter, setShowConverter] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     setUploadedFile(file);
-    setCurrentStep("upload-options");
+    // Jump straight to the unified processing view
+    setCurrentStep("process");
   };
 
   const resetFlow = () => {
@@ -250,15 +255,15 @@ export default function ProcessingOptions() {
           <DeezerSearch
             onSelectForSeparation={(track) => {
               setSelectedTrack(track);
-              setCurrentStep("separate");
+              setCurrentStep("process");
             }}
             onSelectForConversion={(track) => {
               setSelectedTrack(track);
-              setCurrentStep("convert");
+              setCurrentStep("process");
             }}
             onSelectForEffects={(track) => {
               setSelectedTrack(track);
-              setCurrentStep("effects");
+              setCurrentStep("process");
             }}
           />
         </div>
@@ -335,6 +340,116 @@ export default function ProcessingOptions() {
         <div className="px-6">
           <AudioEffects uploadedFile={uploadedFile} track={selectedTrack} />
         </div>
+      </div>
+    );
+  }
+
+  if (currentStep === "process") {
+    return (
+      <div className="space-y-4 mx-auto">
+        <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            Start Processing
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetFlow}
+            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Start
+          </Button>
+        </div>
+
+        <Card className="border border-black dark:border-white rounded-lg mb-6">
+          <AudioHeader uploadedFile={uploadedFile} track={selectedTrack} />
+        </Card>
+
+        <div className="px-6">
+          <h3 className="text-lg font-semibold mb-3 text-black dark:text-white">
+            Audio Effects
+          </h3>
+          <AudioEffects uploadedFile={uploadedFile} track={selectedTrack} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6">
+          <Card
+            className="border border-black dark:border-white transition-all cursor-pointer"
+            onClick={() => setShowSeparator((v) => !v)}
+          >
+            <CardContent className="p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center border border-black dark:border-white">
+                  <Layers className="h-5 w-5 text-black dark:text-white" />
+                </div>
+                <div>
+                  <h4 className="text-base font-semibold text-black dark:text-white">
+                    Separate Audio
+                  </h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Split into stems
+                  </p>
+                </div>
+              </div>
+              <Button className="bg-black hover:bg-black/90 dark:bg-white/10 dark:hover:bg-white/20 border border-white/20 text-white dark:text-white">
+                {showSeparator ? "Hide" : "Open"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="border border-black dark:border-white transition-all cursor-pointer"
+            onClick={() => setShowConverter((v) => !v)}
+          >
+            <CardContent className="p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center border border-black dark:border-white">
+                  <FileMusic className="h-5 w-5 text-black dark:text-white" />
+                </div>
+                <div>
+                  <h4 className="text-base font-semibold text-black dark:text-white">
+                    Convert to Notes
+                  </h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Extract notes / MIDI
+                  </p>
+                </div>
+              </div>
+              <Button className="bg-black hover:bg-black/90 dark:bg-white/10 dark:hover:bg-white/20 border border-white/20 text-white dark:text-white">
+                {showConverter ? "Hide" : "Open"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {showSeparator && (
+          <div className="px-6">
+            <div className="mt-4 p-4 border border-black dark:border-white rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-black dark:text-white">
+                Audio Separator
+              </h3>
+              <AudioSeparator
+                uploadedFile={uploadedFile}
+                track={selectedTrack}
+              />
+            </div>
+          </div>
+        )}
+
+        {showConverter && (
+          <div className="px-6">
+            <div className="mt-4 p-4 border border-black dark:border-white rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-black dark:text-white">
+                Notes Converter
+              </h3>
+              <AudioConverter
+                uploadedFile={uploadedFile}
+                track={selectedTrack}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }

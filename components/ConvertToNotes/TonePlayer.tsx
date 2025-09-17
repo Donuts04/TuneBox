@@ -8,49 +8,125 @@ import { Label } from "@/components/ui/label";
 import { Play, Pause, Square, Volume2 } from "lucide-react";
 import { INSTRUMENTS } from "@/lib/instruments";
 import { Midi } from "@tonejs/midi";
-import { NoteVisualization } from "./NoteVisualization";
-
-export interface Note {
-  start: number;
-  end: number;
-  pitch: number;
-  velocity: number;
-}
-
-export interface MusicData {
-  notes: Note[];
-  "X-Processing-Time-Seconds": number;
-}
+import { NoteVisualization } from "./NoteVisualization2";
 
 interface TonePlayerProps {
-  musicData: MusicData | null;
-  midiData?: Midi | null;
-  selectedModel: "basic" | "advanced";
+  midiData: Midi | null;
   selectedInstrument: string;
+  originalAudioUrl?: string;
 }
 
 export default function TonePlayer({
-  musicData,
   midiData,
-  selectedModel,
   selectedInstrument,
+  originalAudioUrl,
 }: TonePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(0.8);
+  const [playOriginal, setPlayOriginal] = useState(false);
+  const [originalVolume, setOriginalVolume] = useState(0.5);
   const [isInstrumentLoaded, setIsInstrumentLoaded] = useState(false);
   const [playbackTempo, setPlaybackTempo] = useState(120);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [previousTempo, setPreviousTempo] = useState(120);
 
   const sampler = useRef<Tone.Sampler | null>(null);
-  const notesRef = useRef<Tone.Part | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
+  const toneContextRef = useRef<any | null>(null);
+  const transportRef = useRef<any | null>(null);
+  const originalPlayerRef = useRef<Tone.Player | null>(null);
+  const originalGainRef = useRef<Tone.Gain | null>(null);
+
+  // Initialize isolated context/transport
+  useEffect(() => {
+    const ctx = new (Tone as any).Context({ latencyHint: "interactive" });
+    // Bind a transport to this new context by temporarily setting it active
+    const prevCtx = Tone.getContext();
+    Tone.setContext(ctx);
+    const transport = Tone.getTransport();
+    // restore previous context immediately
+    Tone.setContext(prevCtx);
+    transport.bpm.value = playbackTempo;
+    transport.loop = false;
+    toneContextRef.current = ctx;
+    transportRef.current = transport;
+    return () => {
+      try {
+        transportRef.current?.stop();
+        transportRef.current?.cancel?.();
+      } catch {}
+      try {
+        toneContextRef.current?.close?.();
+      } catch {}
+      transportRef.current = null;
+      toneContextRef.current = null;
+    };
+  }, []);
+
+  // Initialize/Update original audio player
+  useEffect(() => {
+    const ctx = toneContextRef.current;
+    const destination = ctx?.destination;
+
+    if (!originalAudioUrl || !ctx || !destination) {
+      // Dispose if url removed
+      originalPlayerRef.current?.dispose?.();
+      originalGainRef.current?.dispose?.();
+      originalPlayerRef.current = null;
+      originalGainRef.current = null;
+      return;
+    }
+
+    // Dispose any previous
+    originalPlayerRef.current?.dispose?.();
+    originalGainRef.current?.dispose?.();
+
+    const gain = new Tone.Gain({ gain: originalVolume, context: ctx });
+    if (destination) (gain as any).connect(destination);
+    originalGainRef.current = gain;
+
+    const player = new Tone.Player({
+      url: originalAudioUrl,
+      autostart: false,
+      context: ctx,
+    });
+    (player as any).connect(gain);
+    // tie playback rate to bpm (relative to 120 BPM baseline)
+    (player as any).playbackRate = playbackTempo / 120;
+    originalPlayerRef.current = player;
+
+    return () => {
+      originalPlayerRef.current?.stop?.();
+      originalPlayerRef.current?.dispose?.();
+      originalGainRef.current?.dispose?.();
+      originalPlayerRef.current = null;
+      originalGainRef.current = null;
+    };
+  }, [originalAudioUrl]);
+
+  // Update original volume
+  useEffect(() => {
+    if (originalGainRef.current) {
+      // Tone.Gain expects a linear gain (0..1);
+      (originalGainRef.current as any).gain.value = originalVolume;
+    }
+  }, [originalVolume]);
+
+  // Update original playbackRate when BPM changes and keep alignment if playing
+  useEffect(() => {
+    if (originalPlayerRef.current) {
+      (originalPlayerRef.current as any).playbackRate = playbackTempo / 120;
+      if (isPlaying && playOriginal) {
+        const transportPos = transportRef.current?.seconds || 0;
+        const rate = playbackTempo / 120;
+        originalPlayerRef.current.stop();
+        originalPlayerRef.current.start(undefined, transportPos / rate);
+      }
+    }
+  }, [playbackTempo]);
 
   // Initialize the selected instrument
   useEffect(() => {
-    if (!musicData) return;
+    if (!midiData) return;
 
     setIsInstrumentLoaded(false);
 
@@ -63,6 +139,9 @@ export default function TonePlayer({
       sampler.current.dispose();
     }
 
+    const ctx = toneContextRef.current;
+    const destination = ctx?.destination;
+
     if (instrumentConfig.type === "sampler") {
       const newSampler = new Tone.Sampler({
         urls: instrumentConfig.urls,
@@ -73,28 +152,38 @@ export default function TonePlayer({
         onerror: () => {
           console.error(`Failed to load ${instrumentConfig.name} samples`);
         },
-      }).toDestination();
+        context: ctx,
+      });
+      if (destination) (newSampler as any).connect(destination);
       sampler.current = newSampler;
     } else if (instrumentConfig.type === "synth") {
-      const newSynth = new Tone.Synth(instrumentConfig.options).toDestination();
+      const newSynth = new Tone.Synth({
+        ...instrumentConfig.options,
+        context: ctx,
+      });
+      if (destination) (newSynth as any).connect(destination);
       sampler.current = newSynth as unknown as Tone.Sampler;
       setIsInstrumentLoaded(true);
     } else if (instrumentConfig.type === "amSynth") {
-      const newSynth = new Tone.AMSynth(
-        instrumentConfig.options
-      ).toDestination();
+      const newSynth = new Tone.AMSynth({
+        ...instrumentConfig.options,
+        context: ctx,
+      });
+      if (destination) (newSynth as any).connect(destination);
       sampler.current = newSynth as unknown as Tone.Sampler;
       setIsInstrumentLoaded(true);
     } else if (instrumentConfig.type === "fmSynth") {
-      const newSynth = new Tone.FMSynth(
-        instrumentConfig.options
-      ).toDestination();
+      const newSynth = new Tone.FMSynth({
+        ...instrumentConfig.options,
+        context: ctx,
+      });
+      if (destination) (newSynth as any).connect(destination);
       sampler.current = newSynth as unknown as Tone.Sampler;
       setIsInstrumentLoaded(true);
     }
 
     if (sampler.current) {
-      sampler.current.volume.value = Tone.gainToDb(volume);
+      (sampler.current as any).volume.value = Tone.gainToDb(volume);
     }
 
     return () => {
@@ -102,217 +191,180 @@ export default function TonePlayer({
         sampler.current.dispose();
       }
     };
-  }, [selectedInstrument, musicData]);
+  }, [selectedInstrument, midiData]);
 
   // Update volume when it changes
   useEffect(() => {
     if (sampler.current) {
-      sampler.current.volume.value = Tone.gainToDb(volume);
+      (sampler.current as any).volume.value = Tone.gainToDb(volume);
     }
   }, [volume]);
 
   // Set up the notes for playback
   useEffect(() => {
-    if (!musicData || !isInstrumentLoaded || !sampler.current) return;
+    if (!midiData || !isInstrumentLoaded || !sampler.current) return;
 
-    // Dispose previous part if it exists
-    if (notesRef.current) {
-      notesRef.current.dispose();
-    }
+    transportRef.current && (transportRef.current.bpm.value = playbackTempo);
+  }, [midiData, isInstrumentLoaded, playbackTempo]);
 
-    // Create a new part with the notes
-    notesRef.current = new Tone.Part(
-      (time, note) => {
-        // Convert MIDI pitch to note name
-        const noteName = Tone.Frequency(note.pitch, "midi").toNote();
-
-        // Calculate duration in seconds
-        const duration = note.end - note.start;
-
-        // Play the note
-        if (sampler.current) {
-          sampler.current.triggerAttackRelease(
-            noteName,
-            duration,
-            time,
-            note.velocity
-          );
-        }
-      },
-      musicData.notes.map((note) => ({
-        time: note.start,
-        ...note,
-      }))
-    ).start(0);
-
-    Tone.getTransport().bpm.value = playbackTempo;
-
-    return () => {
-      if (notesRef.current) {
-        notesRef.current.dispose();
-      }
-    };
-  }, [musicData, isInstrumentLoaded]);
-
-  // Handle playback animation
-  useEffect(() => {
-    if (!isPlaying || !musicData) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
-      }
-      return;
-    }
-
-    // Start Tone.js transport if it's not started
-    if (Tone.getTransport().state !== "started") {
-      Tone.getTransport().start();
-    }
-
-    // Set the start time reference
-    if (!startTimeRef.current) {
-      startTimeRef.current = Tone.now() - currentTime;
-    }
-
-    // Animation loop for playback position
-    const animate = () => {
-      if (!startTimeRef.current || !musicData || !isPlaying) return;
-
-      const elapsed = Tone.now() - startTimeRef.current;
-      setCurrentTime(elapsed);
-
-      const totalDuration = calculateTotalDuration(musicData.notes);
-      const currentProgress = (elapsed / totalDuration) * 100;
-      setProgress(Math.min(100, currentProgress));
-
-      // Stop at the end
-      if (elapsed >= totalDuration) {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setProgress(0);
-        Tone.getTransport().stop();
-        Tone.getTransport().cancel();
-        startTimeRef.current = null;
-
-        return;
-      }
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPlaying, musicData, currentTime]);
+  // Handle playback animation - removed manual animation loop
+  // Progress tracking is now handled by Tone.js transport scheduling
 
   // Update tempo when it changes
   useEffect(() => {
-    Tone.getTransport().bpm.value = playbackTempo;
-  }, [playbackTempo]);
+    if (transportRef.current) transportRef.current.bpm.value = playbackTempo;
 
-  // Toggle playback
-  const togglePlayback = async () => {
-    if (!musicData) return;
+    // If currently playing, reschedule remaining notes with new tempo
+    if (
+      isPlaying &&
+      midiData &&
+      sampler.current &&
+      playbackTempo !== previousTempo
+    ) {
+      // Get current position and convert to original MIDI time scale using previous tempo
+      const currentPosition = transportRef.current
+        ? transportRef.current.seconds
+        : 0;
+      const previousTempoRatio = 120 / previousTempo;
+      const currentMidiTime = currentPosition / previousTempoRatio;
 
-    try {
-      // Start audio context if it's not started
-      if (Tone.getContext().state !== "running") {
-        await Tone.start();
-      }
+      // Stop current playback and clear all scheduled events
+      transportRef.current?.stop();
+      transportRef.current?.cancel?.();
 
-      if (isPlaying) {
-        Tone.getTransport().pause();
-      } else {
-        // Stop any current playback
-        Tone.getTransport().cancel();
-        Tone.getTransport().stop();
+      // Calculate new tempo ratio
+      const newTempoRatio = 120 / playbackTempo;
 
-        if (selectedModel === "advanced" && midiData) {
-          // Schedule all MIDI events
-          midiData.tracks.forEach((track) => {
-            track.notes.forEach((note) => {
-              Tone.getTransport().schedule((time) => {
-                if (sampler.current) {
-                  sampler.current.triggerAttackRelease(
-                    note.name,
-                    note.duration,
-                    time,
-                    note.velocity
-                  );
-                }
-              }, note.time);
-            });
-          });
+      // Set transport position to the new scaled position
+      const newPosition = currentMidiTime * newTempoRatio;
+      if (transportRef.current) transportRef.current.seconds = newPosition;
+      setCurrentTime(newPosition);
 
-          // Update progress during playback
-          Tone.getTransport().scheduleRepeat((time) => {
-            const currentProgress =
-              (Tone.getTransport().seconds / midiData.duration) * 100;
-            setProgress(Math.min(100, currentProgress));
-            setCurrentTime(Tone.getTransport().seconds);
-          }, 0.1);
-
-          // Handle playback completion
-          Tone.getTransport().scheduleOnce(() => {
-            setIsPlaying(false);
-            setProgress(100);
-            setCurrentTime(0);
-            Tone.getTransport().stop();
-            Tone.getTransport().cancel();
-            startTimeRef.current = null;
-          }, midiData.duration);
-        } else {
-          // Create a new part with the notes
-          notesRef.current = new Tone.Part(
-            (time, note) => {
-              // Convert MIDI pitch to note name
-              const noteName = Tone.Frequency(note.pitch, "midi").toNote();
-
-              // Calculate duration in seconds
-              const duration = note.end - note.start;
-
-              // Play the note
+      // Reschedule all MIDI events from current position with new tempo
+      midiData.tracks.forEach((track) => {
+        track.notes.forEach((note) => {
+          const scaledNoteTime = note.time * newTempoRatio;
+          if (note.time >= currentMidiTime) {
+            transportRef.current?.schedule((time: number) => {
               if (sampler.current) {
                 sampler.current.triggerAttackRelease(
-                  noteName,
-                  duration,
+                  note.name,
+                  note.duration * newTempoRatio,
                   time,
                   note.velocity
                 );
               }
-            },
-            musicData.notes.map((note) => ({
-              time: note.start,
-              ...note,
-            }))
-          ).start(0);
+            }, scaledNoteTime);
+          }
+        });
+      });
 
-          // Update progress during playback
-          Tone.getTransport().scheduleRepeat((time) => {
-            const totalDuration = calculateTotalDuration(musicData.notes);
-            const currentProgress =
-              (Tone.getTransport().seconds / totalDuration) * 100;
-            setProgress(Math.min(100, currentProgress));
-            setCurrentTime(Tone.getTransport().seconds);
+      // Update progress during playback
+      transportRef.current?.scheduleRepeat((time: number) => {
+        setCurrentTime(transportRef.current?.seconds || 0);
+      }, 0.1);
+
+      // Handle playback completion
+      const totalDuration = midiData.duration * newTempoRatio;
+      transportRef.current?.scheduleOnce(() => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        transportRef.current?.stop();
+        transportRef.current?.cancel?.();
+        // Stop original audio when sequence ends
+        originalPlayerRef.current?.stop?.();
+      }, totalDuration);
+
+      // Resume playback
+      transportRef.current?.start();
+
+      // Restart original audio from new position if enabled
+      if (playOriginal) {
+        originalPlayerRef.current?.stop?.();
+        const rate = playbackTempo / 120;
+        originalPlayerRef.current?.start?.(undefined, newPosition / rate);
+      }
+    }
+
+    // Update previous tempo
+    setPreviousTempo(playbackTempo);
+  }, [playbackTempo, isPlaying, midiData, previousTempo]);
+
+  // Toggle playback
+  const togglePlayback = async () => {
+    if (!midiData) return;
+
+    try {
+      // Start audio context if it's not started
+      const ctx = toneContextRef.current as AudioContext | null;
+      if (ctx && (ctx as any).state !== "running") {
+        await (ctx as any).resume();
+      }
+
+      if (isPlaying) {
+        transportRef.current?.pause();
+        // Stop original audio (no pause) so we can resume at current position
+        originalPlayerRef.current?.stop?.();
+      } else {
+        // If resuming from pause, just start the transport
+        if ((transportRef.current?.seconds || 0) > 0) {
+          transportRef.current?.start();
+          if (playOriginal) {
+            const resumePos = transportRef.current?.seconds || 0;
+            const rate = playbackTempo / 120;
+            originalPlayerRef.current?.stop?.();
+            originalPlayerRef.current?.start?.(undefined, resumePos / rate);
+          }
+        } else {
+          // If starting from beginning, set up everything
+          // Stop any current playback and clear all scheduled events
+          transportRef.current?.cancel?.();
+          transportRef.current?.stop();
+
+          // Set the tempo before starting playback
+          if (transportRef.current)
+            transportRef.current.bpm.value = playbackTempo;
+
+          // Reset transport position to start
+          if (transportRef.current) transportRef.current.seconds = 0;
+
+          // Schedule all MIDI events with tempo scaling
+          midiData.tracks.forEach((track) => {
+            track.notes.forEach((note) => {
+              transportRef.current?.schedule((time: number) => {
+                if (sampler.current) {
+                  sampler.current.triggerAttackRelease(
+                    note.name,
+                    note.duration * tempoRatio,
+                    time,
+                    note.velocity
+                  );
+                }
+              }, note.time * tempoRatio);
+            });
+          });
+
+          // Update progress during playback (optimized frequency for smooth playback)
+          transportRef.current?.scheduleRepeat((time: number) => {
+            setCurrentTime(transportRef.current?.seconds || 0);
           }, 0.1);
 
           // Handle playback completion
-          Tone.getTransport().scheduleOnce(() => {
+          transportRef.current?.scheduleOnce(() => {
             setIsPlaying(false);
-            setProgress(100);
             setCurrentTime(0);
-            Tone.getTransport().stop();
-            Tone.getTransport().cancel();
-            startTimeRef.current = null;
-          }, calculateTotalDuration(musicData.notes));
-        }
+            transportRef.current?.stop();
+            transportRef.current?.cancel?.();
+          }, totalDuration);
 
-        // Start playback
-        Tone.getTransport().start();
+          // Start playback
+          transportRef.current?.start();
+          if (playOriginal) {
+            originalPlayerRef.current?.stop?.();
+            const rate = playbackTempo / 120;
+            originalPlayerRef.current?.start?.(undefined, 0 / rate);
+          }
+        }
       }
 
       setIsPlaying(!isPlaying);
@@ -324,74 +376,74 @@ export default function TonePlayer({
 
   // Stop playback
   const stopPlayback = () => {
-    Tone.getTransport().stop();
-    Tone.getTransport().cancel();
+    transportRef.current?.stop();
+    transportRef.current?.cancel?.();
     setIsPlaying(false);
     setCurrentTime(0);
-    setProgress(0);
-    startTimeRef.current = null;
+    originalPlayerRef.current?.stop?.();
   };
 
   // Handle seeking in the timeline
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
     setCurrentTime(newTime);
-    const totalDuration =
-      selectedModel === "advanced" && midiData
-        ? midiData.duration
-        : calculateTotalDuration(musicData?.notes || []);
-    const newProgress = (newTime / totalDuration) * 100;
-    setProgress(Math.min(100, newProgress));
+    const tempoRatio = 120 / playbackTempo;
+    const totalDuration = (midiData?.duration || 0) * tempoRatio;
 
-    if (isPlaying) {
-      // Stop current playback
-      Tone.getTransport().stop();
-      Tone.getTransport().cancel();
+    if (isPlaying && midiData) {
+      // Stop current playback and clear all scheduled events
+      transportRef.current?.stop();
+      transportRef.current?.cancel?.();
 
-      // Restart from new position
-      if (selectedModel === "advanced" && midiData) {
-        // Schedule all MIDI events from new position
-        midiData.tracks.forEach((track) => {
-          track.notes.forEach((note) => {
-            if (note.time >= newTime) {
-              Tone.getTransport().schedule((time) => {
-                if (sampler.current) {
-                  sampler.current.triggerAttackRelease(
-                    note.name,
-                    note.duration,
-                    time,
-                    note.velocity
-                  );
-                }
-              }, note.time - newTime);
-            }
-          });
-        });
-      } else if (musicData) {
-        // Create a new part with the notes from new position
-        notesRef.current = new Tone.Part(
-          (time, note) => {
-            if (note.start >= newTime) {
-              const noteName = Tone.Frequency(note.pitch, "midi").toNote();
-              const duration = note.end - note.start;
+      // Set the tempo before restarting playback
+      if (transportRef.current) transportRef.current.bpm.value = playbackTempo;
+
+      // Set transport position to the new time
+      if (transportRef.current) transportRef.current.seconds = newTime;
+
+      // Restart from new position using the same system as togglePlayback
+      // Schedule all MIDI events from new position with tempo scaling
+      midiData.tracks.forEach((track) => {
+        track.notes.forEach((note) => {
+          const scaledNoteTime = note.time * tempoRatio;
+          if (scaledNoteTime >= newTime) {
+            transportRef.current?.schedule((time: number) => {
               if (sampler.current) {
                 sampler.current.triggerAttackRelease(
-                  noteName,
-                  duration,
+                  note.name,
+                  note.duration * tempoRatio,
                   time,
                   note.velocity
                 );
               }
-            }
-          },
-          musicData.notes.map((note) => ({
-            time: note.start - newTime,
-            ...note,
-          }))
-        ).start(0);
-      }
+            }, scaledNoteTime);
+          }
+        });
+      });
 
-      Tone.getTransport().start();
+      // Update progress during playback (optimized frequency for smooth playback)
+      transportRef.current?.scheduleRepeat((time: number) => {
+        setCurrentTime(transportRef.current?.seconds || 0);
+      }, 0.1);
+
+      // Handle playback completion
+      transportRef.current?.scheduleOnce(() => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        transportRef.current?.stop();
+        transportRef.current?.cancel?.();
+        originalPlayerRef.current?.stop?.();
+      }, totalDuration);
+
+      // Start playback
+      transportRef.current?.start();
+
+      // Restart original from new seek position if enabled
+      if (playOriginal) {
+        originalPlayerRef.current?.stop?.();
+        const rate = playbackTempo / 120;
+        originalPlayerRef.current?.start?.(undefined, newTime / rate);
+      }
     }
   };
 
@@ -401,26 +453,25 @@ export default function TonePlayer({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const calculateTotalDuration = (notes: Note[]) => {
-    return notes.length > 0 ? Math.max(...notes.map((n) => n.end)) + 1 : 30;
-  };
-
-  if (!musicData || !musicData.notes || musicData.notes.length === 0) {
+  if (!midiData) {
     return null;
   }
 
-  const totalDuration =
-    selectedModel === "advanced" && midiData
-      ? midiData.duration
-      : calculateTotalDuration(musicData.notes);
+  // Create allNotes once for both playback and visualization
+  const allNotes = midiData.tracks.flatMap((track) => track.notes);
+
+  // Calculate actual playback duration based on tempo
+  // Original duration is at 120 BPM, so we scale it by the tempo ratio
+  const tempoRatio = 120 / playbackTempo;
+  const totalDuration = midiData.duration * tempoRatio;
 
   return (
     <div className="space-y-4">
       <NoteVisualization
-        notes={musicData.notes}
-        totalDuration={totalDuration}
+        allNotes={allNotes}
         isPlaying={isPlaying}
         currentTime={currentTime}
+        tempoRatio={tempoRatio}
       />
 
       {/* Playback controls */}
@@ -453,16 +504,53 @@ export default function TonePlayer({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Volume2 className="h-4 w-4 text-muted-foreground" />
-          <Slider
-            value={[volume]}
-            min={0}
-            max={1}
-            step={0.01}
-            className="w-24"
-            onValueChange={(value) => setVolume(value[0])}
-          />
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Volume2 className="h-4 w-4 text-muted-foreground" />
+            <Slider
+              value={[volume]}
+              min={0}
+              max={1}
+              step={0.01}
+              className="w-24"
+              onValueChange={(value) => setVolume(value[0])}
+            />
+          </div>
+
+          {originalAudioUrl && (
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !playOriginal;
+                  setPlayOriginal(next);
+                  if (!next) {
+                    originalPlayerRef.current?.stop?.();
+                  } else if (isPlaying) {
+                    const pos = transportRef.current?.seconds || 0;
+                    const rate = playbackTempo / 120;
+                    originalPlayerRef.current?.stop?.();
+                    originalPlayerRef.current?.start?.(undefined, pos / rate);
+                  }
+                }}
+                className={`text-xs px-2 py-1 rounded-full border ${
+                  playOriginal
+                    ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
+                    : "bg-transparent text-black border-black dark:text-white dark:border-white"
+                }`}
+              >
+                Original
+              </button>
+              <Slider
+                value={[originalVolume]}
+                min={0}
+                max={1}
+                step={0.01}
+                className="w-24"
+                onValueChange={(value) => setOriginalVolume(value[0])}
+              />
+            </div>
+          )}
         </div>
       </div>
 

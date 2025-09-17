@@ -13,18 +13,18 @@ export async function POST(request: Request) {
 
     const backendForm = new FormData();
     backendForm.append("file", file, file.name);
+    backendForm.append("artist", "The Neighbourhood");
+    backendForm.append("title", "Stargazing");
 
     const backendResponse = await fetch(
-      "https://donutss-demucs.hf.space/transcribe",
+      "http://127.0.0.1:8000/api/v1/transcribe",
       {
         method: "POST",
-        headers: {
-          Authorization: "Bearer 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",
-        },
         body: backendForm,
       }
     );
 
+    console.log(backendResponse);
     if (!backendResponse.ok) {
       return NextResponse.json(
         { error: `Backend error: ${backendResponse.statusText}` },
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     }
 
     const data = await backendResponse.json();
+    console.log(data);
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error proxying audio transcription:", error);

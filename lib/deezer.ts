@@ -1,60 +1,59 @@
-"use server"
+"use server";
 
-// Types for Deezer API responses
 export interface DeezerTrack {
-  id: number
-  title: string
+  id: number;
+  title: string;
   artist: {
-    id: number
-    name: string
-  }
+    id: number;
+    name: string;
+  };
   album: {
-    id: number
-    title: string
-    cover: string
-    cover_small: string
-    cover_medium: string
-  }
-  preview: string
-  duration: number
-  link: string
+    id: number;
+    title: string;
+    cover: string;
+    cover_small: string;
+    cover_medium: string;
+  };
+  preview: string;
+  duration: number;
+  link: string;
 }
 
 export interface DeezerSearchResponse {
-  data: DeezerTrack[]
-  total: number
-  next?: string
+  data: DeezerTrack[];
+  total: number;
+  next?: string;
 }
 
-// Search for tracks
 export async function searchTracks(query: string): Promise<DeezerTrack[]> {
   if (!query.trim()) {
-    return []
+    return [];
   }
 
   try {
-    const response = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=10`, {
-      headers: {
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    })
+    const response = await fetch(
+      `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=10`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
-      throw new Error(`Deezer API error: ${response.statusText}`)
+      throw new Error(`Deezer API error: ${response.statusText}`);
     }
 
-    const data: DeezerSearchResponse = await response.json()
-    
-    console.log(data.data)
-    return data.data
+    const data: DeezerSearchResponse = await response.json();
+
+    return data.data;
   } catch (error) {
-    console.error("Error searching Deezer tracks:", error)
-    throw error
+    console.error("Error searching Deezer tracks:", error);
+    throw error;
   }
 }
 
-// Get a specific track by ID
 export async function getTrack(trackId: number): Promise<DeezerTrack> {
   try {
     const response = await fetch(`https://api.deezer.com/track/${trackId}`, {
@@ -62,16 +61,15 @@ export async function getTrack(trackId: number): Promise<DeezerTrack> {
         Accept: "application/json",
       },
       cache: "no-store",
-    })
+    });
 
     if (!response.ok) {
-      throw new Error(`Deezer API error: ${response.statusText}`)
+      throw new Error(`Deezer API error: ${response.statusText}`);
     }
 
-    return response.json()
+    return response.json();
   } catch (error) {
-    console.error("Error fetching Deezer track:", error)
-    throw error
+    console.error("Error fetching Deezer track:", error);
+    throw error;
   }
 }
-
