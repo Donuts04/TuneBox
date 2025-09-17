@@ -45,6 +45,7 @@
     "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-dropzone": "^14.3.8",
     "react-icons": "^5.5.0",
     "react-midi-visualizer": "^3.0.1",
     "react-piano": "^3.1.3",

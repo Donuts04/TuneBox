@@ -14,9 +14,6 @@ import {
   Volume2,
   KeyboardMusic,
   Drum,
-  Guitar,
-  Headphones,
-  BoomBox,
   AudioLines,
 } from "lucide-react";
 import type { DeezerTrack } from "@/lib/deezer";

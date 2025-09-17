@@ -12,6 +12,7 @@ import {
   Layers,
   FileMusic,
   HeartCrack,
+  BoomBox,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,17 +21,10 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
 
 interface DeezerSearchProps {
-  onSelectPreviewUrl?: (url: string, trackName: string) => void;
-  onSelectForSeparation?: (track: DeezerTrack) => void;
-  onSelectForConversion?: (track: DeezerTrack) => void;
-  onSelectForEffects?: (track: DeezerTrack) => void;
+  onSelect: (track: DeezerTrack) => void;
 }
 
-export default function DeezerSearch({
-  onSelectForSeparation,
-  onSelectForConversion,
-  onSelectForEffects,
-}: DeezerSearchProps) {
+export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
   const [query, setQuery] = useState("");
   const [tracks, setTracks] = useState<DeezerTrack[]>([]);
   const [loading, setLoading] = useState(false);
@@ -120,9 +114,8 @@ export default function DeezerSearch({
     }
   };
 
-  // Select track for separation
-  const selectTrackForSeparation = (track: DeezerTrack) => {
-    if (!track.preview || !onSelectForSeparation) {
+  const selectTrack = (track: DeezerTrack) => {
+    if (!track.preview) {
       setError("No preview available for this track 😔");
       return;
     }
@@ -133,38 +126,7 @@ export default function DeezerSearch({
       setCurrentlyPlaying(null);
     }
 
-    onSelectForSeparation(track);
-  };
-
-  // Select track for conversion
-  const selectTrackForConversion = (track: DeezerTrack) => {
-    if (!track.preview || !onSelectForConversion) {
-      setError("No preview available for this track 😔");
-      return;
-    }
-
-    // Stop any currently playing audio
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setCurrentlyPlaying(null);
-    }
-
-    onSelectForConversion(track);
-  };
-
-  // Select track for effects
-  const selectTrackForEffects = (track: DeezerTrack) => {
-    if (!track.preview || !onSelectForEffects) {
-      setError("No preview available for this track 😔");
-      return;
-    }
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setCurrentlyPlaying(null);
-    }
-
-    onSelectForEffects(track);
+    onSelect(track);
   };
 
   // Format duration from seconds to MM:SS
@@ -175,7 +137,7 @@ export default function DeezerSearch({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="border border-black dark:border-white rounded-lg relative">
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-black dark:text-white" />
         <Input
@@ -273,8 +235,8 @@ export default function DeezerSearch({
               exit={{ opacity: 0, y: -20 }}
               className="group rounded-lg border border-black dark:border-white hover:shadow-md transition-all"
             >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center p-4 overflow-hidden">
-                <div className="flex items-center mb-3 sm:mb-0 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 overflow-hidden">
+                <div className="flex items-center w-full sm:w-auto">
                   <div
                     className="relative flex-shrink-0 mr-4 cursor-pointer"
                     onClick={() => togglePlayPreview(track)}
@@ -309,7 +271,7 @@ export default function DeezerSearch({
 
                   <div className="flex-1 min-w-0">
                     <p
-                      className="font-medium text-black dark:text-white  break-words line-clamp-2"
+                      className="font-medium text-black dark:text-white break-words line-clamp-2"
                       title={track.title}
                     >
                       {track.title}
@@ -328,48 +290,21 @@ export default function DeezerSearch({
                   </div>
                 </div>
 
-                <div className="flex gap-2 mt-2 sm:mt-0 sm:ml-auto w-full sm:w-auto">
-                  {track.preview ? (
-                    <>
-                      {onSelectForSeparation && (
-                        <Button
-                          className="w-full h-9 flex items-center justify-center gap-2 mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-                          onClick={() => selectTrackForSeparation(track)}
-                        >
-                          <Layers className="h-4 w-4" />
-                          <span>Separate</span>
-                        </Button>
-                      )}
-
-                      {onSelectForConversion && (
-                        <Button
-                          className="w-full h-9 flex items-center justify-center gap-2 mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-                          onClick={() => selectTrackForConversion(track)}
-                        >
-                          <FileMusic className="h-4 w-4" />
-                          <span>Convert</span>
-                        </Button>
-                      )}
-
-                      {onSelectForEffects && (
-                        <Button
-                          className="w-full h-9 flex items-center justify-center gap-2 mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg:white transition-colors"
-                          onClick={() => selectTrackForEffects(track)}
-                        >
-                          <Music className="h-4 w-4" />
-                          <span>Effects</span>
-                        </Button>
-                      )}
-                    </>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className="text-md text-gray-700 border-gray-300 dark:border-gray-700 dark:text-gray-300 rounded-full"
+                {track.preview ? (
+                  <>
+                    <Button
+                      className="w-full sm:w-auto h-9 flex items-center justify-center gap-2 border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+                      onClick={() => selectTrack(track)}
                     >
-                      No preview, I can't get the track 😔
-                    </Badge>
-                  )}
-                </div>
+                      <BoomBox className="h-4 w-4" />
+                      <span>Select</span>
+                    </Button>
+                  </>
+                ) : (
+                  <Badge variant="outline">
+                    No preview, I can&apos;t get the track 😔
+                  </Badge>
+                )}
               </div>
             </motion.div>
           ))}

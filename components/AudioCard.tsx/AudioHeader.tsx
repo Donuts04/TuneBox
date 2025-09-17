@@ -1,11 +1,10 @@
-import { AlertCircle, FileAudio, Pause, Play, Upload } from "lucide-react";
+import { FileAudio, Pause, Play, Upload } from "lucide-react";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 import { Slider } from "../ui/slider";
 import { useEffect, useRef, useState } from "react";
 import { DeezerTrack } from "@/lib/deezer";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { formatTime } from "@/lib/utils";
 
 interface AudioHeaderProps {
@@ -86,11 +85,11 @@ export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
   };
 
   return (
-    <CardHeader className="border-b border-black dark:border-white p-3 sm:p-4">
+    <CardHeader className="border-b border-black dark:border-white p-4">
       <CardTitle className="flex flex-col md:flex-row items-start md:items-center text-lg gap-3">
         {track ? (
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
-            <div className="flex items-end gap-3 flex-1 min-w-0">
+            <div className="flex items-end gap-2 flex-1 min-w-0">
               {track.album.cover_medium && (
                 <div className="flex-shrink-0">
                   <Image
@@ -110,7 +109,7 @@ export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
+            <div className="flex items-center gap-2 w-full md:w-[300px] flex-shrink-0">
               <Button
                 className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
                   isHeaderPlaying
@@ -148,7 +147,7 @@ export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
           </div>
         ) : uploadedFile ? (
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
-            <div className="flex items-end gap-3 flex-1 min-w-0">
+            <div className="flex items-end gap-2 flex-1 min-w-0">
               <div className="flex-shrink-0 bg-muted/30 rounded-md p-3 border border-black dark:border-white">
                 <FileAudio className="h-6 w-6" />
               </div>
@@ -161,7 +160,7 @@ export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 w-full md:w-[300px] flex-shrink-0">
+            <div className="flex items-center gap-2 w-full md:w-[300px] flex-shrink-0">
               <Button
                 className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
                   isHeaderPlaying
