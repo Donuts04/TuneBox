@@ -29,6 +29,7 @@ import { FeaturedCarousel } from "@/components/featured-carousel";
 import { MusicBoxComposer } from "@/components/MusicBoxComposer";
 import { AboutSection } from "@/components/about-section";
 import Footer from "@/components/footer";
+import AudioHeader from "@/components/AudioCard.tsx/AudioHeader";
 
 export default function Home() {
   const [showDialog, setShowDialog] = useState(false);
@@ -87,12 +88,12 @@ export default function Home() {
 
   return (
     <AudioProcessingProvider>
-      <main className="min-h-screen bg-white dark:bg-black max-w-5xl mx-auto">
+      <main className="min-h-screen bg-white dark:bg-black mx-auto">
         <div className="w-full max-w-7xl mx-auto px-4 py-6">
           <Navbar />
         </div>
 
-        <div className="container mx-auto px-4 max-w-7xl space-y-16 py-16 md:py-24">
+        <div className="container mx-auto px-4 max-w-7xl space-y-32 py-16 md:py-24">
           <div>
             <div className="flex flex-col items-center justify-center">
               <h1 className="text-5xl font-bold tracking-tighter px-5 md:px-12 text-center">
@@ -114,6 +115,8 @@ export default function Home() {
               </p>
             </div>
           </div>
+
+          <FeaturedCarousel />
 
           <div>
             <div className="flex items-end justify-between gap-4">
@@ -137,9 +140,8 @@ export default function Home() {
             <ProcessingOptions />
           </div>
 
-          <FeaturedCarousel />
-
           <MusicBoxComposer />
+          <AudioHeader />
           {/* <ArtworkGallery /> */}
           <AboutSection />
           <Footer />
