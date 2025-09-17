@@ -23,11 +23,13 @@ interface DeezerSearchProps {
   onSelectPreviewUrl?: (url: string, trackName: string) => void;
   onSelectForSeparation?: (track: DeezerTrack) => void;
   onSelectForConversion?: (track: DeezerTrack) => void;
+  onSelectForEffects?: (track: DeezerTrack) => void;
 }
 
 export default function DeezerSearch({
   onSelectForSeparation,
   onSelectForConversion,
+  onSelectForEffects,
 }: DeezerSearchProps) {
   const [query, setQuery] = useState("");
   const [tracks, setTracks] = useState<DeezerTrack[]>([]);
@@ -148,6 +150,21 @@ export default function DeezerSearch({
     }
 
     onSelectForConversion(track);
+  };
+
+  // Select track for effects
+  const selectTrackForEffects = (track: DeezerTrack) => {
+    if (!track.preview || !onSelectForEffects) {
+      setError("No preview available for this track 😔");
+      return;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setCurrentlyPlaying(null);
+    }
+
+    onSelectForEffects(track);
   };
 
   // Format duration from seconds to MM:SS
@@ -331,6 +348,16 @@ export default function DeezerSearch({
                         >
                           <FileMusic className="h-4 w-4" />
                           <span>Convert</span>
+                        </Button>
+                      )}
+
+                      {onSelectForEffects && (
+                        <Button
+                          className="w-full h-9 flex items-center justify-center gap-2 mt-auto border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg:white transition-colors"
+                          onClick={() => selectTrackForEffects(track)}
+                        >
+                          <Music className="h-4 w-4" />
+                          <span>Effects</span>
                         </Button>
                       )}
                     </>

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     backendForm.append("composer", composer);
 
     const backendResponse = await fetch(
-      "https://notesconverter-918217662266.me-west1.run.app/generate-midi/",
+      "http://127.0.0.1:8000/api/v1/generate-midi",
       {
         method: "POST",
         body: backendForm,

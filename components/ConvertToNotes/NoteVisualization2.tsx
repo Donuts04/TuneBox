@@ -72,6 +72,7 @@ export function NoteVisualization({
         currentTime >= scaledNoteTime &&
         currentTime <= scaledNoteTime + scaledNoteDuration
       ) {
+        // Only add the specific note, not just the MIDI number
         active.add(note.midi);
       }
     }
@@ -99,8 +100,15 @@ export function NoteVisualization({
     [activeNotes]
   );
   const isNoteActive = useCallback(
-    (pitch: number) => activeNotes.has(pitch),
-    [activeNotes]
+    (note: any) => {
+      const scaledNoteTime = note.time * tempoRatio;
+      const scaledNoteDuration = note.duration * tempoRatio;
+      return (
+        currentTime >= scaledNoteTime &&
+        currentTime <= scaledNoteTime + scaledNoteDuration
+      );
+    },
+    [currentTime, tempoRatio]
   );
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -114,82 +122,63 @@ export function NoteVisualization({
     }
   };
 
-  // Piano visualization constants
+  // Visualization constants
   const FIXED_HEIGHT = 400;
-  const KEYBOARD_HEIGHT = 80; // Height for piano keys at bottom
-  const FALLING_AREA_HEIGHT = FIXED_HEIGHT - KEYBOARD_HEIGHT;
-  const PIXELS_PER_SECOND_FALL = FALLING_AREA_HEIGHT / 4; // 4 seconds to fall
+  const PIXELS_PER_SECOND_FALL = FIXED_HEIGHT / 4; // 4 seconds to fall
   const KEY_WIDTH = Math.max(20, containerWidth / allPitches.length); // Dynamic key width based on container
 
-  const drawPianoKeys = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number) => {
-      const pianoY = FIXED_HEIGHT - KEYBOARD_HEIGHT;
-      const whiteKeyHeight = KEYBOARD_HEIGHT;
-      const blackKeyHeight = KEYBOARD_HEIGHT * 0.6;
-
-      // Set common properties once
+  const drawGridLines = useCallback(
+    (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+      // Set grid line properties
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.2)";
       ctx.lineWidth = 1;
-      ctx.lineCap = "square";
-      ctx.lineJoin = "miter";
+      ctx.setLineDash([]);
 
-      // Draw white keys first
-      for (let i = 0; i < allPitches.length; i++) {
-        const pitch = allPitches[i];
-        if (!isBlackKey(pitch)) {
-          const x = i * KEY_WIDTH;
-          const isPressed = isNotePressed(pitch);
+      // Draw vertical grid lines (note columns)
+      for (let i = 0; i <= allPitches.length; i++) {
+        const x = i * KEY_WIDTH;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
 
-          ctx.fillStyle = isPressed ? "#d1d5db" : "#ffffff";
-          ctx.strokeStyle = "#000000";
-          ctx.fillRect(x, pianoY, KEY_WIDTH, whiteKeyHeight);
-          ctx.strokeRect(x, pianoY, KEY_WIDTH, whiteKeyHeight);
+      // Draw horizontal grid lines (time markers)
+      const timeInterval = 0.5; // Every 0.5 seconds
+      const pixelsPerSecond = PIXELS_PER_SECOND_FALL;
 
-          // Draw note name
-          ctx.fillStyle = "#000000";
-          ctx.font =
-            "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(
-            getNoteName(pitch),
-            x + KEY_WIDTH / 2,
-            pianoY + whiteKeyHeight / 2
-          );
+      for (let time = 0; time <= 10; time += timeInterval) {
+        const y = height - time * pixelsPerSecond;
+        if (y > 0 && y < height) {
+          // Different line styles for different time intervals
+          if (time % 2 === 0) {
+            // Major grid lines (every 2 seconds)
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.3)";
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([]);
+          } else {
+            // Minor grid lines (every 0.5 seconds)
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.15)";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 4]);
+          }
+
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
         }
       }
 
-      // Draw black keys on top
-      for (let i = 0; i < allPitches.length; i++) {
-        const pitch = allPitches[i];
-        if (isBlackKey(pitch)) {
-          const x = i * KEY_WIDTH;
-          const isPressed = isNotePressed(pitch);
-
-          ctx.fillStyle = isPressed ? "#4b5563" : "#000000";
-          ctx.strokeStyle = "#000000";
-          ctx.fillRect(x, pianoY, KEY_WIDTH, blackKeyHeight);
-          ctx.strokeRect(x, pianoY, KEY_WIDTH, blackKeyHeight);
-
-          // Draw note name
-          ctx.fillStyle = "#ffffff";
-          ctx.font =
-            "bold 9px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(
-            getNoteName(pitch),
-            x + KEY_WIDTH / 2,
-            pianoY + blackKeyHeight / 2
-          );
-        }
-      }
+      // Reset line dash
+      ctx.setLineDash([]);
     },
-    [allPitches, isNotePressed, KEY_WIDTH, KEYBOARD_HEIGHT]
+    [allPitches, KEY_WIDTH, PIXELS_PER_SECOND_FALL, FIXED_HEIGHT]
   );
 
   const drawFallingNotes = useCallback(
     (ctx: CanvasRenderingContext2D, width: number) => {
-      const pianoY = FIXED_HEIGHT - KEYBOARD_HEIGHT;
+      const bottomY = FIXED_HEIGHT;
 
       // Use pre-filtered visible notes
       for (let i = 0; i < visibleNotes.length; i++) {
@@ -205,29 +194,63 @@ export function NoteVisualization({
         const scaledNoteDuration = note.duration * tempoRatio;
         const timeUntilNote = scaledNoteTime - currentTime;
         const noteHeight = scaledNoteDuration * PIXELS_PER_SECOND_FALL;
-        const y = pianoY - timeUntilNote * PIXELS_PER_SECOND_FALL - noteHeight;
+        const y = bottomY - timeUntilNote * PIXELS_PER_SECOND_FALL - noteHeight;
 
         // Only draw if the note is visible
-        if (y + noteHeight > 0 && y < FALLING_AREA_HEIGHT) {
-          const opacity = 0.3 + note.velocity * 0.7;
-          const isActive = isNoteActive(note.midi);
+        if (y + noteHeight > 0 && y < FIXED_HEIGHT) {
+          const opacity = 0.4 + note.velocity * 0.6;
+          const isActive = isNoteActive(note);
+          const isBlack = isBlackKey(note.midi);
 
-          // Batch drawing operations
           ctx.save();
-          ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`;
-          ctx.fillRect(x, y, noteWidth, noteHeight);
 
+          // Draw rounded note with different colors for active/inactive
+          const radius = Math.min(noteWidth / 4, noteHeight / 4, 8);
           if (isActive) {
-            ctx.strokeStyle = "#ef4444";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, noteWidth, noteHeight);
+            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; // Blue for active
+          } else {
+            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; // Red for inactive
+          }
+          ctx.beginPath();
+          ctx.roundRect(x, y, noteWidth, noteHeight, radius);
+          ctx.fill();
+
+          // Draw border with different colors
+          ctx.strokeStyle = isActive ? "#3b82f6" : "#dc2626";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Draw splash effect when note hits the bottom
+          if (y + noteHeight >= bottomY - 5) {
+            const splashRadius = Math.min(noteWidth * 1.5, 30);
+            const splashOpacity = Math.max(
+              0,
+              1 - (y + noteHeight - bottomY + 5) / 10
+            );
+
+            ctx.fillStyle = `rgba(59, 130, 246, ${splashOpacity * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(x + noteWidth / 2, bottomY, splashRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner splash
+            ctx.fillStyle = `rgba(255, 255, 255, ${splashOpacity * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(
+              x + noteWidth / 2,
+              bottomY,
+              splashRadius * 0.6,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
           }
 
-          // Draw note name on the note (only for larger notes)
-          if (noteHeight > 15) {
+          // Draw note name
+          if (noteHeight > 12) {
             ctx.fillStyle = "#ffffff";
             ctx.font =
-              "bold 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+              "bold 9px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(
@@ -236,6 +259,7 @@ export function NoteVisualization({
               y + noteHeight / 2
             );
           }
+
           ctx.restore();
         }
       }
@@ -247,6 +271,7 @@ export function NoteVisualization({
       isNoteActive,
       KEY_WIDTH,
       PIXELS_PER_SECOND_FALL,
+      tempoRatio,
     ]
   );
 
@@ -283,12 +308,12 @@ export function NoteVisualization({
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
 
+    // Draw grid lines
+    drawGridLines(ctx, width, height);
+
     // Draw falling notes
     drawFallingNotes(ctx, width);
-
-    // Draw piano keys
-    drawPianoKeys(ctx, width);
-  }, [drawFallingNotes, drawPianoKeys]);
+  }, [drawGridLines, drawFallingNotes]);
 
   useEffect(() => {
     if (!isPlaying) {
