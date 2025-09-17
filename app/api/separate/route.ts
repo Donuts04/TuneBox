@@ -4,10 +4,8 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const model = formData.get("model") as string;
-    const stems = formData.get("stems") as string | null;
 
-    if (!file || !model) {
+    if (!file) {
       return NextResponse.json(
         { error: "Missing file or model parameter" },
         { status: 400 }
@@ -16,16 +14,11 @@ export async function POST(request: Request) {
 
     const backendForm = new FormData();
     backendForm.append("file", file, file.name);
-    backendForm.append("model", model);
-    if (stems) backendForm.append("stems", stems);
 
     const backendResponse = await fetch(
-      "http://localhost:8000/separate-sources/",
+      "http://127.0.0.1:8000/api/v1/separate-sources",
       {
         method: "POST",
-        headers: {
-          Authorization: "Bearer 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",
-        },
         body: backendForm,
       }
     );
@@ -37,14 +30,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const zipBuffer = await backendResponse.arrayBuffer();
-    return new Response(zipBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="stems.zip"`,
-      },
-    });
+    const result = await backendResponse.json();
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error proxying audio separation:", error);
     return NextResponse.json(

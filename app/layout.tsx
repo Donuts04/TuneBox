@@ -79,7 +79,7 @@ export default function RootLayout({
       <body className={`${poppins.className} bg-white dark:bg-black`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
