@@ -22,11 +22,16 @@ import Image from "next/image";
 type Step =
   | "initial"
   | "search"
+  | "upload"
   | "upload-options"
+  | "process"
   | "separate"
   | "convert"
   | "effects";
 import AudioEffects from "./AudioEffects/audio-effects";
+import ProcessView from "./Process/process-view";
+import UploadDropzone from "./Upload/upload-dropzone";
+import StepHeader from "./StepHeader";
 
 export default function ProcessingOptions() {
   const [currentStep, setCurrentStep] = useState<Step>("initial");
@@ -37,7 +42,8 @@ export default function ProcessingOptions() {
     const file = event.target.files?.[0];
     if (!file) return;
     setUploadedFile(file);
-    setCurrentStep("upload-options");
+    // Jump straight to the unified processing view
+    setCurrentStep("process");
   };
 
   const resetFlow = () => {
@@ -89,7 +95,10 @@ export default function ProcessingOptions() {
         </div>
 
         <div className="flex flex-col h-full">
-          <Card className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full bg-transparent">
+          <Card
+            className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full bg-transparent"
+            onClick={() => setCurrentStep("upload")}
+          >
             <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full group">
               <div className="w-20 h-20 rounded-full border border-black dark:border-white flex items-center justify-center mb-6 group-hover:bg-black dark:group-hover:bg-white transition-colors">
                 <Upload className="h-10 w-10 text-black dark:text-white group-hover:text-white dark:group-hover:text-black transition-colors" />
@@ -98,128 +107,15 @@ export default function ProcessingOptions() {
                 Upload Audio
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-6 tracking-normal leading-tight">
-                Upload your own audio files to process. Works with MP3, WAV, and
-                other common audio formats.
+                Search for songs to process or separate. Choose from millions of
+                tracks to analyze.
               </p>
               <Button
                 size="lg"
-                className="flex items-center justify-center gap-2 mt-auto border border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-                asChild
+                className="flex items-center justify-center gap-2 mt-auto border border-black/50 dark:border-white/50 text-black dark:text-white group-hover:text-white group-hover:dark:text-black bg-transparent group-hover:bg-black dark:group-hover:bg-white transition-colors"
               >
-                <label className="cursor-pointer flex items-center">
-                  <Upload className="h-5 w-5 mr-2" />
-                  Upload File
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                  />
-                </label>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentStep === "upload-options" && uploadedFile) {
-    return (
-      <div className="space-y-4 mx-auto bg-transparent">
-        <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <BoomBox className="h-5 w-5 text-black dark:text-white" />
-            Choose an Option
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Start
-          </Button>
-        </div>
-
-        <div className="p-6 border border-black dark:border-white rounded-lg mb-6">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 border border-black dark:border-white">
-              <Music className="h-5 w-5 text-black dark:text-white" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Selected file
-              </p>
-              <p className="font-semibold text-black dark:text-white">
-                {uploadedFile.name}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-transparent">
-          <Card
-            className="border border-black dark:border-white transition-all cursor-pointer bg-transparent"
-            onClick={() => setCurrentStep("separate")}
-          >
-            <CardContent className="p-8 flex flex-col items-center justify-center text-center bg-transparent">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-black dark:border-white">
-                <Layers className="h-8 w-8 text-black dark:text-white" />
-              </div>
-              <h2 className="text-xl font-bold mb-2 text-black dark:text-white">
-                Separate Audio
-              </h2>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Split the audio into individual stems (vocals, drums, bass,
-                etc.)
-              </p>
-              <Button className="mt-2 bg-black hover:bg-black/90 dark:bg-white/10 dark:hover:bg-white/20 border border-white/20 text-white dark:text-white">
-                <Layers className="h-4 w-4 mr-2" />
-                Separate
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="border border-black dark:border-white transition-all cursor-pointer"
-            onClick={() => setCurrentStep("convert")}
-          >
-            <CardContent className="p-8 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-black dark:border-white">
-                <FileMusic className="h-8 w-8 text-black dark:text-white" />
-              </div>
-              <h2 className="text-xl font-bold mb-2 text-black dark:text-white">
-                Convert to Notes
-              </h2>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Extract musical notes and create a MIDI representation
-              </p>
-              <Button className="mt-2 bg-black hover:bg-black/90 dark:bg-white/10 dark:hover:bg-white/20 border border-white/20 text-white dark:text-white">
-                <FileMusic className="h-4 w-4 mr-2" />
-                Convert
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="border border-black dark:border-white transition-all cursor-pointer"
-            onClick={() => setCurrentStep("effects")}
-          >
-            <CardContent className="p-8 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 border border-black dark:border-white">
-                <BoomBox className="h-8 w-8 text-black dark:text-white" />
-              </div>
-              <h2 className="text-xl font-bold mb-2 text-black dark:text-white">
-                Audio Effects
-              </h2>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Change speed and add reverb to the audio
-              </p>
-              <Button className="mt-2 bg-black hover:bg-black/90 dark:bg-white/10 dark:hover:bg-white/20 border border-white/20 text-white dark:text-white">
-                <BoomBox className="h-4 w-4 mr-2" />
-                Open
+                <Upload className="h-5 w-5" />
+                Upload Audio
               </Button>
             </CardContent>
           </Card>
@@ -231,110 +127,47 @@ export default function ProcessingOptions() {
   if (currentStep === "search") {
     return (
       <div className="space-y-4 mx-auto">
-        <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            Find Songs
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Start
-          </Button>
-        </div>
+        <StepHeader title="Find Songs" onBack={resetFlow} />
 
-        <div className="px-6">
-          <DeezerSearch
-            onSelectForSeparation={(track) => {
-              setSelectedTrack(track);
-              setCurrentStep("separate");
-            }}
-            onSelectForConversion={(track) => {
-              setSelectedTrack(track);
-              setCurrentStep("convert");
-            }}
-            onSelectForEffects={(track) => {
-              setSelectedTrack(track);
-              setCurrentStep("effects");
-            }}
-          />
-        </div>
+        <DeezerSearch
+          onSelect={(track) => {
+            setSelectedTrack(track);
+            setCurrentStep("process");
+          }}
+        />
       </div>
     );
   }
 
-  if (currentStep === "separate") {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            Audio Separator
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Start
-          </Button>
-        </div>
-
-        <div className="px-6">
-          <AudioSeparator uploadedFile={uploadedFile} track={selectedTrack} />
-        </div>
-      </div>
-    );
-  }
-
-  if (currentStep === "convert") {
+  if (currentStep === "upload") {
     return (
       <div className="space-y-4 mx-auto">
-        <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            Notes Converter
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Start
-          </Button>
-        </div>
-        <div className="px-6">
-          <AudioConverter uploadedFile={uploadedFile} track={selectedTrack} />
-        </div>
+        <StepHeader
+          title="Upload Audio"
+          onBack={() => setCurrentStep("initial")}
+        />
+
+        <UploadDropzone
+          onFileSelected={(file) => {
+            setUploadedFile(file);
+            setCurrentStep("process");
+          }}
+          onBack={() => setCurrentStep("initial")}
+        />
       </div>
     );
   }
 
-  if (currentStep === "effects") {
+  if (currentStep === "process") {
     return (
       <div className="space-y-4 mx-auto">
-        <div className="flex items-center justify-between mb-6 border border-black dark:border-white p-4 rounded-lg">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            Audio Effects
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={resetFlow}
-            className="hover:dark:bg-white hover:bg-black hover:text-white hover:dark:text-black text-black dark:text-white flex gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Start
-          </Button>
-        </div>
-        <div className="px-6">
-          <AudioEffects uploadedFile={uploadedFile} track={selectedTrack} />
-        </div>
+        <StepHeader title="Start Processing" onBack={resetFlow} />
+
+        <ProcessView
+          uploadedFile={uploadedFile}
+          track={selectedTrack}
+          onBackToStart={resetFlow}
+        />
       </div>
     );
   }
