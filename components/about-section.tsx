@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { FaLinkedin, FaInstagram, FaSpotify } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
+import OkLoader from "./Loaders/OkLoader";
 
 export function AboutSection() {
   return (
@@ -116,6 +117,9 @@ export function AboutSection() {
                     <FaExternalLinkAlt className="h-5 w-5" />
                   </a>
                 </Button> */}
+            </div>
+            <div className="flex justify-start items-start w-full border-2 p-4 border-black dark:border-white bg-black dark:bg-white">
+              <OkLoader />
             </div>
           </div>
         </div>

@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import * as React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -20,21 +18,20 @@ import {
   Download,
   AlertCircle,
 } from "lucide-react";
-import type { DeezerTrack } from "@/lib/deezer";
-import { formatTime } from "@/lib/utils";
-import ChaoticOrbitLoader from "@/components/loaders/chaotic-orbit-loader";
+import { cn, formatTime } from "@/lib/utils";
+import ChaoticOrbitLoader from "@/components/Loaders/chaotic-orbit-loader";
+import { encode } from "wav-encoder";
+import RunnerLoader from "../Loaders/RunnerLoader";
 
 interface AudioEffectsProps {
-  uploadedFile?: File | null;
-  track?: DeezerTrack | null;
+  audioUrl?: string | null;
   initialSpeed?: number;
   initialReverbWet?: number; // 0-1 (e.g., 0.7 for 70%)
   initialReverbDecay?: number; // seconds (e.g., 6.5)
 }
 
 export default function AudioEffects({
-  uploadedFile,
-  track,
+  audioUrl,
   initialSpeed = 1,
   initialReverbWet = 0.7,
   initialReverbDecay = 6.5,
@@ -53,14 +50,10 @@ export default function AudioEffects({
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Keep refs in sync with state
+  // Sync ref with state for performance optimization in tick function
   useEffect(() => {
     isLoopingRef.current = isLooping;
   }, [isLooping]);
-
-  useEffect(() => {
-    isRecordingRef.current = isRecording;
-  }, [isRecording]);
 
   const toneRef = useRef<null | typeof import("tone")>(null);
   const ctxRef = useRef<any | null>(null);
@@ -73,9 +66,11 @@ export default function AudioEffects({
   const originalDurationRef = useRef<number>(0);
   const isPlayingRef = useRef<boolean>(false);
   const isLoopingRef = useRef<boolean>(false);
-  const isRecordingRef = useRef<boolean>(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
+  const mediaRecorderRef = useRef<InstanceType<
+    typeof import("tone").Recorder
+  > | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
+  const UPDATE_INTERVAL = 1000 / 30; // 30fps for smoother performance
 
   const sourceUrlRef = useRef<string | null>(null);
 
@@ -87,11 +82,9 @@ export default function AudioEffects({
       if (cancelled) return;
       toneRef.current = Tone;
       const ctx = new Tone.Context({ latencyHint: "interactive" });
-      const prev = Tone.getContext();
       Tone.setContext(ctx);
       // bind transport (not strictly needed, but keeps consistency)
       Tone.getTransport();
-      Tone.setContext(prev);
       ctxRef.current = ctx;
       setIsReady(true);
     })();
@@ -111,10 +104,8 @@ export default function AudioEffects({
     sourceUrlRef.current = null;
     setLoadError(null);
 
-    if (track?.preview) {
-      sourceUrlRef.current = track.preview;
-    } else if (uploadedFile) {
-      sourceUrlRef.current = URL.createObjectURL(uploadedFile);
+    if (audioUrl) {
+      sourceUrlRef.current = audioUrl;
     }
 
     // Recreate player graph for new source
@@ -122,7 +113,7 @@ export default function AudioEffects({
 
     // stop on inputs change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track, uploadedFile]);
+  }, [audioUrl]);
 
   // If Tone becomes ready after source is set, build the graph
   useEffect(() => {
@@ -155,14 +146,19 @@ export default function AudioEffects({
     });
     // Generate IR asynchronously; don't block playback
     try {
-      (reverb as any).generate?.();
-    } catch {}
+      // generate() is async and safe to call multiple times
+      (reverb as any).generate?.().catch((error: any) => {
+        console.warn("Reverb generation failed:", error);
+      });
+    } catch (error) {
+      console.warn("Reverb setup failed:", error);
+    }
     const gain = new Tone.Gain({ gain: volume, context: ctx });
-    try {
-      (reverb as any).connect((ctx as any).destination);
-    } catch {}
+
+    // Connect the audio graph properly
     try {
       (gain as any).connect(reverb);
+      (reverb as any).connect((ctx as any).destination);
     } catch {}
 
     const player = new Tone.Player({
@@ -193,27 +189,49 @@ export default function AudioEffects({
   };
 
   const cleanupNodes = () => {
+    // Stop and dispose of player
     try {
-      playerRef.current?.stop?.();
-      playerRef.current?.dispose?.();
-    } catch {}
-    try {
-      gainRef.current?.dispose?.();
-    } catch {}
-    try {
-      reverbRef.current?.dispose?.();
-    } catch {}
-    try {
-      if (mediaRecorderRef.current && isRecordingRef.current) {
-        mediaRecorderRef.current.stop();
-        (mediaRecorderRef.current as any).dispose?.();
+      if (playerRef.current) {
+        playerRef.current.stop();
+        playerRef.current.dispose();
       }
     } catch {}
+
+    // Dispose of gain node
+    try {
+      if (gainRef.current) {
+        gainRef.current.dispose();
+      }
+    } catch {}
+
+    // Dispose of reverb node
+    try {
+      if (reverbRef.current) {
+        reverbRef.current.dispose();
+      }
+    } catch {}
+
+    // Stop and dispose of recorder if active
+    try {
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+        if (mediaRecorderRef.current.dispose) {
+          mediaRecorderRef.current.dispose();
+        }
+      }
+    } catch {}
+
+    // Clear all refs
     playerRef.current = null;
     gainRef.current = null;
     reverbRef.current = null;
     mediaRecorderRef.current = null;
-    recordedChunksRef.current = [];
+
+    // Cancel any pending animation frames
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
   };
 
   // React to control changes
@@ -299,7 +317,7 @@ export default function AudioEffects({
     }
   };
 
-  const onStop = () => {
+  const onStop = useCallback(() => {
     try {
       playerRef.current?.stop?.();
     } catch {}
@@ -307,24 +325,35 @@ export default function AudioEffects({
     isPlayingRef.current = false;
     setCurrentTime(0);
     setIsLooping(false);
-    isLoopingRef.current = false;
+    isLoopingRef.current = false; // Sync ref when stopping
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
-  };
+  }, []);
 
-  // Animation frame update for current time display
-  const tick = () => {
+  // Animation frame update for current time display (throttled for performance)
+  const tick = useCallback(() => {
     const now = performance.now();
+
+    // Throttle updates to 30fps for better performance
+    if (now - lastUpdateTimeRef.current < UPDATE_INTERVAL) {
+      if (isPlayingRef.current) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+      return;
+    }
+
+    lastUpdateTimeRef.current = now;
     const elapsed = Math.max(0, (now - startWallTimeRef.current) / 1000);
     const rate = playerRef.current?.playbackRate || speed || 1;
     const bufferPos = startBufferOffsetRef.current + elapsed * rate;
     const dur = totalDuration || originalDurationRef.current || 0;
     const clamped = Math.min(bufferPos, dur);
     setCurrentTime(clamped);
+
     if (clamped >= dur && dur > 0) {
-      // reached end - check current loop state
+      // reached end - check current loop state using ref for performance
       if (isLoopingRef.current) {
         // Loop: restart from beginning
         try {
@@ -340,10 +369,11 @@ export default function AudioEffects({
         return;
       }
     }
+
     if (isPlayingRef.current) {
       rafRef.current = requestAnimationFrame(tick);
     }
-  };
+  }, [speed, totalDuration, onStop]);
 
   // Handle loop toggle during playback
   const handleLoopToggle = () => {
@@ -362,10 +392,8 @@ export default function AudioEffects({
       // Create a Recorder node with the same context as other nodes
       const recorder = new Tone.Recorder({ context: ctx });
 
-      // Connect the audio graph to the recorder
-      if (playerRef.current) {
-        (playerRef.current as any).connect(gainRef.current);
-        (gainRef.current as any).connect(reverbRef.current);
+      // Connect recorder as a tap from the reverb node (no need to rebuild graph)
+      if (reverbRef.current) {
         (reverbRef.current as any).connect(recorder);
       }
 
@@ -376,8 +404,8 @@ export default function AudioEffects({
       recorder.start();
       setIsRecording(true);
 
-      // Store the recorder reference
-      mediaRecorderRef.current = recorder as any;
+      // Store the Tone.Recorder reference
+      mediaRecorderRef.current = recorder;
 
       // Start playing if not already playing
       if (!isPlaying) {
@@ -395,6 +423,13 @@ export default function AudioEffects({
         const recording = await (mediaRecorderRef.current as any).stop();
         setRecordedAudio(recording);
         setIsRecording(false);
+
+        // Disconnect the recorder from the reverb node
+        if (reverbRef.current && mediaRecorderRef.current) {
+          try {
+            (reverbRef.current as any).disconnect(mediaRecorderRef.current);
+          } catch {}
+        }
       } catch (error) {
         console.error("Error stopping recording:", error);
         setIsRecording(false);
@@ -402,16 +437,53 @@ export default function AudioEffects({
     }
   };
 
-  const downloadRecordedAudio = () => {
+  const downloadRecordedAudio = async () => {
     if (recordedAudio) {
-      const url = URL.createObjectURL(recordedAudio);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `mixed-audio-${Date.now()}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      try {
+        // Convert the recorded audio to WAV format
+        const arrayBuffer = await recordedAudio.arrayBuffer();
+
+        // Reuse existing AudioContext from Tone.js instead of creating new one
+        // This is more efficient and avoids potential context limit issues
+        const audioContext = ctxRef.current?.rawContext || new AudioContext();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        // Convert AudioBuffer to the format expected by wav-encoder
+        const wavData = await encode({
+          sampleRate: audioBuffer.sampleRate,
+          channelData: Array.from(
+            { length: audioBuffer.numberOfChannels },
+            (_, i) => audioBuffer.getChannelData(i)
+          ),
+        });
+
+        // Create and download the WAV file
+        const blob = new Blob([wavData], { type: "audio/wav" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `mixed-audio-${Date.now()}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Only close if we created a new context (not reusing existing one)
+        if (!ctxRef.current?.rawContext) {
+          await audioContext.close();
+        }
+      } catch (error) {
+        console.error("Error converting to WAV:", error);
+        // Fallback to original format if WAV conversion fails
+        const url = URL.createObjectURL(recordedAudio);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `mixed-audio-${Date.now()}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     }
   };
 
@@ -433,26 +505,41 @@ export default function AudioEffects({
   // Cleanup
   useEffect(() => {
     return () => {
+      // Stop playback and clean up all nodes
       onStop();
       cleanupNodes();
+
+      // Close the audio context
       try {
-        ctxRef.current?.close?.();
+        if (ctxRef.current) {
+          ctxRef.current.close();
+        }
       } catch {}
+
+      // Clean up blob URLs
       if (sourceUrlRef.current && sourceUrlRef.current.startsWith("blob:")) {
         try {
           URL.revokeObjectURL(sourceUrlRef.current);
         } catch {}
       }
+
+      // Reset all refs to ensure no memory leaks
+      ctxRef.current = null;
+      sourceUrlRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const disabled = !sourceUrlRef.current || !isReady || !isBufferLoaded;
 
   return (
-    <Card className="w-full border border-black dark:border-white bg-transparent rounded-lg">
-      {/* <AudioHeader uploadedFile={uploadedFile} track={track} /> */}
-      <CardContent className="p-4 space-y-6">
+    <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
+      <div>
+        <h2 className="text-2xl font-semibold">Audio Effects</h2>
+        <p className="text-sm text-muted-foreground">
+          Apply effects to your audio, speed, reverb, and more.
+        </p>
+      </div>
+      <div className="space-y-4">
         {loadError ? (
           <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
             <div className="flex items-center gap-2 text-sm">
@@ -473,14 +560,13 @@ export default function AudioEffects({
           </div>
         ) : sourceUrlRef.current && (!isReady || !isBufferLoaded) ? (
           <div className="flex w-full items-center justify-center py-6">
-            <div className="text-black dark:text-white">
-              <ChaoticOrbitLoader size={30} />
+            <div className="w-24 h-24">
+              <RunnerLoader />
             </div>
           </div>
         ) : (
           <>
-            {/* Transport + Seek bar in one row */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+            <div className="flex flex-col gap-4 md:flex-row md:gap-2 items-center justify-between">
               <div className="flex items-center gap-2 border border-black dark:border-white rounded-full px-3 py-1.5 w-full md:w-auto md:flex-1">
                 <span className="text-xs font-mono whitespace-nowrap">
                   {formatTime(currentTime)}
@@ -492,6 +578,7 @@ export default function AudioEffects({
                   step={0.01}
                   className="flex-grow"
                   onValueChange={onSeek}
+                  disabled={disabled}
                 />
                 <span className="text-xs font-mono w-8 text-right">
                   {formatTime(totalDuration)}
@@ -503,10 +590,13 @@ export default function AudioEffects({
                     <TooltipTrigger asChild>
                       <Button
                         onClick={onTogglePlay}
-                        variant="outline"
-                        size="icon"
                         disabled={disabled}
-                        className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
+                        className={cn(
+                          "h-8 w-8 rounded-full border border-black dark:border-white",
+                          isPlaying
+                            ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                            : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+                        )}
                       >
                         {isPlaying ? (
                           <Pause className="h-3 w-3" />
@@ -524,10 +614,11 @@ export default function AudioEffects({
                     <TooltipTrigger asChild>
                       <Button
                         onClick={onStop}
-                        variant="outline"
-                        size="icon"
                         disabled={disabled}
-                        className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
+                        className={cn(
+                          "h-8 w-8 rounded-full border border-black dark:border-white",
+                          "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+                        )}
                       >
                         <Square className="h-3 w-3" />
                       </Button>
@@ -541,14 +632,13 @@ export default function AudioEffects({
                     <TooltipTrigger asChild>
                       <Button
                         onClick={handleLoopToggle}
-                        variant="outline"
-                        size="icon"
                         disabled={disabled}
-                        className={`h-8 w-8 rounded-full border border-black/20 dark:border-white/20 ${
+                        className={cn(
+                          "h-8 w-8 rounded-full border border-black dark:border-white",
                           isLooping
-                            ? "bg-black text-white dark:bg-white dark:text-black"
-                            : ""
-                        }`}
+                            ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                            : "bg-white text-black  hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+                        )}
                       >
                         <Repeat className="h-3 w-3" />
                       </Button>
@@ -565,7 +655,10 @@ export default function AudioEffects({
                         variant="outline"
                         size="icon"
                         disabled={disabled}
-                        className={`h-8 w-8 rounded-full border border-black/20 dark:border-white/20`}
+                        className={cn(
+                          "h-8 w-8 rounded-full border border-black dark:border-white",
+                          "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+                        )}
                       >
                         <div
                           className={`w-2.5 h-2.5 rounded-full bg-red-500 ${
@@ -586,9 +679,10 @@ export default function AudioEffects({
                       <TooltipTrigger asChild>
                         <Button
                           onClick={downloadRecordedAudio}
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 rounded-full border border-black/20 dark:border-white/20"
+                          className={cn(
+                            "h-8 w-8 rounded-full border border-black dark:border-white",
+                            "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+                          )}
                         >
                           <Download className="h-3 w-3" />
                         </Button>
@@ -602,7 +696,7 @@ export default function AudioEffects({
               </TooltipProvider>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   Volume: {(volume * 100).toFixed(0)}%
@@ -613,6 +707,7 @@ export default function AudioEffects({
                   max={1}
                   step={0.01}
                   onValueChange={(v) => setVolume(v[0])}
+                  disabled={disabled}
                 />
               </div>
 
@@ -626,6 +721,7 @@ export default function AudioEffects({
                   max={2}
                   step={0.01}
                   onValueChange={(v) => setSpeed(v[0])}
+                  disabled={disabled}
                 />
               </div>
 
@@ -639,6 +735,7 @@ export default function AudioEffects({
                   max={1}
                   step={0.01}
                   onValueChange={(v) => setReverbWet(v[0])}
+                  disabled={disabled}
                 />
               </div>
 
@@ -652,12 +749,13 @@ export default function AudioEffects({
                   max={10}
                   step={0.1}
                   onValueChange={(v) => setReverbDecay(v[0])}
+                  disabled={disabled}
                 />
               </div>
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
