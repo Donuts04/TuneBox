@@ -4,7 +4,6 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const composer = formData.get("composer") as string;
 
     if (!file) {
       return NextResponse.json(
@@ -13,16 +12,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!composer) {
-      return NextResponse.json(
-        { error: "No composer style provided" },
-        { status: 400 }
-      );
-    }
-
     const backendForm = new FormData();
     backendForm.append("file", file, file.name);
-    backendForm.append("composer", composer);
 
     const backendResponse = await fetch(
       `${process.env.API_URL}/api/v1/generate-midi`,

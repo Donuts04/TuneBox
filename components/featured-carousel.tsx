@@ -21,21 +21,17 @@ import {
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import AudioSeparator from "@/components/AudioSeperator/audio-separator";
+import StemPlayer from "@/components/AudioSeperator/StemPlayer";
+import AudioEffects from "@/components/AudioEffects/AudioEffects";
+import MidiPlayer from "@/components/ConvertToNotes/MidiPlayer";
+import { Midi } from "@tonejs/midi";
+import AudioHeader from "./AudioCard.tsx/AudioHeader";
 
-interface AudioSource {
-  name: string;
-  color: string;
-  icon: React.ReactNode;
-  audioUrl: string;
-  downloadLink: string;
-}
-
-interface Stem {
-  name: string;
-  color: string;
-  icon: React.ReactNode;
-  audioUrl: string;
+interface AudioEffectsSettings {
+  speed?: number;
+  reverb?: number; // reverbWet
+  delay?: number; // reverbDecay
+  // Add more effects as needed
 }
 
 interface Song {
@@ -44,9 +40,9 @@ interface Song {
   artist: string;
   coverImage: string;
   audioUrl: string;
-  separations: string[];
-  notes: string;
-  stems?: Record<string, Stem>;
+  audioUrls: Record<string, string>;
+  audioEffects?: AudioEffectsSettings;
+  midi: Midi | null;
 }
 
 const featuredSongs: Song[] = [
@@ -56,104 +52,58 @@ const featuredSongs: Song[] = [
     artist: "The Neighbourhood",
     coverImage: "/featured/stargazing/stargazing.jpg",
     audioUrl: "/featured/stargazing/original.mp3",
-    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-    notes: "Calm",
-    stems: {
-      instrumental: {
-        name: "Instrumental",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/stargazing/instrumental.mp3",
-      },
-      vocals: {
-        name: "Vocals",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/stargazing/vocals.mp3",
-      },
-      bass: {
-        name: "Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/stargazing/bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/stargazing/drums.mp3",
-      },
+    audioUrls: {
+      other: "/featured/stargazing/other.mp3",
+      vocals: "/featured/stargazing/vocals.mp3",
+      bass: "/featured/stargazing/bass.mp3",
+      drums: "/featured/stargazing/drums.mp3",
     },
-  },
-  {
-    id: "2",
-    title: "Mystery of Love",
-    artist: "Sufjan Stevens",
-    coverImage: "/featured/mysteryOfLove/mysteryOfLove.jpg",
-    audioUrl: "/featured/mysteryOfLove/original.mp3",
-    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-    notes: "Calm",
-    stems: {
-      instrumental: {
-        name: "Instrumental",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
-      },
-      vocals: {
-        name: "Vocals",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
-      },
-      bass: {
-        name: "Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/drums.mp3",
-      },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.85,
+      delay: 5.5,
     },
+    midi: null,
   },
+
+  // {
+  //   id: "2",
+  //   title: "Mystery of Love",
+  //   artist: "Sufjan Stevens",
+  //   coverImage: "/featured/mysteryOfLove/mysteryOfLove.jpg",
+  //   audioUrl: "/featured/mysteryOfLove/original.mp3",
+  //   audioUrls: {
+  //     other: "/featured/mysteryOfLove/other.mp3",
+  //     vocals: "/featured/mysteryOfLove/vocals.mp3",
+  //     bass: "/featured/mysteryOfLove/bass.mp3",
+  //     drums: "/featured/mysteryOfLove/drums.mp3",
+  //   },
+  //   audioEffects: {
+  //     speed: 0.9,
+  //     reverb: 0.5,
+  //     delay: 3.0,
+  //   },
+  //   midi: null,
+  // },
+
   {
     id: "3",
     title: "Sunsetz",
     artist: "Cigarettes After Sex",
     coverImage: "/featured/sunsetz/sunsetz.jpg",
     audioUrl: "/featured/sunsetz/original.mp3",
-    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-    notes: "CAS",
-    stems: {
-      instrumental: {
-        name: "Instrumental",
-        color: "bg-amber-500 hover:bg-amber-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/sunsetz/instrumental.mp3",
-      },
-      vocals: {
-        name: "Vocals",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/sunsetz/vocals.mp3",
-      },
-      bass: {
-        name: "Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/sunsetz/bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/sunsetz/drums.mp3",
-      },
+    audioUrls: {
+      other: "/featured/sunsetz/other.mp3",
+      vocals: "/featured/sunsetz/vocals.mp3",
+      bass: "/featured/sunsetz/bass.mp3",
+      drums: "/featured/sunsetz/drums.mp3",
     },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.7,
+      delay: 4.0,
+    },
+    midi: null,
   },
   {
     id: "4",
@@ -161,35 +111,18 @@ const featuredSongs: Song[] = [
     artist: "Mitski",
     coverImage: "/featured/myLoveMineAllMine/myLoveMineAllMine.jpg",
     audioUrl: "/featured/myLoveMineAllMine/original.mp3",
-    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-    notes:
-      "A synthwave-inspired track with retro electronic sounds and modern production techniques.",
-    stems: {
-      instrumental: {
-        name: "Instrumental",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
-      },
-      vocals: {
-        name: "Vocals",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
-      },
-      bass: {
-        name: "Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/drums.mp3",
-      },
+    audioUrls: {
+      other: "/featured/myLoveMineAllMine/other.mp3",
+      vocals: "/featured/myLoveMineAllMine/vocals.mp3",
+      bass: "/featured/myLoveMineAllMine/bass.mp3",
+      drums: "/featured/myLoveMineAllMine/drums.mp3",
     },
+    audioEffects: {
+      speed: 1.3,
+      reverb: 0.5,
+      delay: 3.0,
+    },
+    midi: null,
   },
   {
     id: "5",
@@ -197,35 +130,18 @@ const featuredSongs: Song[] = [
     artist: "Beabadoobee",
     coverImage: "/featured/glueSong/glueSong.jpg",
     audioUrl: "/featured/glueSong/original.mp3",
-    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-    notes:
-      "A gentle acoustic ballad with warm cello lines and delicate piano accompaniment.",
-    stems: {
-      instrumental: {
-        name: "Instrumental",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
-      },
-      vocals: {
-        name: "Vocals",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
-      },
-      bass: {
-        name: "Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/drums.mp3",
-      },
+    audioUrls: {
+      other: "/featured/glueSong/other.mp3",
+      vocals: "/featured/glueSong/vocals.mp3",
+      bass: "/featured/glueSong/bass.mp3",
+      drums: "/featured/glueSong/drums.mp3",
     },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.7,
+      delay: 6.5,
+    },
+    midi: null,
   },
   {
     id: "6",
@@ -233,107 +149,112 @@ const featuredSongs: Song[] = [
     artist: "Them & I",
     coverImage: "/featured/imNotThem/imNotThem.jpg",
     audioUrl: "/featured/imNotThem/original.mp3",
-    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-    notes:
-      "A fusion of urban sounds and electronic beats with layered vocal samples.",
-    stems: {
-      instrumental: {
-        name: "Instrumental",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
-      },
-      vocals: {
-        name: "Vocals",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
-      },
-      bass: {
-        name: "Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/drums.mp3",
-      },
+    audioUrls: {
+      other: "/featured/imNotThem/other.mp3",
+      vocals: "/featured/imNotThem/vocals.mp3",
+      bass: "/featured/imNotThem/bass.mp3",
+      drums: "/featured/imNotThem/drums.mp3",
     },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.75,
+      delay: 10.0,
+    },
+    midi: null,
+  },
+  // {
+  //   id: "7",
+  //   title: "Lost",
+  //   artist: "Frank Ocean",
+  //   coverImage: "/featured/lost/lost.jpg",
+  //   audioUrl: "/featured/lost/original.mp3",
+  //   audioUrls: {
+  //     other: "/featured/lost/other.mp3",
+  //     vocals: "/featured/lost/vocals.mp3",
+  //     bass: "/featured/lost/bass.mp3",
+  //     drums: "/featured/lost/drums.mp3",
+  //   },
+  //   midi: null,
+  // },
+
+  {
+    id: "8",
+    title: "About You",
+    artist: "The 1975",
+    coverImage: "/featured/aboutYou/aboutYou.jpg",
+    audioUrl: "/featured/aboutYou/original.wav",
+    audioUrls: {
+      other: "/featured/aboutYou/other.wav",
+      vocals: "/featured/aboutYou/vocals.wav",
+      bass: "/featured/aboutYou/bass.wav",
+      drums: "/featured/aboutYou/drums.wav",
+    },
+    audioEffects: {
+      speed: 0.9,
+      reverb: 0.65,
+      delay: 5.0,
+    },
+    midi: null,
   },
 
-  // {
-  //   id: "6",
-  //   title: "Pretty Boy",
-  //   artist: "The Neighbourhood",
-  //   coverImage: "/featured/prettyBoy/prettyBoy.jpg",
-  //   audioUrl: "/featured/prettyBoy/original.mp3",
-  //   separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-  //   notes:
-  //     "A relaxing ambient piece inspired by the sounds of the ocean and coastal landscapes.",
-  //   stems: {
-  //     instrumental: {
-  //       name: "Instrumental",
-  //       color: "bg-purple-500 hover:bg-purple-600",
-  //       icon: <Disc className="h-4 w-4" />,
-  //       audioUrl: "/featured/mysteryOfLove/instrumental.mp3",
-  //     },
-  //     vocals: {
-  //       name: "Vocals",
-  //       color: "bg-green-500 hover:bg-green-600",
-  //       icon: <Disc className="h-4 w-4" />,
-  //       audioUrl: "/featured/mysteryOfLove/vocals.mp3",
-  //     },
-  //     bass: {
-  //       name: "Bass",
-  //       color: "bg-blue-500 hover:bg-blue-600",
-  //       icon: <Disc className="h-4 w-4" />,
-  //       audioUrl: "/featured/mysteryOfLove/bass.mp3",
-  //     },
-  //     drums: {
-  //       name: "Drums",
-  //       color: "bg-red-500 hover:bg-red-600",
-  //       icon: <Disc className="h-4 w-4" />,
-  //       audioUrl: "/featured/mysteryOfLove/drums.mp3",
-  //     },
-  //   },
-  // },
   {
-    id: "7",
-    title: "Lost",
-    artist: "Frank Ocean",
-    coverImage: "/featured/lost/lost.jpg",
-    audioUrl: "/featured/lost/original.mp3",
-    separations: ["Instrumental", "Vocals", "Bass", "Drums"],
-    notes: "Calm",
-    stems: {
-      instrumental: {
-        name: "Instrumental",
-        color: "bg-purple-500 hover:bg-purple-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/stargazing/instrumental.mp3",
-      },
-      vocals: {
-        name: "Vocals",
-        color: "bg-green-500 hover:bg-green-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/vocals.mp3",
-      },
-      bass: {
-        name: "Bass",
-        color: "bg-blue-500 hover:bg-blue-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/bass.mp3",
-      },
-      drums: {
-        name: "Drums",
-        color: "bg-red-500 hover:bg-red-600",
-        icon: <Disc className="h-4 w-4" />,
-        audioUrl: "/featured/mysteryOfLove/drums.mp3",
-      },
+    id: "9",
+    title: "Heseeny",
+    artist: "TUL8TE",
+    coverImage: "/featured/heseeny/heseeny.jpg",
+    audioUrl: "/featured/heseeny/original.wav",
+    audioUrls: {
+      other: "/featured/heseeny/other.wav",
+      vocals: "/featured/heseeny/vocals.wav",
+      bass: "/featured/heseeny/bass.wav",
+      drums: "/featured/heseeny/drums.wav",
     },
+    audioEffects: {
+      speed: 0.9,
+      reverb: 0.65,
+      delay: 5.0,
+    },
+    midi: null,
+  },
+
+  {
+    id: "10",
+    title: "One Last Time",
+    artist: "Summer Salt",
+    coverImage: "/featured/oneLastTime/oneLastTime.jpg",
+    audioUrl: "/featured/oneLastTime/original.wav",
+    audioUrls: {
+      other: "/featured/oneLastTime/other.wav",
+      vocals: "/featured/oneLastTime/vocals.wav",
+      bass: "/featured/oneLastTime/bass.wav",
+      drums: "/featured/oneLastTime/drums.wav",
+    },
+    audioEffects: {
+      speed: 0.9,
+      reverb: 0.8,
+      delay: 5.5,
+    },
+    midi: null,
+  },
+
+  {
+    id: "11",
+    title: "Pretty Boy",
+    artist: "The Neighbourhood",
+    coverImage: "/featured/prettyBoy/prettyBoy.jpg",
+    audioUrl: "/featured/prettyBoy/original.mp3",
+    audioUrls: {
+      other: "/featured/oneLastTime/other.wav",
+      vocals: "/featured/oneLastTime/vocals.wav",
+      bass: "/featured/oneLastTime/bass.wav",
+      drums: "/featured/oneLastTime/drums.wav",
+    },
+    audioEffects: {
+      speed: 0.85,
+      reverb: 0.8,
+      delay: 7.0,
+    },
+    midi: null,
   },
 ];
 
@@ -395,6 +316,12 @@ export function FeaturedCarousel() {
   };
 
   const handleShowDetails = (song: Song) => {
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setCurrentlyPlaying(null);
+    }
+
     setSelectedSong(song);
     setShowSeparator(true);
   };
@@ -402,47 +329,6 @@ export function FeaturedCarousel() {
   const handleBack = () => {
     setShowSeparator(false);
     setSelectedSong(null);
-  };
-
-  // Convert song to DeezerTrack format for AudioSeparator
-  const convertToDeezerTrack = (song: Song) => {
-    return {
-      id: parseInt(song.id),
-      title: song.title,
-      preview: song.audioUrl,
-      artist: {
-        id: 0, // Placeholder ID since we don't have it
-        name: song.artist,
-      },
-      album: {
-        id: 0, // Placeholder ID since we don't have it
-        title: song.title,
-        cover: song.coverImage,
-        cover_small: song.coverImage,
-        cover_medium: song.coverImage,
-      },
-      duration: 180, // Default duration of 3 minutes
-      link: song.audioUrl, // Using audioUrl as the link
-    };
-  };
-
-  // Convert stems to AudioSource format for AudioSeparator
-  const convertStems = (stems: Record<string, Stem> | undefined) => {
-    if (!stems) return {};
-
-    const convertedStems: Record<string, AudioSource> = {};
-
-    Object.entries(stems).forEach(([key, stem]) => {
-      convertedStems[key] = {
-        name: stem.name,
-        color: stem.color,
-        icon: stem.icon,
-        audioUrl: stem.audioUrl,
-        downloadLink: stem.audioUrl,
-      };
-    });
-
-    return convertedStems;
   };
 
   return (
@@ -561,7 +447,7 @@ export function FeaturedCarousel() {
         </>
       ) : (
         <div className="space-y-4 w-full">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-end justify-between gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -575,11 +461,28 @@ export function FeaturedCarousel() {
           </div>
 
           {selectedSong && (
-            <AudioSeparator
-              track={convertToDeezerTrack(selectedSong)}
-              preloadedStems={convertStems(selectedSong.stems)}
-              featured={true}
-            />
+            <div className="space-y-4">
+              <AudioHeader
+                title={selectedSong.title}
+                subtitle={selectedSong.artist}
+                imageUrl={selectedSong.coverImage}
+                audioUrl={selectedSong.audioUrl}
+              />
+
+              <AudioEffects
+                audioUrl={selectedSong.audioUrl}
+                initialSpeed={selectedSong.audioEffects?.speed}
+                initialReverbWet={selectedSong.audioEffects?.reverb}
+                initialReverbDecay={selectedSong.audioEffects?.delay}
+              />
+
+              <StemPlayer audioUrls={selectedSong.audioUrls || {}} />
+
+              <MidiPlayer
+                midi={selectedSong.midi || null}
+                originalAudioUrl={selectedSong.audioUrl}
+              />
+            </div>
           )}
         </div>
       )}
