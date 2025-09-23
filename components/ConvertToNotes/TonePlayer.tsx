@@ -9,6 +9,9 @@ import { Play, Pause, Square, Volume2 } from "lucide-react";
 import { INSTRUMENTS } from "@/lib/constants";
 import { Midi } from "@tonejs/midi";
 import { NoteVisualization } from "./NoteVisualization2";
+import { cn, formatTime } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import RunnerLoader from "../Loaders/RunnerLoader";
 
 interface TonePlayerProps {
   midiData: Midi | null;
@@ -29,6 +32,8 @@ export default function TonePlayer({
   const [isInstrumentLoaded, setIsInstrumentLoaded] = useState(false);
   const [playbackTempo, setPlaybackTempo] = useState(120);
   const [previousTempo, setPreviousTempo] = useState(120);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const sampler = useRef<Tone.Sampler | null>(null);
   const toneContextRef = useRef<any | null>(null);
@@ -38,17 +43,27 @@ export default function TonePlayer({
 
   // Initialize isolated context/transport
   useEffect(() => {
-    const ctx = new (Tone as any).Context({ latencyHint: "interactive" });
-    // Bind a transport to this new context by temporarily setting it active
-    const prevCtx = Tone.getContext();
-    Tone.setContext(ctx);
-    const transport = Tone.getTransport();
-    // restore previous context immediately
-    Tone.setContext(prevCtx);
-    transport.bpm.value = playbackTempo;
-    transport.loop = false;
-    toneContextRef.current = ctx;
-    transportRef.current = transport;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const ctx = new (Tone as any).Context({ latencyHint: "interactive" });
+      // Keep the custom context active for proper isolation
+      // This ensures all nodes (Player, Sampler, etc.) bind to the same context
+      Tone.setContext(ctx);
+      const transport = Tone.getTransport();
+      transport.bpm.value = playbackTempo;
+      transport.loop = false;
+      toneContextRef.current = ctx;
+      transportRef.current = transport;
+      setIsLoading(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to initialize audio engine"
+      );
+      setIsLoading(false);
+    }
+
     return () => {
       try {
         transportRef.current?.stop();
@@ -126,14 +141,25 @@ export default function TonePlayer({
 
   // Initialize the selected instrument
   useEffect(() => {
-    if (!midiData) return;
+    if (!midiData || isLoading || error) return;
+
+    // Reset everything when changing instruments
+    transportRef.current?.stop();
+    transportRef.current?.cancel?.();
+    originalPlayerRef.current?.stop?.();
+    setIsPlaying(false);
+    setCurrentTime(0);
 
     setIsInstrumentLoaded(false);
+    setError(null);
 
     const instrumentConfig = INSTRUMENTS.find(
       (inst) => inst.id === selectedInstrument
     );
-    if (!instrumentConfig) return;
+    if (!instrumentConfig) {
+      setError("Instrument not found");
+      return;
+    }
 
     if (sampler.current) {
       sampler.current.dispose();
@@ -142,48 +168,59 @@ export default function TonePlayer({
     const ctx = toneContextRef.current;
     const destination = ctx?.destination;
 
-    if (instrumentConfig.type === "sampler") {
-      const newSampler = new Tone.Sampler({
-        urls: instrumentConfig.urls,
-        baseUrl: instrumentConfig.baseUrl,
-        onload: () => {
-          setIsInstrumentLoaded(true);
-        },
-        onerror: () => {
-          console.error(`Failed to load ${instrumentConfig.name} samples`);
-        },
-        context: ctx,
-      });
-      if (destination) (newSampler as any).connect(destination);
-      sampler.current = newSampler;
-    } else if (instrumentConfig.type === "synth") {
-      const newSynth = new Tone.Synth({
-        ...instrumentConfig.options,
-        context: ctx,
-      });
-      if (destination) (newSynth as any).connect(destination);
-      sampler.current = newSynth as unknown as Tone.Sampler;
-      setIsInstrumentLoaded(true);
-    } else if (instrumentConfig.type === "amSynth") {
-      const newSynth = new Tone.AMSynth({
-        ...instrumentConfig.options,
-        context: ctx,
-      });
-      if (destination) (newSynth as any).connect(destination);
-      sampler.current = newSynth as unknown as Tone.Sampler;
-      setIsInstrumentLoaded(true);
-    } else if (instrumentConfig.type === "fmSynth") {
-      const newSynth = new Tone.FMSynth({
-        ...instrumentConfig.options,
-        context: ctx,
-      });
-      if (destination) (newSynth as any).connect(destination);
-      sampler.current = newSynth as unknown as Tone.Sampler;
-      setIsInstrumentLoaded(true);
+    if (!ctx || !destination) {
+      setError("Audio context not available");
+      return;
     }
 
-    if (sampler.current) {
-      (sampler.current as any).volume.value = Tone.gainToDb(volume);
+    try {
+      if (instrumentConfig.type === "sampler") {
+        const newSampler = new Tone.Sampler({
+          urls: instrumentConfig.urls,
+          baseUrl: instrumentConfig.baseUrl,
+          onload: () => {
+            setIsInstrumentLoaded(true);
+          },
+          onerror: () => {
+            setError(`Failed to load ${instrumentConfig.name} samples`);
+          },
+          context: ctx,
+        });
+        if (destination) (newSampler as any).connect(destination);
+        sampler.current = newSampler;
+      } else if (instrumentConfig.type === "synth") {
+        const newSynth = new Tone.Synth({
+          ...instrumentConfig.options,
+          context: ctx,
+        });
+        if (destination) (newSynth as any).connect(destination);
+        sampler.current = newSynth as unknown as Tone.Sampler;
+        setIsInstrumentLoaded(true);
+      } else if (instrumentConfig.type === "amSynth") {
+        const newSynth = new Tone.AMSynth({
+          ...instrumentConfig.options,
+          context: ctx,
+        });
+        if (destination) (newSynth as any).connect(destination);
+        sampler.current = newSynth as unknown as Tone.Sampler;
+        setIsInstrumentLoaded(true);
+      } else if (instrumentConfig.type === "fmSynth") {
+        const newSynth = new Tone.FMSynth({
+          ...instrumentConfig.options,
+          context: ctx,
+        });
+        if (destination) (newSynth as any).connect(destination);
+        sampler.current = newSynth as unknown as Tone.Sampler;
+        setIsInstrumentLoaded(true);
+      }
+
+      if (sampler.current) {
+        (sampler.current as any).volume.value = Tone.gainToDb(volume);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to initialize instrument"
+      );
     }
 
     return () => {
@@ -191,7 +228,7 @@ export default function TonePlayer({
         sampler.current.dispose();
       }
     };
-  }, [selectedInstrument, midiData]);
+  }, [selectedInstrument, midiData, isLoading, error]);
 
   // Update volume when it changes
   useEffect(() => {
@@ -212,9 +249,6 @@ export default function TonePlayer({
     if (!midiData || !isInstrumentLoaded || !sampler.current) return;
     transportRef.current.bpm.value = playbackTempo;
   }, [midiData, isInstrumentLoaded]);
-
-  // Handle playback animation - removed manual animation loop
-  // Progress tracking is now handled by Tone.js transport scheduling
 
   // Update tempo when it changes
   useEffect(() => {
@@ -375,7 +409,7 @@ export default function TonePlayer({
 
       setIsPlaying(!isPlaying);
     } catch (err) {
-      console.error("Error playing audio:", err);
+      setError(err instanceof Error ? err.message : "Error playing audio");
       setIsPlaying(false);
     }
   };
@@ -453,14 +487,26 @@ export default function TonePlayer({
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   if (!midiData) {
     return null;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="w-24 h-24">
+          <RunnerLoader />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="animate-in fade-in-50">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
   }
 
   // Create allNotes once for both playback and visualization
@@ -480,87 +526,40 @@ export default function TonePlayer({
         tempoRatio={tempoRatio}
       />
 
-      {/* Playback controls */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           <Button
             onClick={togglePlayback}
-            variant="outline"
-            size="icon"
             disabled={!isInstrumentLoaded}
-            className="h-10 w-10 rounded-full border border-black/20 dark:border-white/20"
+            className={cn(
+              "h-8 w-8 rounded-full border border-black dark:border-white",
+              isPlaying
+                ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+            )}
           >
             {isPlaying ? (
-              <Pause className="h-5 w-5" />
+              <Pause className="h-3 w-3" />
             ) : (
-              <Play className="h-5 w-5" />
+              <Play className="h-3 w-3" />
             )}
           </Button>
           <Button
             onClick={stopPlayback}
-            variant="outline"
-            size="icon"
             disabled={!isPlaying}
-            className="h-10 w-10 rounded-full border border-black/20 dark:border-white/20"
+            className={cn(
+              "h-8 w-8 rounded-full border border-black dark:border-white",
+              "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+            )}
           >
-            <Square className="h-5 w-5" />
+            <Square className="h-3 w-3" />
           </Button>
-          <div className="text-sm font-medium ml-1">
-            {formatTime(currentTime)} / {formatTime(totalDuration)}
-          </div>
         </div>
-
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Volume2 className="h-4 w-4 text-muted-foreground" />
-            <Slider
-              value={[volume]}
-              min={0}
-              max={1}
-              step={0.01}
-              className="w-24"
-              onValueChange={(value) => setVolume(value[0])}
-            />
-          </div>
-
-          {originalAudioUrl && (
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !playOriginal;
-                  setPlayOriginal(next);
-                  if (!next) {
-                    originalPlayerRef.current?.stop?.();
-                  } else if (isPlaying) {
-                    const pos = transportRef.current?.seconds || 0;
-                    const rate = playbackTempo / 120;
-                    originalPlayerRef.current?.stop?.();
-                    originalPlayerRef.current?.start?.(undefined, pos / rate);
-                  }
-                }}
-                className={`text-xs px-2 py-1 rounded-full border ${
-                  playOriginal
-                    ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
-                    : "bg-transparent text-black border-black dark:text-white dark:border-white"
-                }`}
-              >
-                Original
-              </button>
-              <Slider
-                value={[originalVolume]}
-                min={0}
-                max={1}
-                step={0.01}
-                className="w-24"
-                onValueChange={(value) => setOriginalVolume(value[0])}
-              />
-            </div>
-          )}
+        <div className="text-sm font-medium">
+          {formatTime(currentTime)} / {formatTime(totalDuration)}
         </div>
       </div>
 
-      {/* Seek bar */}
       <Slider
         value={[currentTime]}
         min={0}
@@ -581,6 +580,61 @@ export default function TonePlayer({
           step={1}
           onValueChange={(value) => setPlaybackTempo(value[0])}
         />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 min-w-[160px] flex-1">
+          <Volume2 className="h-4 w-4 text-muted-foreground" />
+          <Slider
+            value={[volume]}
+            min={0}
+            max={1}
+            step={0.01}
+            className="flex-1 min-w-[120px] sm:min-w-[160px] md:min-w-[200px]"
+            onValueChange={(value) => setVolume(value[0])}
+            aria-label="Instrument volume"
+          />
+        </div>
+
+        {originalAudioUrl && (
+          <div className="flex items-center gap-2 min-w-[200px] flex-1">
+            <button
+              type="button"
+              aria-pressed={playOriginal}
+              onClick={() => {
+                const next = !playOriginal;
+                setPlayOriginal(next);
+                if (!next) {
+                  originalPlayerRef.current?.stop?.();
+                } else if (isPlaying) {
+                  const pos = transportRef.current?.seconds || 0;
+                  const rate = playbackTempo / 120;
+                  originalPlayerRef.current?.stop?.();
+                  originalPlayerRef.current?.start?.(undefined, pos / rate);
+                }
+              }}
+              className={`text-xs px-2 py-1 rounded-full border ${
+                playOriginal
+                  ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
+                  : "bg-transparent text-black border-black dark:text-white dark:border-white"
+              }`}
+            >
+              Original
+            </button>
+            <Slider
+              value={[originalVolume]}
+              min={0}
+              max={1}
+              step={0.01}
+              className={
+                "flex-1 min-w-[120px] sm:min-w-[160px] md:min-w-[200px]" +
+                (playOriginal ? "" : " opacity-50 pointer-events-none")
+              }
+              onValueChange={(value) => setOriginalVolume(value[0])}
+              aria-label="Original audio volume"
+            />
+          </div>
+        )}
       </div>
 
       {!isInstrumentLoaded && (

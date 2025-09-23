@@ -2,19 +2,16 @@
 
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { toast } from "sonner";
 
 interface UploadDropzoneProps {
   onFileSelected: (file: File) => void;
-  onBack: () => void;
 }
 
 export default function UploadDropzone({
   onFileSelected,
-  onBack,
 }: UploadDropzoneProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -43,17 +40,24 @@ export default function UploadDropzone({
   });
 
   return (
-    <Card className="border border-dashed border-black dark:border-white rounded-lg">
+    <Card className="border border-dashed border-black dark:border-white rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
       <CardContent className="p-10">
         <div
           {...getRootProps()}
           className={`flex flex-col items-center justify-center gap-4 text-center cursor-pointer rounded-lg p-10 transition-colors ${
             isDragActive ? "bg-black/5 dark:bg-white/5" : "bg-transparent"
           }`}
+          tabIndex={0}
+          aria-label="Audio file dropzone"
+          role="button"
         >
           <input {...getInputProps()} />
-          <div className="w-20 h-20 rounded-full border border-dashed border-black dark:border-white flex items-center justify-center">
-            <Upload className="h-10 w-10" />
+          <div
+            className={`w-20 h-20 rounded-full border border-dashed border-black dark:border-white flex items-center justify-center transition-transform ${
+              isDragActive ? "scale-110" : ""
+            }`}
+          >
+            <Upload className="h-10 w-10 opacity-80" />
           </div>
           {isDragActive ? (
             <p className="text-black dark:text-white">

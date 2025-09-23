@@ -1,22 +1,10 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Layers,
-  FileMusic,
-  Music,
-  Upload,
-  Search,
-  ArrowLeft,
-  BoomBox,
-} from "lucide-react";
+import { Upload, Search, ArrowLeft } from "lucide-react";
 import DeezerSearch from "./deezer-search";
-import AudioSeparator from "./AudioSeperator/audio-separator";
-import AudioConverter from "./ConvertToNotes/audio-converter";
 import { DeezerTrack } from "@/lib/deezer";
 import Image from "next/image";
 type Step =
@@ -28,23 +16,14 @@ type Step =
   | "separate"
   | "convert"
   | "effects";
-import AudioEffects from "./AudioEffects/audio-effects";
-import ProcessView from "./Process/process-view";
-import UploadDropzone from "./Upload/upload-dropzone";
+import ProcessView from "../Process/process-view";
+import UploadDropzone from "./upload-dropzone";
 import StepHeader from "./StepHeader";
 
-export default function ProcessingOptions() {
+export default function TuneWizard() {
   const [currentStep, setCurrentStep] = useState<Step>("initial");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setUploadedFile(file);
-    // Jump straight to the unified processing view
-    setCurrentStep("process");
-  };
 
   const resetFlow = () => {
     setCurrentStep("initial");
@@ -152,7 +131,6 @@ export default function ProcessingOptions() {
             setUploadedFile(file);
             setCurrentStep("process");
           }}
-          onBack={() => setCurrentStep("initial")}
         />
       </div>
     );
@@ -163,11 +141,7 @@ export default function ProcessingOptions() {
       <div className="space-y-4 mx-auto">
         <StepHeader title="Start Processing" onBack={resetFlow} />
 
-        <ProcessView
-          uploadedFile={uploadedFile}
-          track={selectedTrack}
-          onBackToStart={resetFlow}
-        />
+        <ProcessView uploadedFile={uploadedFile} track={selectedTrack} />
       </div>
     );
   }

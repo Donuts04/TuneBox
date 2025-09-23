@@ -47,8 +47,9 @@ const TEMPLATES = {
   twinkle: {
     name: "Twinkle Twinkle Little Star",
     grid: Array(NOTES.length)
-      .fill(Array(COLUMNS).fill(false))
-      .map((row, i) => {
+      .fill(null)
+      .map((_, i) => {
+        const row = Array(COLUMNS).fill(false);
         const notes = [
           { note: "C4", col: 0 },
           { note: "C4", col: 1 },
@@ -65,17 +66,20 @@ const TEMPLATES = {
           { note: "D4", col: 12 },
           { note: "C4", col: 13 },
         ];
-        return row.map((_, j) => {
-          const note = notes.find((n) => n.col === j);
-          return note && NOTES[i] === note.note;
+        notes.forEach((note) => {
+          if (NOTES[i] === note.note) {
+            row[note.col] = true;
+          }
         });
+        return row;
       }),
   },
   happy: {
     name: "Happy Birthday",
     grid: Array(NOTES.length)
-      .fill(Array(COLUMNS).fill(false))
-      .map((row, i) => {
+      .fill(null)
+      .map((_, i) => {
+        const row = Array(COLUMNS).fill(false);
         const notes = [
           { note: "C4", col: 0 },
           { note: "C4", col: 1 },
@@ -90,17 +94,20 @@ const TEMPLATES = {
           { note: "G4", col: 10 },
           { note: "F4", col: 11 },
         ];
-        return row.map((_, j) => {
-          const note = notes.find((n) => n.col === j);
-          return note && NOTES[i] === note.note;
+        notes.forEach((note) => {
+          if (NOTES[i] === note.note) {
+            row[note.col] = true;
+          }
         });
+        return row;
       }),
   },
   mary: {
     name: "Mary Had a Little Lamb",
     grid: Array(NOTES.length)
-      .fill(Array(COLUMNS).fill(false))
-      .map((row, i) => {
+      .fill(null)
+      .map((_, i) => {
+        const row = Array(COLUMNS).fill(false);
         const notes = [
           { note: "E4", col: 0 },
           { note: "D4", col: 1 },
@@ -116,40 +123,132 @@ const TEMPLATES = {
           { note: "G4", col: 11 },
           { note: "G4", col: 12 },
         ];
-        return row.map((_, j) => {
-          const note = notes.find((n) => n.col === j);
-          return note && NOTES[i] === note.note;
+        notes.forEach((note) => {
+          if (NOTES[i] === note.note) {
+            row[note.col] = true;
+          }
         });
+        return row;
       }),
   },
 };
 
 export function MusicBoxComposer() {
   const [grid, setGrid] = useState<boolean[][]>(
-    Array(NOTES.length).fill(Array(COLUMNS).fill(false))
+    Array(NOTES.length)
+      .fill(null)
+      .map(() => Array(COLUMNS).fill(false))
   );
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentColumn, setCurrentColumn] = useState(0);
   const [tempo, setTempo] = useState(120);
-  const playerRef = useRef<Tone.Sampler | null>(null);
-  const playbackIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Tone.js refs
+  const toneRef = useRef<null | typeof import("tone")>(null);
+  const toneContextRef = useRef<any | null>(null);
+  const transportRef = useRef<any | null>(null);
+  const playerRef = useRef<Tone.Sampler | null>(null);
+  const loopRef = useRef<Tone.Loop | null>(null);
+  const gridRef = useRef<boolean[][]>([]);
+
+  // Initialize Tone.js context and sampler
   useEffect(() => {
-    playerRef.current = new Tone.Sampler({
-      urls: {
-        C4: "/music-box-note-c_C_major.wav",
-      },
-      baseUrl: "",
-      onload: () => {
-        console.log("Music box sample loaded");
-      },
-      onerror: (err) => {
-        console.error("Error loading music box sample:", err);
-      },
-    }).toDestination();
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    const loadEverything = async () => {
+      try {
+        // Step 1: Load Tone.js
+        const Tone = await import("tone");
+        if (cancelled) return;
+
+        // Step 2: Create our own isolated context (like other components)
+        toneRef.current = Tone;
+        const ctx = new Tone.Context({ latencyHint: "interactive" });
+        Tone.setContext(ctx);
+        const transport = Tone.getTransport();
+        transport.bpm.value = tempo;
+        transport.loop = false;
+        toneContextRef.current = ctx;
+        transportRef.current = transport;
+
+        // Step 3: Create sampler with context
+        const sampler = new Tone.Sampler({
+          urls: {
+            C4: "/music-box-note-c_C_major.wav",
+          },
+          baseUrl: "",
+          context: ctx,
+          onload: () => {
+            if (cancelled) return;
+            setIsLoading(false);
+          },
+          onerror: (err) => {
+            if (cancelled) return;
+            setError("Failed to load music box sample");
+            setIsLoading(false);
+          },
+        }).toDestination();
+
+        playerRef.current = sampler;
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load audio engine"
+          );
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadEverything();
 
     return () => {
+      cancelled = true;
       playerRef.current?.dispose();
+      loopRef.current?.dispose();
+    };
+  }, []);
+
+  // Sync tempo changes with transport
+  useEffect(() => {
+    if (transportRef.current) {
+      transportRef.current.bpm.value = tempo;
+    }
+  }, [tempo]);
+
+  // Keep gridRef in sync with grid state
+  useEffect(() => {
+    gridRef.current = grid;
+  }, [grid]);
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      // Dispose Tone resources
+      playerRef.current?.dispose();
+      loopRef.current?.dispose();
+
+      // Properly stop transport and close context
+      try {
+        if (transportRef.current) {
+          transportRef.current.stop();
+          transportRef.current.cancel();
+        }
+      } catch {}
+
+      try {
+        if (toneContextRef.current) {
+          toneContextRef.current.close();
+        }
+      } catch {}
+
+      // Clear refs
+      transportRef.current = null;
+      toneContextRef.current = null;
     };
   }, []);
 
@@ -161,52 +260,71 @@ export function MusicBoxComposer() {
     });
   };
 
-  const playNote = (note: string) => {
-    if (!playerRef.current) return;
-    // Add a slight delay between notes for more mechanical feel
-    const now = Tone.now();
+  const playColumn = (column: number, time: number) => {
+    // Use gridRef to get the current grid state in real-time
+    const player = playerRef.current;
+    if (!player) return;
 
-    // Calculate note duration based on tempo (in seconds)
-    // At 120 BPM, a quarter note is 0.5 seconds
-    // We'll use a half note duration for smoother transitions
-    const noteDuration = (60 / tempo) * 2;
-
-    playerRef.current.triggerAttackRelease(note, noteDuration, now, 0.5);
-  };
-
-  const playColumn = (column: number) => {
-    grid.forEach((row, rowIndex) => {
+    gridRef.current.forEach((row, rowIndex) => {
       if (row[column]) {
-        playNote(NOTES[rowIndex]);
+        player.triggerAttackRelease(
+          NOTES[rowIndex],
+          "8n", // 8th note length
+          time,
+          0.5
+        );
       }
     });
   };
 
   const togglePlayback = async () => {
+    const Tone = toneRef.current;
+    const ctx = toneContextRef.current;
+    const transport = transportRef.current;
+    const player = playerRef.current;
+
+    if (!Tone || !ctx || !transport || !player) return;
+
+    // Ensure audio is started by user gesture
+    try {
+      await ctx?.resume();
+      await Tone.start();
+    } catch {}
+
     if (isPlaying) {
-      clearInterval(playbackIntervalRef.current);
+      transport.stop();
+      loopRef.current?.dispose();
+      loopRef.current = null;
       setIsPlaying(false);
       setCurrentColumn(0);
     } else {
-      // Start Tone.js context if it hasn't been started yet
-      await Tone.start();
-      setIsPlaying(true);
-      const interval = setInterval(() => {
+      // Schedule a loop using transport
+      loopRef.current = new Tone.Loop((time) => {
         setCurrentColumn((prev) => {
           const nextColumn = (prev + 1) % COLUMNS;
-          playColumn(nextColumn);
+          playColumn(nextColumn, time);
           return nextColumn;
         });
-      }, ((60 / tempo) * 1000) / 2);
-      playbackIntervalRef.current = interval;
+      }, "8n");
+
+      transport.bpm.value = tempo;
+      transport.start();
+      loopRef.current.start(0);
+      setIsPlaying(true);
     }
   };
 
   const clearGrid = () => {
-    setGrid(Array(NOTES.length).fill(Array(COLUMNS).fill(false)));
+    setGrid(
+      Array(NOTES.length)
+        .fill(null)
+        .map(() => Array(COLUMNS).fill(false))
+    );
     setCurrentColumn(0);
     setIsPlaying(false);
-    clearInterval(playbackIntervalRef.current);
+    transportRef.current?.stop();
+    loopRef.current?.dispose();
+    loopRef.current = null;
   };
 
   const loadTemplate = (templateId: string) => {
@@ -215,9 +333,32 @@ export function MusicBoxComposer() {
       setGrid(template.grid);
       setCurrentColumn(0);
       setIsPlaying(false);
-      clearInterval(playbackIntervalRef.current);
+      transportRef.current?.stop();
+      loopRef.current?.dispose();
+      loopRef.current = null;
     }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">
+          Audio Error
+        </h3>
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -308,10 +449,10 @@ export function MusicBoxComposer() {
         <div className="flex flex-col md:flex-row gap-4 justify-between">
           <div className="flex items-center gap-4 flex-1">
             <Button
-              className={`h-10 w-10 flex-shrink-0 rounded-full transition-transform hover:scale-105 ${
+              className={`h-10 w-10 flex-shrink-0 rounded-full border border-black dark:border-white ${
                 isPlaying
                   ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
-                  : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
+                  : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
               }`}
               onClick={togglePlayback}
             >

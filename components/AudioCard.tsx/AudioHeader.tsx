@@ -1,18 +1,24 @@
-import { FileAudio, Pause, Play, Upload } from "lucide-react";
+import { Pause, Play, Music } from "lucide-react";
 import { Button } from "../ui/button";
 import { CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 import { Slider } from "../ui/slider";
 import { useEffect, useRef, useState } from "react";
-import { DeezerTrack } from "@/lib/deezer";
 import { formatTime } from "@/lib/utils";
 
 interface AudioHeaderProps {
-  uploadedFile?: File | null;
-  track?: DeezerTrack | null;
+  title: string;
+  subtitle?: string;
+  imageUrl?: string;
+  audioUrl?: string;
 }
 
-export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
+export default function AudioHeader({
+  title,
+  subtitle,
+  imageUrl,
+  audioUrl,
+}: AudioHeaderProps) {
   const [isHeaderPlaying, setIsHeaderPlaying] = useState(false);
   const [headerAudioDuration, setHeaderAudioDuration] = useState(0);
   const headerAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -20,18 +26,12 @@ export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
 
   // Initialize simple header <audio> element independent of Tone.js
   useEffect(() => {
-    // No header source available
-    if (!track && !uploadedFile) return;
+    // No audio source available
+    if (!audioUrl) return;
 
-    const url = track
-      ? track.preview
-      : uploadedFile
-      ? URL.createObjectURL(uploadedFile)
-      : "";
-    if (!url) return;
     const audioEl = headerAudioRef.current;
     if (!audioEl) return;
-    audioEl.src = url;
+    audioEl.src = audioUrl;
     const onLoaded = () => {
       const dur = audioEl.duration;
       if (Number.isFinite(dur) && dur > 0) setHeaderAudioDuration(dur);
@@ -51,11 +51,11 @@ export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
       audioEl.removeEventListener("timeupdate", onTime);
       audioEl.removeEventListener("ended", onEnded);
       // Revoke blob URL if created
-      if (uploadedFile && url.startsWith("blob:")) {
-        URL.revokeObjectURL(url);
+      if (audioUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(audioUrl);
       }
     };
-  }, [track, uploadedFile]);
+  }, [audioUrl]);
 
   const toggleHeaderPlayback = async () => {
     const audioEl = headerAudioRef.current;
@@ -85,130 +85,75 @@ export default function AudioHeader({ uploadedFile, track }: AudioHeaderProps) {
   };
 
   return (
-    <CardHeader className="border-b border-black dark:border-white p-4">
-      <CardTitle className="flex flex-col md:flex-row items-start md:items-center text-lg gap-3">
-        {track ? (
+    <div className="border border-black dark:border-white p-4 rounded-lg">
+      <div className="flex flex-col md:flex-row items-start md:items-center text-lg gap-3 w-full">
+        {title ? (
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
-            <div className="flex items-end gap-2 flex-1 min-w-0">
-              {track.album.cover_medium && (
-                <div className="flex-shrink-0">
+            <div className="flex items-end gap-2 flex-1 min-w-0 w-full">
+              <div className="flex-shrink-0">
+                {imageUrl ? (
                   <Image
-                    src={track.album.cover_medium || "/placeholder.svg"}
-                    alt={track.album.title}
+                    src={imageUrl}
+                    alt={title}
                     width={60}
                     height={60}
                     className="rounded-md border border-black dark:border-white"
                   />
+                ) : (
+                  <div className="flex-shrink-0 bg-muted/30 rounded-md p-3 border border-black dark:border-white">
+                    <Music className="h-6 w-6" />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col justify-between flex-1 min-w-0 w-0 max-w-full overflow-hidden">
+                <h3 className="font-semibold truncate w-full">{title}</h3>
+                {subtitle && (
+                  <p className="text-sm font-medium text-muted-foreground truncate w-full">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {audioUrl && (
+              <div className="flex items-center gap-2 w-full md:w-[300px] flex-shrink-0">
+                <Button
+                  className={`rounded-full h-8 w-8 border border-black dark:border-white ${
+                    isHeaderPlaying
+                      ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                      : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
+                  }`}
+                  onClick={toggleHeaderPlayback}
+                >
+                  {isHeaderPlaying ? (
+                    <Pause className="h-3 w-3" />
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
+                </Button>
+
+                <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                  <span className="text-xs font-mono whitespace-nowrap">
+                    {formatTime(headerCurrentTime)}
+                  </span>
+                  <Slider
+                    value={[headerCurrentTime]}
+                    min={0}
+                    max={headerAudioDuration || 100}
+                    step={0.1}
+                    onValueChange={handleHeaderSeek}
+                    className="flex-grow"
+                  />
+                  <span className="text-xs font-mono w-8">
+                    {formatTime(headerAudioDuration)}
+                  </span>
                 </div>
-              )}
-              <div className="flex flex-col justify-between min-w-0">
-                <h3 className="font-semibold truncate">{track.title}</h3>
-                <p className="text-sm font-medium text-muted-foreground truncate">
-                  {track.artist.name} • {track.album.title}
-                </p>
+                <audio ref={headerAudioRef} style={{ display: "none" }} />
               </div>
-            </div>
-
-            <div className="flex items-center gap-2 w-full md:w-[300px] flex-shrink-0">
-              <Button
-                className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
-                  isHeaderPlaying
-                    ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
-                    : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
-                }`}
-                onClick={toggleHeaderPlayback}
-              >
-                {isHeaderPlaying ? (
-                  <Pause className="h-3 w-3" />
-                ) : (
-                  <Play className="h-3 w-3" />
-                )}
-              </Button>
-
-              <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
-                <span className="text-xs font-mono whitespace-nowrap">
-                  {formatTime(headerCurrentTime)}
-                </span>
-                <Slider
-                  value={[headerCurrentTime]}
-                  min={0}
-                  max={headerAudioDuration || 100}
-                  step={0.1}
-                  onValueChange={handleHeaderSeek}
-                  className="flex-grow"
-                />
-                <span className="text-xs font-mono w-8">
-                  {formatTime(headerAudioDuration)}
-                </span>
-              </div>
-              {/* Hidden audio element used for header playback */}
-              <audio ref={headerAudioRef} style={{ display: "none" }} />
-            </div>
+            )}
           </div>
-        ) : uploadedFile ? (
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
-            <div className="flex items-end gap-2 flex-1 min-w-0">
-              <div className="flex-shrink-0 bg-muted/30 rounded-md p-3 border border-black dark:border-white">
-                <FileAudio className="h-6 w-6" />
-              </div>
-              <div className="flex flex-col justify-between min-w-0">
-                <h3 className="font-semibold truncate">{uploadedFile.name}</h3>
-                <p className="text-sm font-medium text-muted-foreground truncate">
-                  {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB •{" "}
-                  {uploadedFile.type}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 w-full md:w-[300px] flex-shrink-0">
-              <Button
-                className={`rounded-full transition-transform hover:scale-105 h-8 w-8 ${
-                  isHeaderPlaying
-                    ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
-                    : "bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
-                }`}
-                onClick={toggleHeaderPlayback}
-              >
-                {isHeaderPlaying ? (
-                  <Pause className="h-3 w-3" />
-                ) : (
-                  <Play className="h-3 w-3" />
-                )}
-              </Button>
-
-              <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
-                <span className="text-xs font-mono whitespace-nowrap">
-                  {formatTime(headerCurrentTime)}
-                </span>
-                <Slider
-                  value={[headerCurrentTime]}
-                  min={0}
-                  max={headerAudioDuration || 100}
-                  step={0.1}
-                  onValueChange={handleHeaderSeek}
-                  className="flex-grow"
-                />
-                <span className="text-xs font-mono w-8">
-                  {formatTime(headerAudioDuration)}
-                </span>
-              </div>
-              <audio ref={headerAudioRef} className="hidden" />
-            </div>
-          </div>
-        ) : (
-          // make an onUpload function that will be passed as a prop
-          <Button variant="outline">
-            <Upload className="h-4 w-4" />
-            Upload Audio
-            <input
-              type="file"
-              className="hidden"
-              accept="audio/*"
-              // onChange={onUpload}
-            />
-          </Button>
-        )}
-      </CardTitle>
-    </CardHeader>
+        ) : null}
+      </div>
+    </div>
   );
 }
