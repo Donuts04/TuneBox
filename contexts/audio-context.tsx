@@ -24,33 +24,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const contextRef = useRef<Tone.Context | null>(null);
   const transportRef = useRef<any | null>(null);
   const hasStartedRef = useRef(false);
+  const hasUnblockedRef = useRef(false);
 
   const startAudio = async () => {
     if (hasStartedRef.current) return;
 
     try {
-      // Resume the underlying AudioContext first (Safari/iOS needs this)
-      const ac: AudioContext | undefined = (contextRef.current as any)
-        ?.rawContext;
-      if (ac && ac.state !== "running") {
-        await ac.resume();
-      }
-
-      // Start Tone.js audio (required by many browsers)
+      // Start Tone.js audio
       await Tone.start();
-
-      // Play a 1-frame silent buffer to fully unlock on some platforms
-      if (ac) {
-        const buffer = ac.createBuffer(1, 1, ac.sampleRate);
-        const src = ac.createBufferSource();
-        src.buffer = buffer;
-        src.connect(ac.destination);
-        try {
-          src.start(0);
-        } finally {
-          src.disconnect();
-        }
-      }
 
       hasStartedRef.current = true;
     } catch (error) {
@@ -79,42 +60,40 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
     initAudio();
 
-    // Add global event listeners to unlock audio on first user interaction
-    const unlockAudio = async () => {
-      if (hasStartedRef.current) return;
+    // Unblock iOS silent mode on first user interaction
+    const unblockAudio = async () => {
+      if (hasUnblockedRef.current) return;
+      hasUnblockedRef.current = true;
 
       try {
-        await startAudio();
+        const audio = document.getElementById(
+          "silent-audio"
+        ) as HTMLAudioElement;
+        if (audio) {
+          audio.volume = 0;
+          await audio.play();
+        }
       } catch (error) {
-        console.warn("Failed to unlock audio context:", error);
-      } finally {
-        // Remove listeners after first attempt (listeners were once: true as well)
-        document.removeEventListener("click", unlockAudio);
-        document.removeEventListener("touchstart", unlockAudio);
-        document.removeEventListener("keydown", unlockAudio);
-        document.removeEventListener("pointerdown", unlockAudio);
-        document.removeEventListener("mousedown", unlockAudio);
+        console.warn("Failed to unblock iOS audio:", error);
       }
     };
 
-    // Add event listeners for first user interaction
-    document.addEventListener("click", unlockAudio, { once: true });
-    document.addEventListener("touchstart", unlockAudio, { once: true });
-    document.addEventListener("keydown", unlockAudio, { once: true });
-    document.addEventListener("pointerdown", unlockAudio, { once: true });
-    document.addEventListener("mousedown", unlockAudio, { once: true });
+    // Add event listeners for first user interaction (optimized)
+    const events = ["click", "touchstart", "keydown"];
+    const addListeners = () => {
+      events.forEach((event) => {
+        document.addEventListener(event, unblockAudio, { once: true });
+      });
+    };
+
+    addListeners();
 
     return () => {
       cancelled = true;
       try {
         contextRef.current?.close?.();
       } catch {}
-      // Clean up event listeners
-      document.removeEventListener("click", unlockAudio);
-      document.removeEventListener("touchstart", unlockAudio);
-      document.removeEventListener("keydown", unlockAudio);
-      document.removeEventListener("pointerdown", unlockAudio);
-      document.removeEventListener("mousedown", unlockAudio);
+      // Event listeners are automatically cleaned up with { once: true }
     };
   }, []);
 
