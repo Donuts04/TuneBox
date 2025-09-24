@@ -89,6 +89,15 @@ export default function RootLayout({
         <AudioProvider>{children}</AudioProvider>
         <Analytics />
         <Toaster />
+        {/* Silent audio element for iOS silent mode unblock */}
+        <audio
+          id="silent-audio"
+          src="/1-minute-of-silence.mp3"
+          preload="auto"
+          loop
+          style={{ display: "none" }}
+          x-webkit-airplay="deny"
+        />
       </body>
     </html>
   );
