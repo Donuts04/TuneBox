@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn, formatTime } from "@/lib/utils";
 import { encode } from "wav-encoder";
-import RunnerLoader from "@/components/Loaders/runner-loader";
+import RunnerLoader from "@/components/loaders/runner-loader";
 import * as Tone from "tone";
 
 interface AudioEffectsProps {
