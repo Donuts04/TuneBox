@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { AudioProvider } from "@/contexts/audio-context";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -84,7 +85,7 @@ export default function RootLayout({
       <link rel="preload" as="image" href="/tuney/pointDown.png" />
       <link rel="preload" as="image" href="/tuney/coolCross.png" />
       <body className="bg-white dark:bg-black">
-        {children}
+        <AudioProvider>{children}</AudioProvider>
         <Toaster />
       </body>
     </html>

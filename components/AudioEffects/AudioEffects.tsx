@@ -23,6 +23,7 @@ import { cn, formatTime } from "@/lib/utils";
 import { encode } from "wav-encoder";
 import RunnerLoader from "@/components/loaders/runner-loader";
 import * as Tone from "tone";
+import { useAudio } from "@/contexts/audio-context";
 
 interface AudioEffectsProps {
   audioUrl?: string | null;
@@ -37,6 +38,7 @@ export default function AudioEffects({
   initialReverbWet = 0.7,
   initialReverbDecay = 6.5,
 }: AudioEffectsProps) {
+  const { context, startAudio } = useAudio();
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8);
@@ -57,7 +59,6 @@ export default function AudioEffects({
   }, [isLooping]);
 
   const toneRef = useRef<null | typeof Tone>(null);
-  const ctxRef = useRef<Tone.Context | null>(null);
   const playerRef = useRef<Tone.Player | null>(null);
   const gainRef = useRef<Tone.Gain | null>(null);
   const reverbRef = useRef<Tone.Reverb | null>(null);
@@ -77,21 +78,14 @@ export default function AudioEffects({
 
   // Prepare Tone.js context
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (cancelled) return;
-      toneRef.current = Tone;
-      const ctx = new Tone.Context({ latencyHint: "interactive" });
-      Tone.setContext(ctx);
-      // bind transport (not strictly needed, but keeps consistency)
-      Tone.getTransport();
-      ctxRef.current = ctx;
-      setIsReady(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!context) {
+      setIsReady(false);
+      return;
+    }
+
+    toneRef.current = Tone;
+    setIsReady(true);
+  }, [context]);
 
   // Resolve source URL whenever inputs change
   useEffect(() => {
@@ -124,9 +118,8 @@ export default function AudioEffects({
   // Build audio graph: Player -> Gain -> Reverb -> Destination
   const setupGraph = async () => {
     const Tone = toneRef.current;
-    const ctx = ctxRef.current;
     const url = sourceUrlRef.current;
-    if (!Tone || !ctx || !url) {
+    if (!Tone || !context || !url) {
       cleanupNodes();
       setLoadError(
         !url ? "No audio source selected." : "Audio context not ready."
@@ -141,7 +134,7 @@ export default function AudioEffects({
     const reverb = new Tone.Reverb({
       decay: reverbDecay,
       wet: reverbWet,
-      context: ctx,
+      context: context,
     });
     // Generate IR asynchronously; don't block playback
     try {
@@ -152,18 +145,18 @@ export default function AudioEffects({
     } catch (error) {
       console.warn("Reverb setup failed:", error);
     }
-    const gain = new Tone.Gain({ gain: volume, context: ctx });
+    const gain = new Tone.Gain({ gain: volume, context: context });
 
     // Connect the audio graph properly
     try {
       gain.connect(reverb);
-      reverb.connect((ctx as any).destination);
+      reverb.connect((context as any).destination);
     } catch {}
 
     const player = new Tone.Player({
       url,
       autostart: false,
-      context: ctx,
+      context: context,
       onload: () => {
         const dur = player.buffer?.duration || 0;
         originalDurationRef.current = dur;
@@ -284,14 +277,7 @@ export default function AudioEffects({
   const onTogglePlay = async () => {
     if (!isReady || !playerRef.current || !isBufferLoaded) return;
     try {
-      const ctx = ctxRef.current as AudioContext | null;
-      if (ctx && (ctx as any).state !== "running") {
-        await (ctx as any).resume();
-      }
-      // Some environments still require a global start
-      try {
-        await (toneRef.current as any)?.start?.();
-      } catch {}
+      await startAudio();
     } catch {}
     if (isPlaying) {
       isPlayingRef.current = false;
@@ -385,11 +371,10 @@ export default function AudioEffects({
 
     try {
       const Tone = toneRef.current;
-      const ctx = ctxRef.current;
-      if (!Tone || !ctx) return;
+      if (!Tone || !context) return;
 
       // Create a Recorder node with the same context as other nodes
-      const recorder = new Tone.Recorder({ context: ctx });
+      const recorder = new Tone.Recorder({ context: context });
 
       // Connect recorder as a tap from the reverb node (no need to rebuild graph)
       if (reverbRef.current) {
@@ -444,7 +429,7 @@ export default function AudioEffects({
 
         // Reuse existing AudioContext from Tone.js instead of creating new one
         // This is more efficient and avoids potential context limit issues
-        const audioContext = ctxRef.current?.rawContext || new AudioContext();
+        const audioContext = context?.rawContext || new AudioContext();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
         // Convert AudioBuffer to the format expected by wav-encoder
@@ -468,7 +453,7 @@ export default function AudioEffects({
         URL.revokeObjectURL(url);
 
         // Only close if we created a new context (not reusing existing one)
-        if (!ctxRef.current?.rawContext) {
+        if (!context?.rawContext) {
           await (audioContext as any).close();
         }
       } catch (error) {
@@ -508,13 +493,6 @@ export default function AudioEffects({
       onStop();
       cleanupNodes();
 
-      // Close the audio context
-      try {
-        if (ctxRef.current) {
-          ctxRef.current.close();
-        }
-      } catch {}
-
       // Clean up blob URLs
       if (sourceUrlRef.current && sourceUrlRef.current.startsWith("blob:")) {
         try {
@@ -523,7 +501,6 @@ export default function AudioEffects({
       }
 
       // Reset all refs to ensure no memory leaks
-      ctxRef.current = null;
       sourceUrlRef.current = null;
     };
   }, []);

@@ -213,8 +213,10 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       )}
 
       {separateLoading && (
-        <div className="flex justify-center items-center py-12">
-          <TuneBoxLoader />
+        <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
+          <div className="flex justify-center items-center max-w-md mx-auto">
+            <TuneBoxLoader />
+          </div>
         </div>
       )}
 
@@ -234,8 +236,10 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       )}
 
       {convertLoading && (
-        <div className="flex justify-center items-center py-12 max-w-md mx-auto">
-          <TuneBoxLoader />
+        <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
+          <div className="flex justify-center items-center max-w-md mx-auto">
+            <TuneBoxLoader />
+          </div>
         </div>
       )}
 
