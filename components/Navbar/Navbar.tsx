@@ -11,7 +11,6 @@ import {
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
 import { useState } from "react";
-import RunnerLoader from "../loaders/runner-loader";
 
 const NavbarComponent = () => {
   const navItems = [
