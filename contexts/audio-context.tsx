@@ -57,11 +57,36 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
     initAudio();
 
+    // Add global event listeners to unlock audio on first user interaction
+    const unlockAudio = async () => {
+      if (hasStartedRef.current) return;
+      hasStartedRef.current = true;
+
+      try {
+        await Tone.start();
+        // Remove listeners after first unlock
+        document.removeEventListener("click", unlockAudio);
+        document.removeEventListener("touchstart", unlockAudio);
+        document.removeEventListener("keydown", unlockAudio);
+      } catch (error) {
+        console.warn("Failed to unlock audio context:", error);
+      }
+    };
+
+    // Add event listeners for first user interaction
+    document.addEventListener("click", unlockAudio, { once: true });
+    document.addEventListener("touchstart", unlockAudio, { once: true });
+    document.addEventListener("keydown", unlockAudio, { once: true });
+
     return () => {
       cancelled = true;
       try {
         contextRef.current?.close?.();
       } catch {}
+      // Clean up event listeners
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
     };
   }, []);
 
