@@ -5,6 +5,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AudioProvider } from "@/contexts/audio-context";
+import { Analytics } from "@vercel/analytics/next";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -86,6 +87,7 @@ export default function RootLayout({
       <link rel="preload" as="image" href="/tuney/coolCross.png" />
       <body className="bg-white dark:bg-black">
         <AudioProvider>{children}</AudioProvider>
+        <Analytics />
         <Toaster />
       </body>
     </html>
