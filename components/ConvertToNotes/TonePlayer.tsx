@@ -13,6 +13,7 @@ import { NoteVisualization } from "./NoteVisualization2";
 import { cn, formatTime } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import RunnerLoader from "@/components/loaders/runner-loader";
+import { useAudio } from "@/contexts/audio-context";
 
 interface TonePlayerProps {
   midiData: Midi | null;
@@ -25,6 +26,7 @@ export default function TonePlayer({
   selectedInstrument,
   originalAudioUrl,
 }: TonePlayerProps) {
+  const { context, transport, startAudio } = useAudio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(0.8);
@@ -37,26 +39,23 @@ export default function TonePlayer({
   const [error, setError] = useState<string | null>(null);
 
   const sampler = useRef<Tone.Sampler | null>(null);
-  const toneContextRef = useRef<any | null>(null);
-  const transportRef = useRef<any | null>(null);
   const originalPlayerRef = useRef<Tone.Player | null>(null);
   const originalGainRef = useRef<Tone.Gain | null>(null);
 
-  // Initialize isolated context/transport
+  // Initialize with shared context
   useEffect(() => {
     setIsLoading(true);
     setError(null);
 
+    if (!context || !transport) {
+      setError("Audio context not ready");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const ctx = new (Tone as any).Context({ latencyHint: "interactive" });
-      // Keep the custom context active for proper isolation
-      // This ensures all nodes (Player, Sampler, etc.) bind to the same context
-      Tone.setContext(ctx);
-      const transport = Tone.getTransport();
       transport.bpm.value = playbackTempo;
       transport.loop = false;
-      toneContextRef.current = ctx;
-      transportRef.current = transport;
       setIsLoading(false);
     } catch (err) {
       setError(
@@ -64,26 +63,11 @@ export default function TonePlayer({
       );
       setIsLoading(false);
     }
-
-    return () => {
-      try {
-        transportRef.current?.stop();
-        transportRef.current?.cancel?.();
-      } catch {}
-      try {
-        toneContextRef.current?.close?.();
-      } catch {}
-      transportRef.current = null;
-      toneContextRef.current = null;
-    };
-  }, []);
+  }, [context, transport, playbackTempo]);
 
   // Initialize/Update original audio player
   useEffect(() => {
-    const ctx = toneContextRef.current;
-    const destination = ctx?.destination;
-
-    if (!originalAudioUrl || !ctx || !destination) {
+    if (!originalAudioUrl || !context) {
       // Dispose if url removed
       originalPlayerRef.current?.dispose?.();
       originalGainRef.current?.dispose?.();
@@ -96,14 +80,14 @@ export default function TonePlayer({
     originalPlayerRef.current?.dispose?.();
     originalGainRef.current?.dispose?.();
 
-    const gain = new Tone.Gain({ gain: originalVolume, context: ctx });
-    if (destination) (gain as any).connect(destination);
+    const gain = new Tone.Gain({ gain: originalVolume, context: context });
+    if (context.destination) (gain as any).connect(context.destination);
     originalGainRef.current = gain;
 
     const player = new Tone.Player({
       url: originalAudioUrl,
       autostart: false,
-      context: ctx,
+      context: context,
     });
     (player as any).connect(gain);
     // tie playback rate to bpm (relative to 120 BPM baseline)
@@ -117,7 +101,7 @@ export default function TonePlayer({
       originalPlayerRef.current = null;
       originalGainRef.current = null;
     };
-  }, [originalAudioUrl]);
+  }, [originalAudioUrl, context, originalVolume, playbackTempo]);
 
   // Update original volume
   useEffect(() => {
@@ -132,21 +116,21 @@ export default function TonePlayer({
     if (originalPlayerRef.current) {
       (originalPlayerRef.current as any).playbackRate = playbackTempo / 120;
       if (isPlaying && playOriginal) {
-        const transportPos = transportRef.current?.seconds || 0;
+        const transportPos = transport?.seconds || 0;
         const rate = playbackTempo / 120;
         originalPlayerRef.current.stop();
         originalPlayerRef.current.start(undefined, transportPos / rate);
       }
     }
-  }, [playbackTempo]);
+  }, [playbackTempo, isPlaying, playOriginal, transport]);
 
   // Initialize the selected instrument
   useEffect(() => {
     if (!midiData || isLoading || error) return;
 
     // Reset everything when changing instruments
-    transportRef.current?.stop();
-    transportRef.current?.cancel?.();
+    transport?.stop();
+    transport?.cancel?.();
     originalPlayerRef.current?.stop?.();
     setIsPlaying(false);
     setCurrentTime(0);
@@ -166,10 +150,7 @@ export default function TonePlayer({
       sampler.current.dispose();
     }
 
-    const ctx = toneContextRef.current;
-    const destination = ctx?.destination;
-
-    if (!ctx || !destination) {
+    if (!context) {
       setError("Audio context not available");
       return;
     }
@@ -185,32 +166,33 @@ export default function TonePlayer({
           onerror: () => {
             setError(`Failed to load ${instrumentConfig.name} samples`);
           },
-          context: ctx,
+          context: context,
         });
-        if (destination) (newSampler as any).connect(destination);
+        if (context.destination)
+          (newSampler as any).connect(context.destination);
         sampler.current = newSampler;
       } else if (instrumentConfig.type === "synth") {
         const newSynth = new Tone.Synth({
           ...instrumentConfig.options,
-          context: ctx,
+          context: context,
         });
-        if (destination) (newSynth as any).connect(destination);
+        if (context.destination) (newSynth as any).connect(context.destination);
         sampler.current = newSynth as unknown as Tone.Sampler;
         setIsInstrumentLoaded(true);
       } else if (instrumentConfig.type === "amSynth") {
         const newSynth = new Tone.AMSynth({
           ...instrumentConfig.options,
-          context: ctx,
+          context: context,
         });
-        if (destination) (newSynth as any).connect(destination);
+        if (context.destination) (newSynth as any).connect(context.destination);
         sampler.current = newSynth as unknown as Tone.Sampler;
         setIsInstrumentLoaded(true);
       } else if (instrumentConfig.type === "fmSynth") {
         const newSynth = new Tone.FMSynth({
           ...instrumentConfig.options,
-          context: ctx,
+          context: context,
         });
-        if (destination) (newSynth as any).connect(destination);
+        if (context.destination) (newSynth as any).connect(context.destination);
         sampler.current = newSynth as unknown as Tone.Sampler;
         setIsInstrumentLoaded(true);
       }
@@ -229,7 +211,7 @@ export default function TonePlayer({
         sampler.current.dispose();
       }
     };
-  }, [selectedInstrument, midiData, isLoading, error]);
+  }, [selectedInstrument, midiData, isLoading, error, context]);
 
   // Update volume when it changes
   useEffect(() => {
@@ -240,20 +222,20 @@ export default function TonePlayer({
 
   // Set up the notes for playback (ensure clearing schedules when midi/instrument changes)
   useEffect(() => {
-    if (!transportRef.current) return;
+    if (!transport) return;
     // Clear any previously scheduled events to avoid duplicates
     try {
-      transportRef.current.cancel?.();
-      transportRef.current.stop?.();
-      transportRef.current.seconds = 0;
+      transport.cancel?.();
+      transport.stop?.();
+      transport.seconds = 0;
     } catch {}
     if (!midiData || !isInstrumentLoaded || !sampler.current) return;
-    transportRef.current.bpm.value = playbackTempo;
-  }, [midiData, isInstrumentLoaded]);
+    transport.bpm.value = playbackTempo;
+  }, [midiData, isInstrumentLoaded, transport, playbackTempo]);
 
   // Update tempo when it changes
   useEffect(() => {
-    if (transportRef.current) transportRef.current.bpm.value = playbackTempo;
+    if (transport) transport.bpm.value = playbackTempo;
 
     // If currently playing, reschedule remaining notes with new tempo
     if (
@@ -263,22 +245,20 @@ export default function TonePlayer({
       playbackTempo !== previousTempo
     ) {
       // Get current position and convert to original MIDI time scale using previous tempo
-      const currentPosition = transportRef.current
-        ? transportRef.current.seconds
-        : 0;
+      const currentPosition = transport?.seconds || 0;
       const previousTempoRatio = 120 / previousTempo;
       const currentMidiTime = currentPosition / previousTempoRatio;
 
       // Stop current playback and clear all scheduled events
-      transportRef.current?.stop();
-      transportRef.current?.cancel?.();
+      transport?.stop();
+      transport?.cancel?.();
 
       // Calculate new tempo ratio
       const newTempoRatio = 120 / playbackTempo;
 
       // Set transport position to the new scaled position
       const newPosition = currentMidiTime * newTempoRatio;
-      if (transportRef.current) transportRef.current.seconds = newPosition;
+      if (transport) transport.seconds = newPosition;
       setCurrentTime(newPosition);
 
       // Reschedule all MIDI events from current position with new tempo
@@ -286,7 +266,7 @@ export default function TonePlayer({
         track.notes.forEach((note) => {
           const scaledNoteTime = note.time * newTempoRatio;
           if (note.time >= currentMidiTime) {
-            transportRef.current?.schedule((time: number) => {
+            transport?.schedule((time: number) => {
               if (sampler.current) {
                 sampler.current.triggerAttackRelease(
                   note.name,
@@ -301,23 +281,23 @@ export default function TonePlayer({
       });
 
       // Update progress during playback
-      transportRef.current?.scheduleRepeat((time: number) => {
-        setCurrentTime(transportRef.current?.seconds || 0);
+      transport?.scheduleRepeat((time: number) => {
+        setCurrentTime(transport?.seconds || 0);
       }, 0.1);
 
       // Handle playback completion
       const totalDuration = midiData.duration * newTempoRatio;
-      transportRef.current?.scheduleOnce(() => {
+      transport?.scheduleOnce(() => {
         setIsPlaying(false);
         setCurrentTime(0);
-        transportRef.current?.stop();
-        transportRef.current?.cancel?.();
+        transport?.stop();
+        transport?.cancel?.();
         // Stop original audio when sequence ends
         originalPlayerRef.current?.stop?.();
       }, totalDuration);
 
       // Resume playback
-      transportRef.current?.start();
+      transport?.start();
 
       // Restart original audio from new position if enabled
       if (playOriginal) {
@@ -337,21 +317,18 @@ export default function TonePlayer({
 
     try {
       // Start audio context if it's not started
-      const ctx = toneContextRef.current as AudioContext | null;
-      if (ctx && (ctx as any).state !== "running") {
-        await (ctx as any).resume();
-      }
+      await startAudio();
 
       if (isPlaying) {
-        transportRef.current?.pause();
+        transport?.pause();
         // Stop original audio (no pause) so we can resume at current position
         originalPlayerRef.current?.stop?.();
       } else {
         // If resuming from pause, just start the transport
-        if ((transportRef.current?.seconds || 0) > 0) {
-          transportRef.current?.start();
+        if ((transport?.seconds || 0) > 0) {
+          transport?.start();
           if (playOriginal) {
-            const resumePos = transportRef.current?.seconds || 0;
+            const resumePos = transport?.seconds || 0;
             const rate = playbackTempo / 120;
             originalPlayerRef.current?.stop?.();
             originalPlayerRef.current?.start?.(undefined, resumePos / rate);
@@ -359,20 +336,19 @@ export default function TonePlayer({
         } else {
           // If starting from beginning, set up everything
           // Stop any current playback and clear all scheduled events
-          transportRef.current?.cancel?.();
-          transportRef.current?.stop();
+          transport?.cancel?.();
+          transport?.stop();
 
           // Set the tempo before starting playback
-          if (transportRef.current)
-            transportRef.current.bpm.value = playbackTempo;
+          if (transport) transport.bpm.value = playbackTempo;
 
           // Reset transport position to start
-          if (transportRef.current) transportRef.current.seconds = 0;
+          if (transport) transport.seconds = 0;
 
           // Schedule all MIDI events with tempo scaling
           midiData.tracks.forEach((track) => {
             track.notes.forEach((note) => {
-              transportRef.current?.schedule((time: number) => {
+              transport?.schedule((time: number) => {
                 if (sampler.current) {
                   sampler.current.triggerAttackRelease(
                     note.name,
@@ -386,20 +362,20 @@ export default function TonePlayer({
           });
 
           // Update progress during playback (optimized frequency for smooth playback)
-          transportRef.current?.scheduleRepeat((time: number) => {
-            setCurrentTime(transportRef.current?.seconds || 0);
+          transport?.scheduleRepeat((time: number) => {
+            setCurrentTime(transport?.seconds || 0);
           }, 0.1);
 
           // Handle playback completion
-          transportRef.current?.scheduleOnce(() => {
+          transport?.scheduleOnce(() => {
             setIsPlaying(false);
             setCurrentTime(0);
-            transportRef.current?.stop();
-            transportRef.current?.cancel?.();
+            transport?.stop();
+            transport?.cancel?.();
           }, totalDuration);
 
           // Start playback
-          transportRef.current?.start();
+          transport?.start();
           if (playOriginal) {
             originalPlayerRef.current?.stop?.();
             const rate = playbackTempo / 120;
@@ -417,8 +393,8 @@ export default function TonePlayer({
 
   // Stop playback
   const stopPlayback = () => {
-    transportRef.current?.stop();
-    transportRef.current?.cancel?.();
+    transport?.stop();
+    transport?.cancel?.();
     setIsPlaying(false);
     setCurrentTime(0);
     originalPlayerRef.current?.stop?.();
@@ -433,14 +409,14 @@ export default function TonePlayer({
 
     if (isPlaying && midiData) {
       // Stop current playback and clear all scheduled events
-      transportRef.current?.stop();
-      transportRef.current?.cancel?.();
+      transport?.stop();
+      transport?.cancel?.();
 
       // Set the tempo before restarting playback
-      if (transportRef.current) transportRef.current.bpm.value = playbackTempo;
+      if (transport) transport.bpm.value = playbackTempo;
 
       // Set transport position to the new time
-      if (transportRef.current) transportRef.current.seconds = newTime;
+      if (transport) transport.seconds = newTime;
 
       // Restart from new position using the same system as togglePlayback
       // Schedule all MIDI events from new position with tempo scaling
@@ -448,7 +424,7 @@ export default function TonePlayer({
         track.notes.forEach((note) => {
           const scaledNoteTime = note.time * tempoRatio;
           if (scaledNoteTime >= newTime) {
-            transportRef.current?.schedule((time: number) => {
+            transport?.schedule((time: number) => {
               if (sampler.current) {
                 sampler.current.triggerAttackRelease(
                   note.name,
@@ -463,21 +439,21 @@ export default function TonePlayer({
       });
 
       // Update progress during playback (optimized frequency for smooth playback)
-      transportRef.current?.scheduleRepeat((time: number) => {
-        setCurrentTime(transportRef.current?.seconds || 0);
+      transport?.scheduleRepeat((time: number) => {
+        setCurrentTime(transport?.seconds || 0);
       }, 0.1);
 
       // Handle playback completion
-      transportRef.current?.scheduleOnce(() => {
+      transport?.scheduleOnce(() => {
         setIsPlaying(false);
         setCurrentTime(0);
-        transportRef.current?.stop();
-        transportRef.current?.cancel?.();
+        transport?.stop();
+        transport?.cancel?.();
         originalPlayerRef.current?.stop?.();
       }, totalDuration);
 
       // Start playback
-      transportRef.current?.start();
+      transport?.start();
 
       // Restart original from new seek position if enabled
       if (playOriginal) {
@@ -608,7 +584,7 @@ export default function TonePlayer({
                 if (!next) {
                   originalPlayerRef.current?.stop?.();
                 } else if (isPlaying) {
-                  const pos = transportRef.current?.seconds || 0;
+                  const pos = transport?.seconds || 0;
                   const rate = playbackTempo / 120;
                   originalPlayerRef.current?.stop?.();
                   originalPlayerRef.current?.start?.(undefined, pos / rate);
