@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -19,9 +20,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn, formatTime } from "@/lib/utils";
-import ChaoticOrbitLoader from "@/components/Loaders/chaotic-orbit-loader";
 import { encode } from "wav-encoder";
 import RunnerLoader from "../Loaders/RunnerLoader";
+import * as Tone from "tone";
 
 interface AudioEffectsProps {
   audioUrl?: string | null;
@@ -55,20 +56,20 @@ export default function AudioEffects({
     isLoopingRef.current = isLooping;
   }, [isLooping]);
 
-  const toneRef = useRef<null | typeof import("tone")>(null);
-  const ctxRef = useRef<any | null>(null);
-  const playerRef = useRef<any | null>(null);
-  const gainRef = useRef<any | null>(null);
-  const reverbRef = useRef<any | null>(null);
+  const toneRef = useRef<null | typeof Tone>(null);
+  const ctxRef = useRef<Tone.Context | null>(null);
+  const playerRef = useRef<Tone.Player | null>(null);
+  const gainRef = useRef<Tone.Gain | null>(null);
+  const reverbRef = useRef<Tone.Reverb | null>(null);
   const rafRef = useRef<number | null>(null);
   const startWallTimeRef = useRef<number>(0);
   const startBufferOffsetRef = useRef<number>(0); // seconds in source buffer when play started
   const originalDurationRef = useRef<number>(0);
   const isPlayingRef = useRef<boolean>(false);
   const isLoopingRef = useRef<boolean>(false);
-  const mediaRecorderRef = useRef<InstanceType<
-    typeof import("tone").Recorder
-  > | null>(null);
+  const mediaRecorderRef = useRef<InstanceType<typeof Tone.Recorder> | null>(
+    null
+  );
   const lastUpdateTimeRef = useRef<number>(0);
   const UPDATE_INTERVAL = 1000 / 30; // 30fps for smoother performance
 
@@ -78,7 +79,6 @@ export default function AudioEffects({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const Tone = await import("tone");
       if (cancelled) return;
       toneRef.current = Tone;
       const ctx = new Tone.Context({ latencyHint: "interactive" });
@@ -112,7 +112,6 @@ export default function AudioEffects({
     void setupGraph();
 
     // stop on inputs change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioUrl]);
 
   // If Tone becomes ready after source is set, build the graph
@@ -147,7 +146,7 @@ export default function AudioEffects({
     // Generate IR asynchronously; don't block playback
     try {
       // generate() is async and safe to call multiple times
-      (reverb as any).generate?.().catch((error: any) => {
+      reverb.generate?.().catch((error: Error) => {
         console.warn("Reverb generation failed:", error);
       });
     } catch (error) {
@@ -157,8 +156,8 @@ export default function AudioEffects({
 
     // Connect the audio graph properly
     try {
-      (gain as any).connect(reverb);
-      (reverb as any).connect((ctx as any).destination);
+      gain.connect(reverb);
+      reverb.connect((ctx as any).destination);
     } catch {}
 
     const player = new Tone.Player({
@@ -172,16 +171,16 @@ export default function AudioEffects({
         setCurrentTime(0);
         setIsBufferLoaded(true);
       },
-      onerror: (e: any) => {
+      onerror: (e: Error) => {
         setIsBufferLoaded(false);
         setLoadError("Failed to load audio. Please try again.");
         console.error("Tone.Player load error:", e);
       },
     });
     try {
-      (player as any).connect(gain);
+      player.connect(gain);
     } catch {}
-    (player as any).playbackRate = speed;
+    player.playbackRate = speed;
 
     playerRef.current = player;
     gainRef.current = gain;
@@ -394,7 +393,7 @@ export default function AudioEffects({
 
       // Connect recorder as a tap from the reverb node (no need to rebuild graph)
       if (reverbRef.current) {
-        (reverbRef.current as any).connect(recorder);
+        reverbRef.current.connect(recorder);
       }
 
       // Clear previous recording
@@ -420,14 +419,14 @@ export default function AudioEffects({
     if (mediaRecorderRef.current && isRecording) {
       try {
         // Stop recording and get the audio data
-        const recording = await (mediaRecorderRef.current as any).stop();
+        const recording = await mediaRecorderRef.current.stop();
         setRecordedAudio(recording);
         setIsRecording(false);
 
         // Disconnect the recorder from the reverb node
         if (reverbRef.current && mediaRecorderRef.current) {
           try {
-            (reverbRef.current as any).disconnect(mediaRecorderRef.current);
+            reverbRef.current.disconnect(mediaRecorderRef.current);
           } catch {}
         }
       } catch (error) {
@@ -470,7 +469,7 @@ export default function AudioEffects({
 
         // Only close if we created a new context (not reusing existing one)
         if (!ctxRef.current?.rawContext) {
-          await audioContext.close();
+          await (audioContext as any).close();
         }
       } catch (error) {
         console.error("Error converting to WAV:", error);

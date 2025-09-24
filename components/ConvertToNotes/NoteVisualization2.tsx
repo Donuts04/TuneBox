@@ -7,8 +7,15 @@ import React, {
 } from "react";
 import * as Tone from "tone";
 
+interface Note {
+  midi: number;
+  time: number;
+  duration: number;
+  velocity: number;
+}
+
 interface NoteVisualizationProps {
-  allNotes: any[];
+  allNotes: Note[];
   isPlaying: boolean;
   currentTime: number;
   tempoRatio: number;
@@ -21,12 +28,6 @@ const getNoteName = (pitch: number): string => {
     noteNameCache.set(pitch, Tone.Frequency(pitch, "midi").toNote());
   }
   return noteNameCache.get(pitch)!;
-};
-
-// Piano key pattern for black keys - precomputed for better performance
-const blackKeyPattern = [0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0];
-const isBlackKey = (midi: number): boolean => {
-  return blackKeyPattern[midi % 12] === 1;
 };
 
 export function NoteVisualization({
@@ -58,27 +59,6 @@ export function NoteVisualization({
     };
   }, [allNotes]);
 
-  // Memoize active notes for performance - only recalculate when currentTime changes
-  const activeNotes = useMemo(() => {
-    if (!isPlaying) return new Set<number>();
-
-    const active = new Set<number>();
-    for (let i = 0; i < allNotes.length; i++) {
-      const note = allNotes[i];
-      // Scale note timing by tempo ratio for visual display
-      const scaledNoteTime = note.time * tempoRatio;
-      const scaledNoteDuration = note.duration * tempoRatio;
-      if (
-        currentTime >= scaledNoteTime &&
-        currentTime <= scaledNoteTime + scaledNoteDuration
-      ) {
-        // Only add the specific note, not just the MIDI number
-        active.add(note.midi);
-      }
-    }
-    return active;
-  }, [allNotes, isPlaying, currentTime, tempoRatio]);
-
   // Memoize visible notes to avoid filtering on every frame
   const visibleNotes = useMemo(() => {
     const visibleTimeStart = currentTime - 2;
@@ -94,13 +74,8 @@ export function NoteVisualization({
     });
   }, [allNotes, currentTime, tempoRatio]);
 
-  // Simple lookup functions - O(1) instead of O(n)
-  const isNotePressed = useCallback(
-    (pitch: number) => activeNotes.has(pitch),
-    [activeNotes]
-  );
   const isNoteActive = useCallback(
-    (note: any) => {
+    (note: Note) => {
       const scaledNoteTime = note.time * tempoRatio;
       const scaledNoteDuration = note.duration * tempoRatio;
       return (
@@ -128,7 +103,7 @@ export function NoteVisualization({
   const KEY_WIDTH = Math.max(20, containerWidth / allPitches.length); // Dynamic key width based on container
 
   const drawGridLines = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    (ctx: CanvasRenderingContext2D, height: number) => {
       // Set grid line properties
       ctx.strokeStyle = "rgba(148, 163, 184, 0.2)";
       ctx.lineWidth = 1;
@@ -165,7 +140,7 @@ export function NoteVisualization({
 
           ctx.beginPath();
           ctx.moveTo(0, y);
-          ctx.lineTo(width, y);
+          ctx.lineTo(allPitches.length * KEY_WIDTH, y);
           ctx.stroke();
         }
       }
@@ -173,11 +148,11 @@ export function NoteVisualization({
       // Reset line dash
       ctx.setLineDash([]);
     },
-    [allPitches, KEY_WIDTH, PIXELS_PER_SECOND_FALL, FIXED_HEIGHT]
+    [allPitches, KEY_WIDTH, PIXELS_PER_SECOND_FALL]
   );
 
   const drawFallingNotes = useCallback(
-    (ctx: CanvasRenderingContext2D, width: number) => {
+    (ctx: CanvasRenderingContext2D) => {
       const bottomY = FIXED_HEIGHT;
 
       // Use pre-filtered visible notes
@@ -200,7 +175,6 @@ export function NoteVisualization({
         if (y + noteHeight > 0 && y < FIXED_HEIGHT) {
           const opacity = 0.4 + note.velocity * 0.6;
           const isActive = isNoteActive(note);
-          const isBlack = isBlackKey(note.midi);
 
           ctx.save();
 
@@ -309,10 +283,10 @@ export function NoteVisualization({
     ctx.fillRect(0, 0, width, height);
 
     // Draw grid lines
-    drawGridLines(ctx, width, height);
+    drawGridLines(ctx, height);
 
     // Draw falling notes
-    drawFallingNotes(ctx, width);
+    drawFallingNotes(ctx);
   }, [drawGridLines, drawFallingNotes]);
 
   useEffect(() => {

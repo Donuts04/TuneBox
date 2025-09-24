@@ -147,13 +147,14 @@ export function MusicBoxComposer() {
 
   // Tone.js refs
   const toneRef = useRef<null | typeof import("tone")>(null);
-  const toneContextRef = useRef<any | null>(null);
+  const toneContextRef = useRef<Tone.Context | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transportRef = useRef<any | null>(null);
   const playerRef = useRef<Tone.Sampler | null>(null);
   const loopRef = useRef<Tone.Loop | null>(null);
   const gridRef = useRef<boolean[][]>([]);
 
-  // Initialize Tone.js context and sampler
+  // Load Tone.js and create audio players in one effect
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
@@ -165,12 +166,13 @@ export function MusicBoxComposer() {
         const Tone = await import("tone");
         if (cancelled) return;
 
-        // Step 2: Create our own isolated context (like other components)
+        // Step 2: Set up Tone.js context and transport
         toneRef.current = Tone;
         const ctx = new Tone.Context({ latencyHint: "interactive" });
         Tone.setContext(ctx);
         const transport = Tone.getTransport();
         transport.bpm.value = tempo;
+        transport.loopStart = 0;
         transport.loop = false;
         toneContextRef.current = ctx;
         transportRef.current = transport;
@@ -186,12 +188,17 @@ export function MusicBoxComposer() {
             if (cancelled) return;
             setIsLoading(false);
           },
-          onerror: (err) => {
+          onerror: () => {
             if (cancelled) return;
             setError("Failed to load music box sample");
             setIsLoading(false);
           },
-        }).toDestination();
+        });
+
+        // Connect to destination
+        try {
+          sampler.connect(ctx.destination);
+        } catch {}
 
         playerRef.current = sampler;
       } catch (err) {
@@ -208,9 +215,8 @@ export function MusicBoxComposer() {
 
     return () => {
       cancelled = true;
-      playerRef.current?.dispose();
-      loopRef.current?.dispose();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync tempo changes with transport
@@ -285,12 +291,6 @@ export function MusicBoxComposer() {
 
     if (!Tone || !ctx || !transport || !player) return;
 
-    // Ensure audio is started by user gesture
-    try {
-      await ctx?.resume();
-      await Tone.start();
-    } catch {}
-
     if (isPlaying) {
       transport.stop();
       loopRef.current?.dispose();
@@ -298,6 +298,28 @@ export function MusicBoxComposer() {
       setIsPlaying(false);
       setCurrentColumn(0);
     } else {
+      // Clear and reset context before playing
+      try {
+        // Stop any existing transport
+        Tone.getTransport().stop();
+        Tone.getTransport().cancel();
+
+        // Clear any existing scheduled events
+        Tone.getTransport().clear(0);
+
+        // Reset transport position
+        Tone.getTransport().seconds = 0;
+
+        // Set our custom context as active
+        Tone.setContext(ctx);
+
+        // Ensure audio is started by user gesture
+        await ctx?.resume();
+        await Tone.start();
+      } catch (err) {
+        console.warn("Context reset failed:", err);
+      }
+
       // Schedule a loop using transport
       loopRef.current = new Tone.Loop((time) => {
         setCurrentColumn((prev) => {
@@ -322,6 +344,14 @@ export function MusicBoxComposer() {
     );
     setCurrentColumn(0);
     setIsPlaying(false);
+
+    // Clear context and stop transport
+    try {
+      Tone.getTransport().stop();
+      Tone.getTransport().cancel();
+      Tone.getTransport().clear(0);
+    } catch {}
+
     transportRef.current?.stop();
     loopRef.current?.dispose();
     loopRef.current = null;
@@ -333,6 +363,14 @@ export function MusicBoxComposer() {
       setGrid(template.grid);
       setCurrentColumn(0);
       setIsPlaying(false);
+
+      // Clear context and stop transport
+      try {
+        Tone.getTransport().stop();
+        Tone.getTransport().cancel();
+        Tone.getTransport().clear(0);
+      } catch {}
+
       transportRef.current?.stop();
       loopRef.current?.dispose();
       loopRef.current = null;
