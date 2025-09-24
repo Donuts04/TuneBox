@@ -125,10 +125,10 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
       </div>
 
       {!query.trim() ? (
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-6">
           <Image
-            src="/tuney/think.png"
-            alt="TuneBox Logo"
+            src="/tuney/tuney.svg"
+            alt="Tuney"
             width={150}
             height={150}
             className="object-cover dark:invert"

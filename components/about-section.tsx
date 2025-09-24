@@ -16,7 +16,7 @@ export function AboutSection() {
           <div className="md:col-span-5 relative">
             <div className="relative w-full aspect-square border-[3px] border-black dark:border-white">
               <Image
-                src="/OsamaSrs.png"
+                src="/osamaSrs.png"
                 alt="Osama Khalil"
                 fill
                 className="object-cover grayscale hover:grayscale-0 transition-all duration-500"
