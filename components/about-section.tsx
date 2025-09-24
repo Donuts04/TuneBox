@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { FaLinkedin, FaInstagram, FaSpotify } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
-import OkLoader from "./Loaders/OkLoader";
+import OkLoader from "./Loaders/ok-loader";
 
 export function AboutSection() {
   return (

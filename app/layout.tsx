@@ -15,17 +15,17 @@ const poppins = Poppins({
 const comfortaa = localFont({
   src: [
     {
-      path: "./fonts/Comfortaa-light.ttf",
+      path: "./fonts/Comfortaa-Light.ttf",
       weight: "300",
       style: "normal",
     },
     {
-      path: "./fonts/Comfortaa-regular.ttf",
+      path: "./fonts/Comfortaa-Regular.ttf",
       weight: "400",
       style: "normal",
     },
     {
-      path: "./fonts/Comfortaa-bold.ttf",
+      path: "./fonts/Comfortaa-Bold.ttf",
       weight: "700",
       style: "normal",
     },
