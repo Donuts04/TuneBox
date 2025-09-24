@@ -256,6 +256,45 @@ const featuredSongs: Song[] = [
     },
     midi: null,
   },
+
+  {
+    id: "12",
+    title: "Nothing Compares 2 U",
+    artist: "Prince (Lara's Pick)",
+    coverImage: "/featured/nothingCompares2U/nothingCompares2U.jpg",
+    audioUrl: "/featured/nothingCompares2U/original.wav",
+    audioUrls: {
+      other: "/featured/oneLastTime/other.wav",
+      vocals: "/featured/oneLastTime/vocals.wav",
+      bass: "/featured/oneLastTime/bass.wav",
+      drums: "/featured/oneLastTime/drums.wav",
+    },
+    audioEffects: {
+      speed: 0.85,
+      reverb: 0.8,
+      delay: 7.0,
+    },
+    midi: null,
+  },
+  {
+    id: "13",
+    title: "Hold Me Down",
+    artist: "Daniel Caesar (Lara's Pick)",
+    coverImage: "/featured/holdMeDown/holdMeDown.jpg",
+    audioUrl: "/featured/holdMeDown/original.wav",
+    audioUrls: {
+      other: "/featured/oneLastTime/other.wav",
+      vocals: "/featured/oneLastTime/vocals.wav",
+      bass: "/featured/oneLastTime/bass.wav",
+      drums: "/featured/oneLastTime/drums.wav",
+    },
+    audioEffects: {
+      speed: 0.85,
+      reverb: 0.8,
+      delay: 7.0,
+    },
+    midi: null,
+  },
 ];
 
 export function FeaturedCarousel() {
