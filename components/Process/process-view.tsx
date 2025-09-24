@@ -16,7 +16,7 @@ import { Midi } from "@tonejs/midi";
 import { Alert } from "@/components/ui/alert";
 import { AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import TuneBoxLoader from "@/components/Loaders/TuneBoxLoader";
+import TuneBoxLoader from "@/components/Loaders/tunebox-loader";
 
 interface ProcessViewProps {
   uploadedFile: File | null;
