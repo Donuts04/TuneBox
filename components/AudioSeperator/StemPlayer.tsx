@@ -18,6 +18,7 @@ import { formatTime } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { encode } from "wav-encoder";
 import RunnerLoader from "@/components/loaders/runner-loader";
+import { useAudio } from "@/contexts/audio-context";
 
 export interface StemSource {
   name: string;
@@ -32,6 +33,7 @@ interface StemPlayerProps {
 }
 
 export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
+  const { context, transport, startAudio } = useAudio();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -80,8 +82,6 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
 
   // Tone.js refs
   const toneRef = useRef<null | typeof import("tone")>(null);
-  const toneContextRef = useRef<any | null>(null);
-  const transportRef = useRef<any | null>(null);
   const tonePlayersRef = useRef<Record<string, any>>({});
   const toneGainsRef = useRef<Record<string, any>>({});
   const transportDurationRef = useRef<number>(0);
@@ -103,16 +103,13 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         const Tone = await import("tone");
         if (cancelled) return;
 
-        // Step 2: Set up Tone.js context and transport
+        // Step 2: Use shared context and transport
         toneRef.current = Tone;
-        const ctx = new Tone.Context({ latencyHint: "interactive" });
-        Tone.setContext(ctx);
-        const transport = Tone.getTransport();
-        transport.bpm.value = 120;
-        transport.loopStart = 0;
-        transport.loop = false;
-        toneContextRef.current = ctx;
-        transportRef.current = transport;
+        if (!context || !transport) {
+          setError("Audio context not ready");
+          setIsLoading(false);
+          return;
+        }
 
         // Step 3: Check if we have stems to load
         const entries = Object.entries(stems);
@@ -130,17 +127,17 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
 
           try {
             const gain = new Tone.Gain({
-              context: ctx,
+              context: context,
               gain: stemVolumes[key] ?? 1,
             });
             try {
-              (gain as any).connect((ctx as any).destination);
+              (gain as any).connect((context as any).destination);
             } catch {}
 
             const player = new Tone.Player({
               url: src.audioUrl!,
               autostart: false,
-              context: ctx,
+              context: context,
               onload: () => {
                 if (cancelled) return;
 
@@ -227,13 +224,12 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
     return () => {
       cancelled = true;
     };
-  }, [stems]);
+  }, [stems, context, transport]);
 
   // Animation loop for time updates
   // Note: Uses shared transport timer - all stems sync to same timeline
   // Shorter stems will mute early, longest stem sets UI duration
   const updateTime = () => {
-    const transport = transportRef.current;
     if (playingStems.size > 0 && transport) {
       const elapsed = transport.seconds;
       setStemCurrentTime(elapsed);
@@ -264,14 +260,13 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
     Object.values(tonePlayersRef.current).forEach((player: any) => {
       player.mute = true;
     });
-    transportRef.current?.pause();
+    transport?.pause();
   };
 
   // Recording functions
   const startRecording = async () => {
     const Tone = toneRef.current;
-    const ctx = toneContextRef.current;
-    if (!Tone || !ctx) return;
+    if (!Tone || !context) return;
 
     // Only allow recording if there are stems loaded
     if (Object.keys(toneGainsRef.current).length === 0) {
@@ -281,7 +276,7 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
 
     try {
       // Create a Recorder node with the same context
-      const recorder = new Tone.Recorder({ context: ctx });
+      const recorder = new Tone.Recorder({ context: context });
 
       // Connect the mixed output to the recorder
       // We'll connect all active gains to the recorder
@@ -331,8 +326,7 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         const arrayBuffer = await recordedAudio.arrayBuffer();
 
         // Reuse existing AudioContext from Tone.js instead of creating new one
-        const audioContext =
-          toneContextRef.current?.rawContext || new AudioContext();
+        const audioContext = context?.rawContext || new AudioContext();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
         // Convert AudioBuffer to the format expected by wav-encoder
@@ -356,8 +350,8 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         URL.revokeObjectURL(url);
 
         // Only close if we created a new context (not reusing existing one)
-        if (!toneContextRef.current?.rawContext) {
-          await audioContext.close();
+        if (!context?.rawContext && "close" in audioContext) {
+          await (audioContext as any).close();
         }
       } catch (error) {
         console.error("Error converting to WAV:", error);
@@ -376,15 +370,12 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
 
   const togglePlayback = async (audioId: string) => {
     const Tone = toneRef.current;
-    const ctx = toneContextRef.current;
-    const transport = transportRef.current;
     const player = tonePlayersRef.current[audioId];
     if (!Tone || !player) return;
 
     // Ensure audio is started by user gesture
     try {
-      await ctx?.resume();
-      await Tone.start();
+      await startAudio();
     } catch {}
 
     if (playingStems.has(audioId)) {
@@ -448,7 +439,6 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
 
   // Actual seeking function that moves the Transport
   const handleStemSeekActual = async (newTime: number) => {
-    const transport = transportRef.current;
     if (!transport) return;
     transport.seconds = newTime;
   };
@@ -488,23 +478,15 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
       tonePlayersRef.current = {};
       toneGainsRef.current = {};
 
-      // Properly stop transport and close context
+      // Properly stop transport
       try {
-        if (transportRef.current) {
-          transportRef.current.stop();
-          transportRef.current.cancel();
-        }
-      } catch {}
-
-      try {
-        if (toneContextRef.current) {
-          toneContextRef.current.close();
+        if (transport) {
+          transport.stop();
+          transport.cancel();
         }
       } catch {}
 
       // Clear refs
-      transportRef.current = null;
-      toneContextRef.current = null;
       recorderRef.current = null;
     };
   }, []);
