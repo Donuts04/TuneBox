@@ -509,21 +509,6 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
     };
   }, []);
 
-  // Empty state - no audio URLs provided
-  if (Object.keys(stems).length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Music className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-          No Audio Stems Available
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Audio stems will appear here once they are processed.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
       <div>
@@ -533,7 +518,12 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         </p>
       </div>
 
-      {isLoading ? (
+      {Object.keys(stems).length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
+          <Music className="h-12 w-12" />
+          <p>No Audio Stems Available, Please Process the Audio First</p>
+        </div>
+      ) : isLoading ? (
         <div className="flex justify-center items-center py-12">
           <div className="w-24 h-24">
             <RunnerLoader />
@@ -547,7 +537,6 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         <>
           {Object.keys(stems).length > 0 && (
             <div className="space-y-4">
-              {/* Recording Controls */}
               <div className="flex items-center justify-center gap-2">
                 <Button
                   onClick={isRecording ? stopRecording : startRecording}

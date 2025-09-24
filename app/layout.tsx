@@ -77,16 +77,16 @@ export default function RootLayout({
       className={`${poppins.variable} ${comfortaa.variable} ${gotham.variable} ${helvetica.variable}`}
     >
       <link rel="icon" href="/tuney.png" sizes="any" />
-      <body className={`bg-white dark:bg-black`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+      <link rel="preload" as="image" href="/TuneBoxLogo.png" />
+      <link rel="preload" as="image" href="/TuneBoxLogoClean.png" />
+      <link rel="preload" as="image" href="/tuney/pointRight.png" />
+      <link rel="preload" as="image" href="/tuney/tuney.svg" />
+      <link rel="preload" as="image" href="/tuney/dance.png" />
+      <link rel="preload" as="image" href="/tuney/pointDown.png" />
+      <link rel="preload" as="image" href="/tuney/coolCross.png" />
+      <body className="bg-white dark:bg-black">
+        {children}
+        <Toaster />
       </body>
     </html>
   );
