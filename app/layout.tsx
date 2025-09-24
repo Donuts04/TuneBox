@@ -15,17 +15,17 @@ const poppins = Poppins({
 const comfortaa = localFont({
   src: [
     {
-      path: "../public/fonts/Comfortaa-light.ttf",
+      path: "/fonts/Comfortaa-light.ttf",
       weight: "300",
       style: "normal",
     },
     {
-      path: "../public/fonts/Comfortaa-regular.ttf",
+      path: "/fonts/Comfortaa-regular.ttf",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../public/fonts/Comfortaa-bold.ttf",
+      path: "/fonts/Comfortaa-bold.ttf",
       weight: "700",
       style: "normal",
     },
@@ -36,7 +36,7 @@ const comfortaa = localFont({
 const gotham = localFont({
   src: [
     {
-      path: "../public/fonts/D-DINExp.otf",
+      path: "/fonts/D-DINExp.otf",
       weight: "500",
       style: "normal",
     },
@@ -47,12 +47,12 @@ const gotham = localFont({
 const helvetica = localFont({
   src: [
     {
-      path: "../public/fonts/HelveticaNeueLight.otf",
+      path: "/fonts/HelveticaNeueLight.otf",
       weight: "300",
       style: "normal",
     },
     {
-      path: "../public/fonts/HelveticaNeueBold.otf",
+      path: "/fonts/HelveticaNeueBold.otf",
       weight: "700",
       style: "normal",
     },
