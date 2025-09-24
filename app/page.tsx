@@ -21,25 +21,23 @@ export default function Home() {
         <Navbar />
       </div>
 
-      <section className="h-screen">
-        <div className="w-full max-w-7xl mx-auto px-4 h-full">
-          <div className="flex h-full flex-col items-center justify-center text-center gap-6">
-            <h1 className="text-5xl font-bold tracking-tight">
-              Transform Your Music Experience
-            </h1>
-            <Image
-              src="/tuneboxLogo.png"
-              alt="TuneBox Logo"
-              width={450}
-              height={450}
-              className="dark:invert w-[300px] h-[300px] md:w-[450px] md:h-[450px]"
-              priority
-            />
-            <p className="text-base md:text-xl text-muted-foreground max-w-md">
-              Separate audio tracks and convert them into musical notes with
-              TuneBox!
-            </p>
-          </div>
+      <section className="h-screen w-full max-w-7xl mx-auto px-4 h-full">
+        <div className="flex h-full flex-col items-center justify-center text-center gap-6">
+          <h1 className="text-5xl font-bold tracking-tight">
+            Transform Your Music Experience
+          </h1>
+          <Image
+            src="/TuneboxLogo.png"
+            alt="TuneBox Logo"
+            width={450}
+            height={450}
+            className="dark:invert w-[300px] h-[300px] md:w-[450px] md:h-[450px]"
+            priority
+          />
+          <p className="text-base md:text-xl text-muted-foreground max-w-md">
+            Separate audio tracks and convert them into musical notes with
+            TuneBox!
+          </p>
         </div>
       </section>
 

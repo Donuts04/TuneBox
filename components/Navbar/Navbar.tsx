@@ -11,7 +11,7 @@ import {
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
 import { useState } from "react";
-import ThemeToggle from "@/components/theme-toggle";
+import RunnerLoader from "../loaders/runner-loader";
 
 const NavbarComponent = () => {
   const navItems = [
@@ -31,10 +31,10 @@ const NavbarComponent = () => {
       name: "Music Box",
       link: "#music-box",
     },
-    // {
-    //   name: "Gallery",
-    //   link: "#gallery",
-    // },
+    {
+      name: "Loops",
+      link: "#loops",
+    },
     {
       name: "About",
       link: "#about",
@@ -49,9 +49,6 @@ const NavbarComponent = () => {
         <NavBody>
           <NavbarLogo />
           <NavItems items={navItems} />
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-          </div>
         </NavBody>
 
         {/* Mobile Navigation */}
@@ -59,7 +56,6 @@ const NavbarComponent = () => {
           <MobileNavHeader>
             <NavbarLogo />
             <div className="flex items-center gap-4">
-              <ThemeToggle />
               <MobileNavToggle
                 isOpen={isMobileMenuOpen}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

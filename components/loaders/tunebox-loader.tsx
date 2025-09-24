@@ -53,7 +53,7 @@ const StyledWrapper = styled.div`
     stroke-dasharray: 300px;
     /*<-- Play with this number until it look cool */
     stroke: hsl(var(--foreground));
-    animation: load 8s infinite linear;
+    animation: load 15s infinite linear;
     stroke-width: 3px;
     width: 100%;
     height: 100%;

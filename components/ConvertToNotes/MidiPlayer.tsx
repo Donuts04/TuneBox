@@ -37,12 +37,8 @@ export default function MidiPlayer({
       <div className="space-y-4">
         {!midi ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
-            <div className="bg-muted/20 rounded-full p-4">
-              <Music className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground">
-              No MIDI data available. Please convert the audio.
-            </p>
+            <Music className="h-12 w-12" />
+            <p>No MIDI data available. Please convert the audio.</p>
           </div>
         ) : (
           <div className="space-y-4">
