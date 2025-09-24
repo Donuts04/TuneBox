@@ -30,6 +30,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (hasStartedRef.current) return;
 
     try {
+      // Resume the underlying AudioContext if suspended
+      const ac = (contextRef.current as any)?.rawContext;
+      if (ac && ac.state === "suspended") {
+        await ac.resume();
+      }
+
       // Start Tone.js audio
       await Tone.start();
 
