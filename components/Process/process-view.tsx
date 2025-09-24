@@ -7,16 +7,16 @@ import {
   CircleChevronRight,
   RefreshCw,
 } from "lucide-react";
-import AudioHeader from "../AudioCard.tsx/AudioHeader";
-import AudioEffects from "../AudioEffects/AudioEffects";
-import StemPlayer from "../AudioSeperator/StemPlayer";
-import MidiPlayer from "../ConvertToNotes/MidiPlayer";
+import AudioHeader from "@/components/AudioCard.tsx/AudioHeader";
+import AudioEffects from "@/components/AudioEffects/AudioEffects";
+import StemPlayer from "@/components/AudioSeperator/StemPlayer";
+import MidiPlayer from "@/components/ConvertToNotes/MidiPlayer";
 import { DeezerTrack } from "@/lib/deezer";
 import { Midi } from "@tonejs/midi";
-import { Alert } from "../ui/alert";
-import { AlertDescription } from "../ui/alert";
-import { Button } from "../ui/button";
-import TuneBoxLoader from "../Loaders/TuneBoxLoader";
+import { Alert } from "@/components/ui/alert";
+import { AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import TuneBoxLoader from "@/components/Loaders/TuneBoxLoader";
 
 interface ProcessViewProps {
   uploadedFile: File | null;
