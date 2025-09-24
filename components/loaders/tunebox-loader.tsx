@@ -50,11 +50,11 @@ const StyledWrapper = styled.div`
 
   .logo {
     fill: none;
-    stroke-dasharray: 300px;
+    stroke-dasharray: 700px;
     /*<-- Play with this number until it look cool */
     stroke: hsl(var(--foreground));
     animation: load 15s infinite linear;
-    stroke-width: 3px;
+    stroke-width: 2px;
     width: 100%;
     height: 100%;
   }
@@ -65,7 +65,7 @@ const StyledWrapper = styled.div`
     }
 
     100% {
-      stroke-dashoffset: 3000px;
+      stroke-dashoffset: 7000px;
       /* <-- This number should always be 10 times the number up there*/
     }
   }

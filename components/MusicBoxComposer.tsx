@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Image from "next/image";
+import { useAudio } from "@/contexts/audio-context";
 
 const NOTES = [
   "C4",
@@ -134,6 +135,7 @@ const TEMPLATES = {
 };
 
 export function MusicBoxComposer() {
+  const { context, transport, startAudio } = useAudio();
   const [grid, setGrid] = useState<boolean[][]>(
     Array(NOTES.length)
       .fill(null)
@@ -147,9 +149,6 @@ export function MusicBoxComposer() {
 
   // Tone.js refs
   const toneRef = useRef<null | typeof import("tone")>(null);
-  const toneContextRef = useRef<Tone.Context | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const transportRef = useRef<any | null>(null);
   const playerRef = useRef<Tone.Sampler | null>(null);
   const loopRef = useRef<Tone.Loop | null>(null);
   const gridRef = useRef<boolean[][]>([]);
@@ -166,16 +165,13 @@ export function MusicBoxComposer() {
         const Tone = await import("tone");
         if (cancelled) return;
 
-        // Step 2: Set up Tone.js context and transport
+        // Step 2: Use shared context and transport
         toneRef.current = Tone;
-        const ctx = new Tone.Context({ latencyHint: "interactive" });
-        Tone.setContext(ctx);
-        const transport = Tone.getTransport();
-        transport.bpm.value = tempo;
-        transport.loopStart = 0;
-        transport.loop = false;
-        toneContextRef.current = ctx;
-        transportRef.current = transport;
+        if (!context || !transport) {
+          setError("Audio context not ready");
+          setIsLoading(false);
+          return;
+        }
 
         // Step 3: Create sampler with context
         const sampler = new Tone.Sampler({
@@ -183,7 +179,7 @@ export function MusicBoxComposer() {
             C4: "/music-box-note-c_C_major.wav",
           },
           baseUrl: "",
-          context: ctx,
+          context: context,
           onload: () => {
             if (cancelled) return;
             setIsLoading(false);
@@ -197,7 +193,7 @@ export function MusicBoxComposer() {
 
         // Connect to destination
         try {
-          sampler.connect(ctx.destination);
+          sampler.connect(context.destination);
         } catch {}
 
         playerRef.current = sampler;
@@ -216,15 +212,14 @@ export function MusicBoxComposer() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [context, transport]);
 
   // Sync tempo changes with transport
   useEffect(() => {
-    if (transportRef.current) {
-      transportRef.current.bpm.value = tempo;
+    if (transport) {
+      transport.bpm.value = tempo;
     }
-  }, [tempo]);
+  }, [tempo, transport]);
 
   // Keep gridRef in sync with grid state
   useEffect(() => {
@@ -238,25 +233,15 @@ export function MusicBoxComposer() {
       playerRef.current?.dispose();
       loopRef.current?.dispose();
 
-      // Properly stop transport and close context
+      // Properly stop transport
       try {
-        if (transportRef.current) {
-          transportRef.current.stop();
-          transportRef.current.cancel();
+        if (transport) {
+          transport.stop();
+          transport.cancel();
         }
       } catch {}
-
-      try {
-        if (toneContextRef.current) {
-          toneContextRef.current.close();
-        }
-      } catch {}
-
-      // Clear refs
-      transportRef.current = null;
-      toneContextRef.current = null;
     };
-  }, []);
+  }, [transport]);
 
   const toggleNote = (row: number, col: number) => {
     setGrid((prevGrid) => {
@@ -285,11 +270,9 @@ export function MusicBoxComposer() {
 
   const togglePlayback = async () => {
     const Tone = toneRef.current;
-    const ctx = toneContextRef.current;
-    const transport = transportRef.current;
     const player = playerRef.current;
 
-    if (!Tone || !ctx || !transport || !player) return;
+    if (!Tone || !context || !transport || !player) return;
 
     if (isPlaying) {
       transport.stop();
@@ -301,21 +284,17 @@ export function MusicBoxComposer() {
       // Clear and reset context before playing
       try {
         // Stop any existing transport
-        Tone.getTransport().stop();
-        Tone.getTransport().cancel();
+        transport.stop();
+        transport.cancel();
 
         // Clear any existing scheduled events
-        Tone.getTransport().clear(0);
+        transport.clear(0);
 
         // Reset transport position
-        Tone.getTransport().seconds = 0;
-
-        // Set our custom context as active
-        Tone.setContext(ctx);
+        transport.seconds = 0;
 
         // Ensure audio is started by user gesture
-        await ctx?.resume();
-        await Tone.start();
+        await startAudio();
       } catch (err) {
         console.warn("Context reset failed:", err);
       }
@@ -347,12 +326,11 @@ export function MusicBoxComposer() {
 
     // Clear context and stop transport
     try {
-      Tone.getTransport().stop();
-      Tone.getTransport().cancel();
-      Tone.getTransport().clear(0);
+      transport?.stop();
+      transport?.cancel();
+      transport?.clear(0);
     } catch {}
 
-    transportRef.current?.stop();
     loopRef.current?.dispose();
     loopRef.current = null;
   };
@@ -366,12 +344,11 @@ export function MusicBoxComposer() {
 
       // Clear context and stop transport
       try {
-        Tone.getTransport().stop();
-        Tone.getTransport().cancel();
-        Tone.getTransport().clear(0);
+        transport?.stop();
+        transport?.cancel();
+        transport?.clear(0);
       } catch {}
 
-      transportRef.current?.stop();
       loopRef.current?.dispose();
       loopRef.current = null;
     }

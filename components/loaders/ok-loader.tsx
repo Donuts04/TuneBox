@@ -90,7 +90,7 @@ const StyledWrapper = styled.div`
 
   .loader {
     width: 100%;
-    max-width: 100%;
+    max-width: 500px;
     height: auto;
     aspect-ratio: 483.03 / 104.98; /* Maintains original aspect ratio */
     display: flex;
@@ -102,7 +102,7 @@ const StyledWrapper = styled.div`
     fill: none;
     stroke-dasharray: 200px;
     /*<-- Play with this number until it look cool */
-    stroke: hsl(var(--background));
+    stroke: hsl(var(--foreground));
     animation: load 30s infinite linear;
     stroke-width: 1px;
     width: 100%;
