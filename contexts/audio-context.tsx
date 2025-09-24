@@ -27,10 +27,32 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const startAudio = async () => {
     if (hasStartedRef.current) return;
-    hasStartedRef.current = true;
 
     try {
+      // Resume the underlying AudioContext first (Safari/iOS needs this)
+      const ac: AudioContext | undefined = (contextRef.current as any)
+        ?.rawContext;
+      if (ac && ac.state !== "running") {
+        await ac.resume();
+      }
+
+      // Start Tone.js audio (required by many browsers)
       await Tone.start();
+
+      // Play a 1-frame silent buffer to fully unlock on some platforms
+      if (ac) {
+        const buffer = ac.createBuffer(1, 1, ac.sampleRate);
+        const src = ac.createBufferSource();
+        src.buffer = buffer;
+        src.connect(ac.destination);
+        try {
+          src.start(0);
+        } finally {
+          src.disconnect();
+        }
+      }
+
+      hasStartedRef.current = true;
     } catch (error) {
       console.warn("Failed to start audio context:", error);
     }
@@ -60,16 +82,18 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     // Add global event listeners to unlock audio on first user interaction
     const unlockAudio = async () => {
       if (hasStartedRef.current) return;
-      hasStartedRef.current = true;
 
       try {
-        await Tone.start();
-        // Remove listeners after first unlock
+        await startAudio();
+      } catch (error) {
+        console.warn("Failed to unlock audio context:", error);
+      } finally {
+        // Remove listeners after first attempt (listeners were once: true as well)
         document.removeEventListener("click", unlockAudio);
         document.removeEventListener("touchstart", unlockAudio);
         document.removeEventListener("keydown", unlockAudio);
-      } catch (error) {
-        console.warn("Failed to unlock audio context:", error);
+        document.removeEventListener("pointerdown", unlockAudio);
+        document.removeEventListener("mousedown", unlockAudio);
       }
     };
 
@@ -77,6 +101,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     document.addEventListener("click", unlockAudio, { once: true });
     document.addEventListener("touchstart", unlockAudio, { once: true });
     document.addEventListener("keydown", unlockAudio, { once: true });
+    document.addEventListener("pointerdown", unlockAudio, { once: true });
+    document.addEventListener("mousedown", unlockAudio, { once: true });
 
     return () => {
       cancelled = true;
@@ -87,6 +113,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("click", unlockAudio);
       document.removeEventListener("touchstart", unlockAudio);
       document.removeEventListener("keydown", unlockAudio);
+      document.removeEventListener("pointerdown", unlockAudio);
+      document.removeEventListener("mousedown", unlockAudio);
     };
   }, []);
 
