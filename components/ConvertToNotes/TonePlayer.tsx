@@ -12,7 +12,7 @@ import { Midi } from "@tonejs/midi";
 import { NoteVisualization } from "./NoteVisualization2";
 import { cn, formatTime } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import RunnerLoader from "@/components/Loaders/RunnerLoader";
+import RunnerLoader from "@/components/Loaders/runner-loader";
 
 interface TonePlayerProps {
   midiData: Midi | null;
