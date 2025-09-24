@@ -1,7 +1,7 @@
 import { Pause, Play, Music } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Slider } from "../ui/slider";
+import { Slider } from "@/components/ui/slider";
 import { useEffect, useRef, useState } from "react";
 import { formatTime } from "@/lib/utils";
 

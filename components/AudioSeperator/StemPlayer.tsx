@@ -17,7 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { formatTime } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { encode } from "wav-encoder";
-import RunnerLoader from "../Loaders/RunnerLoader";
+import RunnerLoader from "@/components/Loaders/RunnerLoader";
 
 export interface StemSource {
   name: string;

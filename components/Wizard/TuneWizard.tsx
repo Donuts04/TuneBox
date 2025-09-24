@@ -16,7 +16,7 @@ type Step =
   | "separate"
   | "convert"
   | "effects";
-import ProcessView from "../Process/process-view";
+import ProcessView from "@/components/Process/process-view";
 import UploadDropzone from "./upload-dropzone";
 import StepHeader from "./StepHeader";
 
