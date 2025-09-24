@@ -130,6 +130,43 @@
   }
 }
 
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #000000;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #ffffff;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #cccccc;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #000000 transparent;
+}
+
+.dark * {
+  scrollbar-color: #ffffff transparent;
+}
+
 /* Add custom glow effects */
 .navbar-glow {
   position: relative;

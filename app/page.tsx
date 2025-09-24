@@ -2,22 +2,9 @@
 
 import Navbar from "@/components/Navbar/Navbar";
 import TuneWizard from "@/components/Wizard/TuneWizard";
-import { AudioProcessingProvider } from "@/contexts/audio-processing-context";
-import {
-  Search,
-  SplitSquareVertical,
-  Music,
-  Sparkles,
-  Piano,
-  Clock,
-  Mic2,
-  Drum,
-  Info,
-} from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { MusicBoxComposer } from "@/components/MusicBoxComposer";
 import { AboutSection } from "@/components/about-section";

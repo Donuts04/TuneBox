@@ -1,13 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Layers,
-  FileMusic,
-  Ungroup,
   KeyboardMusic,
   CircleChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import AudioHeader from "../AudioCard.tsx/AudioHeader";
 import AudioEffects from "../AudioEffects/AudioEffects";
@@ -15,12 +13,9 @@ import StemPlayer from "../AudioSeperator/StemPlayer";
 import MidiPlayer from "../ConvertToNotes/MidiPlayer";
 import { DeezerTrack } from "@/lib/deezer";
 import { Midi } from "@tonejs/midi";
-import HamsterLoader from "../Loaders/hamster-loader";
-import CircleLoader from "../Loaders/circleLoader";
 import { Alert } from "../ui/alert";
 import { AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
-import OkLoader from "../Loaders/OkLoader";
 import TuneBoxLoader from "../Loaders/TuneBoxLoader";
 
 interface ProcessViewProps {
@@ -131,8 +126,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
         method: "POST",
         body: formData,
       });
-      if (!apiResponse.ok)
-        throw new Error(`Server responded with status: ${apiResponse.status}`);
+      if (!apiResponse.ok) throw new Error(`Failed to convert audio`);
       const midiBlob = await apiResponse.blob();
       const arrayBuffer = await midiBlob.arrayBuffer();
       const midiParsed = new Midi(arrayBuffer);
@@ -231,8 +225,9 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
           </Alert>
           <Button
             onClick={() => handleSeparate()}
-            className="border border-black/20 dark:border-white/20 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-black dark:text-white"
+            className="border border-black dark:border-white bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black w-full"
           >
+            <RefreshCw className="h-4 w-4" />
             Try Again
           </Button>
         </div>
@@ -251,8 +246,9 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
           </Alert>
           <Button
             onClick={handleConvert}
-            className="border border-black/20 dark:border-white/20 bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-black dark:text-white"
+            className="border border-black dark:border-white bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black w-full"
           >
+            <RefreshCw className="h-4 w-4" />
             Try Again
           </Button>
         </div>
