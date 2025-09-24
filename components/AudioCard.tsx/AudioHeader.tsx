@@ -1,6 +1,5 @@
 import { Pause, Play, Music } from "lucide-react";
 import { Button } from "../ui/button";
-import { CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 import { Slider } from "../ui/slider";
 import { useEffect, useRef, useState } from "react";
@@ -67,7 +66,7 @@ export default function AudioHeader({
       try {
         await audioEl.play();
         setIsHeaderPlaying(true);
-      } catch (err) {
+      } catch {
         // Autoplay policies may block; ignore
       }
     }

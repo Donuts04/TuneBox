@@ -55,7 +55,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
         const results = await searchTracks(query);
         setTracks(results);
         setError(null);
-      } catch (err) {
+      } catch {
         setError("Failed to search 😔 Please try again.");
         setTracks([]);
       } finally {
