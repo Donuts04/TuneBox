@@ -27,7 +27,7 @@ export default function Home() {
             Transform Your Music Experience
           </h1>
           <Image
-            src="/TuneboxLogo.png"
+            src="/TuneBoxLogo.png"
             alt="TuneBox Logo"
             width={450}
             height={450}
