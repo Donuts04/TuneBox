@@ -6,7 +6,7 @@ import * as Tone from "tone";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Play, Pause, Square, Volume2 } from "lucide-react";
+import { Play, Pause, Square, Volume2, Music } from "lucide-react";
 import { INSTRUMENTS } from "@/lib/constants";
 import { Midi } from "@tonejs/midi";
 import { NoteVisualization } from "./NoteVisualization2";
@@ -90,7 +90,7 @@ export default function TonePlayer({
       context: context,
     });
     (player as any).connect(gain);
-    // tie playback rate to bpm (relative to 120 BPM baseline)
+    // Set initial playback rate (will be updated by the dedicated effect)
     (player as any).playbackRate = playbackTempo / 120;
     originalPlayerRef.current = player;
 
@@ -101,7 +101,7 @@ export default function TonePlayer({
       originalPlayerRef.current = null;
       originalGainRef.current = null;
     };
-  }, [originalAudioUrl, context, originalVolume, playbackTempo]);
+  }, [originalAudioUrl, context]);
 
   // Update original volume
   useEffect(() => {
@@ -111,18 +111,12 @@ export default function TonePlayer({
     }
   }, [originalVolume]);
 
-  // Update original playbackRate when BPM changes and keep alignment if playing
+  // Update original playbackRate when BPM changes
   useEffect(() => {
     if (originalPlayerRef.current) {
       (originalPlayerRef.current as any).playbackRate = playbackTempo / 120;
-      if (isPlaying && playOriginal) {
-        const transportPos = transport?.seconds || 0;
-        const rate = playbackTempo / 120;
-        originalPlayerRef.current.stop();
-        originalPlayerRef.current.start(undefined, transportPos / rate);
-      }
     }
-  }, [playbackTempo, isPlaying, playOriginal, transport]);
+  }, [playbackTempo]);
 
   // Initialize the selected instrument
   useEffect(() => {
@@ -231,9 +225,9 @@ export default function TonePlayer({
     } catch {}
     if (!midiData || !isInstrumentLoaded || !sampler.current) return;
     transport.bpm.value = playbackTempo;
-  }, [midiData, isInstrumentLoaded, transport, playbackTempo]);
+  }, [midiData, isInstrumentLoaded, transport]);
 
-  // Update tempo when it changes
+  // Update tempo when it changes (without resetting transport)
   useEffect(() => {
     if (transport) transport.bpm.value = playbackTempo;
 
@@ -298,13 +292,6 @@ export default function TonePlayer({
 
       // Resume playback
       transport?.start();
-
-      // Restart original audio from new position if enabled
-      if (playOriginal) {
-        originalPlayerRef.current?.stop?.();
-        const rate = playbackTempo / 120;
-        originalPlayerRef.current?.start?.(undefined, newPosition / rate);
-      }
     }
 
     // Update previous tempo
@@ -327,7 +314,7 @@ export default function TonePlayer({
         // If resuming from pause, just start the transport
         if ((transport?.seconds || 0) > 0) {
           transport?.start();
-          if (playOriginal) {
+          if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
             const resumePos = transport?.seconds || 0;
             const rate = playbackTempo / 120;
             originalPlayerRef.current?.stop?.();
@@ -376,7 +363,7 @@ export default function TonePlayer({
 
           // Start playback
           transport?.start();
-          if (playOriginal) {
+          if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
             originalPlayerRef.current?.stop?.();
             const rate = playbackTempo / 120;
             originalPlayerRef.current?.start?.(undefined, 0 / rate);
@@ -456,7 +443,7 @@ export default function TonePlayer({
       transport?.start();
 
       // Restart original from new seek position if enabled
-      if (playOriginal) {
+      if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
         originalPlayerRef.current?.stop?.();
         const rate = playbackTempo / 120;
         originalPlayerRef.current?.start?.(undefined, newTime / rate);
@@ -537,76 +524,91 @@ export default function TonePlayer({
         </div>
       </div>
 
-      <Slider
-        value={[currentTime]}
-        min={0}
-        max={totalDuration}
-        step={0.01}
-        className="w-full"
-        onValueChange={handleSeek}
-      />
-
+      {/* Progress Slider */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">
-          Tempo: {playbackTempo.toFixed(1)} BPM
-        </Label>
         <Slider
-          value={[playbackTempo]}
-          min={60}
-          max={200}
-          step={1}
-          onValueChange={(value) => setPlaybackTempo(value[0])}
+          value={[currentTime]}
+          min={0}
+          max={totalDuration}
+          step={0.01}
+          className="w-full"
+          onValueChange={handleSeek}
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        <div className="flex items-center gap-2 min-w-[160px] flex-1">
-          <Volume2 className="h-4 w-4 text-muted-foreground" />
+      {/* Controls Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Tempo Control */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Tempo: {playbackTempo.toFixed(1)} BPM
+          </Label>
+          <Slider
+            value={[playbackTempo]}
+            min={60}
+            max={200}
+            step={1}
+            onValueChange={(value) => setPlaybackTempo(value[0])}
+          />
+        </div>
+
+        {/* Instrument Volume */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <Volume2 className="h-4 w-4" />
+            Instrument Volume
+          </Label>
           <Slider
             value={[volume]}
             min={0}
             max={1}
             step={0.01}
-            className="flex-1 min-w-[120px] sm:min-w-[160px] md:min-w-[200px]"
             onValueChange={(value) => setVolume(value[0])}
             aria-label="Instrument volume"
           />
         </div>
 
+        {/* Original Audio Control */}
         {originalAudioUrl && (
-          <div className="flex items-center gap-2 min-w-[200px] flex-1">
-            <button
-              type="button"
-              aria-pressed={playOriginal}
-              onClick={() => {
-                const next = !playOriginal;
-                setPlayOriginal(next);
-                if (!next) {
-                  originalPlayerRef.current?.stop?.();
-                } else if (isPlaying) {
-                  const pos = transport?.seconds || 0;
-                  const rate = playbackTempo / 120;
-                  originalPlayerRef.current?.stop?.();
-                  originalPlayerRef.current?.start?.(undefined, pos / rate);
-                }
-              }}
-              className={`text-xs px-2 py-1 rounded-full border ${
-                playOriginal
-                  ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
-                  : "bg-transparent text-black border-black dark:text-white dark:border-white"
-              }`}
-            >
-              Original
-            </button>
+          <div className="space-y-2 md:col-span-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Volume2 className="h-4 w-4" />
+                Original Audio
+              </Label>
+              <button
+                type="button"
+                aria-pressed={playOriginal}
+                onClick={() => {
+                  const next = !playOriginal;
+                  setPlayOriginal(next);
+                  if (!next) {
+                    originalPlayerRef.current?.stop?.();
+                  } else if (
+                    isPlaying &&
+                    originalPlayerRef.current?.buffer?.loaded
+                  ) {
+                    const pos = transport?.seconds || 0;
+                    const rate = playbackTempo / 120;
+                    originalPlayerRef.current?.stop?.();
+                    originalPlayerRef.current?.start?.(undefined, pos / rate);
+                  }
+                }}
+                className={`flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
+                  playOriginal
+                    ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
+                    : "bg-transparent text-black border-black dark:text-white dark:border-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+              >
+                Play with Original
+              </button>
+            </div>
             <Slider
               value={[originalVolume]}
               min={0}
               max={1}
               step={0.01}
-              className={
-                "flex-1 min-w-[120px] sm:min-w-[160px] md:min-w-[200px]" +
-                (playOriginal ? "" : " opacity-50 pointer-events-none")
-              }
+              className={playOriginal ? "" : "opacity-50 pointer-events-none"}
               onValueChange={(value) => setOriginalVolume(value[0])}
               aria-label="Original audio volume"
             />

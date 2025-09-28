@@ -1,71 +1,61 @@
 /* eslint-disable */
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Play,
-  Pause,
-  Download,
-  Music,
-  Mic,
-  Volume2,
-  Drum,
-  AudioLines,
-} from "lucide-react";
-import { Slider } from "@/components/ui/slider";
-import { formatTime } from "@/lib/utils";
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
+import { Music, Mic, Drum, AudioLines } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { encode } from "wav-encoder";
 import RunnerLoader from "@/components/loaders/runner-loader";
-import { useAudio } from "@/contexts/audio-context";
+import StemControl, { StemSource } from "./StemControl";
+import RecordingControls from "./RecordingControls";
 
-export interface StemSource {
-  name: string;
-  icon: React.ReactNode;
-  audioUrl?: string;
-  audioData?: Uint8Array;
-  audioBuffer?: AudioBuffer;
-}
+// 1. MEMOIZE STATIC OBJECTS - Move outside component to prevent recreation
+const STEM_META: Record<string, { name: string; icon: React.ReactNode }> = {
+  vocals: {
+    name: "Vocals",
+    icon: <Mic className="h-4 w-4" />,
+  },
+  drums: {
+    name: "Drums",
+    icon: <Drum className="h-4 w-4" />,
+  },
+  bass: {
+    name: "Bass",
+    icon: <AudioLines className="h-4 w-4" />,
+  },
+  other: {
+    name: "Other",
+    icon: <Music className="h-4 w-4" />,
+  },
+};
 
 interface StemPlayerProps {
   audioUrls?: Record<string, string>;
 }
 
-export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
-  const { context, transport, startAudio } = useAudio();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
-
-  // Create stems object from audio URLs
-  const stemMeta: Record<string, { name: string; icon: React.ReactNode }> = {
-    vocals: {
-      name: "Vocals",
-      icon: <Mic className="h-4 w-4" />,
-    },
-    drums: {
-      name: "Drums",
-      icon: <Drum className="h-4 w-4" />,
-    },
-    bass: {
-      name: "Bass",
-      icon: <AudioLines className="h-4 w-4" />,
-    },
-    other: {
-      name: "Other",
-      icon: <Music className="h-4 w-4" />,
-    },
-  };
+const StemPlayer = memo(function StemPlayer({
+  audioUrls = {},
+}: StemPlayerProps) {
+  // 2. OPTIMIZE STATE MANAGEMENT - Combine related state to reduce re-renders
+  const [playerState, setPlayerState] = useState({
+    isLoading: true,
+    error: null as string | null,
+    isRecording: false,
+    recordedAudio: null as Blob | null,
+    playingStems: new Set<string>(),
+    pausedStems: new Set<string>(),
+    volumes: {} as Record<string, number>,
+    currentTime: 0,
+    duration: 0,
+  });
 
   const stems: Record<string, StemSource> = useMemo(
     () =>
       Object.entries(audioUrls).reduce((acc, [key, audioUrl]) => {
-        if (stemMeta[key]) {
+        if (STEM_META[key]) {
           acc[key] = {
-            name: stemMeta[key].name,
-            icon: stemMeta[key].icon,
+            name: STEM_META[key].name,
+            icon: STEM_META[key].icon,
             audioUrl: audioUrl,
           };
         }
@@ -73,148 +63,132 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
       }, {} as Record<string, StemSource>),
     [audioUrls]
   );
-  const [playingStems, setPlayingStems] = useState<Set<string>>(new Set());
-  const [pausedStems, setPausedStems] = useState<Set<string>>(new Set());
-  const [stemVolumes, setStemVolumes] = useState<Record<string, number>>({});
-  const [stemCurrentTime, setStemCurrentTime] = useState(0);
-  const [stemDuration, setStemDuration] = useState(0);
+
+  // Memoize expensive computations
+  const stemEntries = useMemo(() => Object.entries(stems), [stems]);
+  const hasStems = useMemo(() => Object.keys(stems).length > 0, [stems]);
+  const hasRecordedAudio = useMemo(
+    () => !!playerState.recordedAudio,
+    [playerState.recordedAudio]
+  );
+
   const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Tone.js refs
-  const toneRef = useRef<null | typeof import("tone")>(null);
-  const tonePlayersRef = useRef<Record<string, any>>({});
-  const toneGainsRef = useRef<Record<string, any>>({});
+  // Web Audio API refs
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioBuffersRef = useRef<Record<string, AudioBuffer>>({});
+  const sourceNodesRef = useRef<Record<string, AudioBufferSourceNode>>({});
+  const gainNodesRef = useRef<Record<string, GainNode>>({});
+  const masterGainRef = useRef<GainNode | null>(null);
+  const transportStartTimeRef = useRef<number>(0);
+  const transportPauseTimeRef = useRef<number>(0);
   const transportDurationRef = useRef<number>(0);
-  const transportEndEventIdRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const recorderRef = useRef<InstanceType<
-    typeof import("tone").Recorder
-  > | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const isTransportRunningRef = useRef<boolean>(false);
 
-  // Load Tone.js and create audio players in one effect
+  // Initialize Web Audio API and load audio stems
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    setPlayerState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     const loadEverything = async () => {
       try {
-        // Step 1: Load Tone.js
-        const Tone = await import("tone");
-        if (cancelled) return;
+        // Step 1: Initialize AudioContext
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext ||
+            (window as any).webkitAudioContext)();
+        }
 
-        // Step 2: Use shared context and transport
-        toneRef.current = Tone;
-        if (!context || !transport) {
-          setError("Audio context not ready");
-          setIsLoading(false);
+        const audioContext = audioContextRef.current;
+
+        // Step 2: Check if we have stems to load
+        const entries = Object.entries(stems);
+        if (entries.length === 0) {
+          setPlayerState((prev) => ({ ...prev, isLoading: false }));
           return;
         }
 
-        // Step 3: Check if we have stems to load
-        const entries = Object.entries(stems);
-        if (entries.length === 0) {
-          setIsLoading(false);
-          return;
+        // Step 3: Create master gain node for recording
+        if (!masterGainRef.current) {
+          masterGainRef.current = audioContext.createGain();
+          masterGainRef.current.connect(audioContext.destination);
         }
 
         // Step 4: Load all audio stems
         let loadedCount = 0;
         const totalStems = entries.length;
 
-        const loadStem = (key: string, src: StemSource) => {
-          if (tonePlayersRef.current[key] || cancelled) return;
+        const loadStem = async (key: string, src: StemSource) => {
+          if (audioBuffersRef.current[key] || cancelled) return;
 
           try {
-            const gain = new Tone.Gain({
-              context: context,
-              gain: stemVolumes[key] ?? 1,
-            });
-            try {
-              (gain as any).connect((context as any).destination);
-            } catch {}
+            // Fetch and decode audio data
+            const response = await fetch(src.audioUrl!);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-            const player = new Tone.Player({
-              url: src.audioUrl!,
-              autostart: false,
-              context: context,
-              onload: () => {
-                if (cancelled) return;
-
-                const dur = player.buffer?.duration || 0;
-                if (dur > 0) {
-                  // track the longest duration across stems for transport
-                  transportDurationRef.current = Math.max(
-                    transportDurationRef.current,
-                    dur
-                  );
-                  if (transport)
-                    transport.loopEnd = transportDurationRef.current;
-                  setStemDuration(transportDurationRef.current);
-                  // reschedule end event whenever duration updates
-                  if (transportEndEventIdRef.current !== null) {
-                    try {
-                      transport?.clear(transportEndEventIdRef.current);
-                    } catch {}
-                    transportEndEventIdRef.current = null;
-                  }
-                  transportEndEventIdRef.current = transport?.scheduleOnce(
-                    (time: number) => {
-                      // Stop and rewind to 0
-                      transport?.pause();
-                      if (transport) transport.seconds = 0;
-                      setStemCurrentTime(0);
-                      // Mute all players
-                      Object.values(tonePlayersRef.current).forEach(
-                        (p: any) => {
-                          p.mute = true;
-                        }
-                      );
-                      setPlayingStems(new Set());
-                      setPausedStems(new Set());
-                    },
-                    transportDurationRef.current
-                  ) as unknown as number | null;
-                }
-
-                // Check if all stems are loaded
-                loadedCount++;
-                if (loadedCount >= totalStems && !cancelled) {
-                  setIsLoading(false);
-                }
-              },
-              onerror: (err) => {
-                if (cancelled) return;
-                setError(`Failed to load audio for ${src.name}`);
-                setIsLoading(false);
-              },
-            });
-
-            player.connect(gain);
-            try {
-              player.sync();
-            } catch {}
-            // Pre-start players for transport sync (muted until user gesture)
-            // This ensures sync with transport but may log warnings before Tone.start()
-            player.start(0);
-            player.mute = true;
-            tonePlayersRef.current[key] = player;
-            toneGainsRef.current[key] = gain;
-          } catch (err) {
             if (cancelled) return;
-            setError(`Failed to initialize audio player for ${src.name}`);
-            setIsLoading(false);
+
+            // Store the audio buffer
+            audioBuffersRef.current[key] = audioBuffer;
+
+            // Create gain node for this stem
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0; // Start muted (like Tone.js)
+            gainNode.connect(masterGainRef.current!);
+            gainNodesRef.current[key] = gainNode;
+
+            // Create persistent source node that loops (like Tone.js)
+            const sourceNode = audioContext.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+            sourceNode.loop = true; // Loop like Tone.js players
+            sourceNode.connect(gainNode);
+
+            // DON'T start immediately - wait for transport sync
+            sourceNodesRef.current[key] = sourceNode;
+
+            // Track the longest duration across stems
+            const duration = audioBuffer.duration;
+            if (duration > 0) {
+              transportDurationRef.current = Math.max(
+                transportDurationRef.current,
+                duration
+              );
+              setPlayerState((prev) => ({
+                ...prev,
+                duration: transportDurationRef.current,
+              }));
+            }
+
+            // Check if all stems are loaded
+            loadedCount++;
+            if (loadedCount >= totalStems && !cancelled) {
+              setPlayerState((prev) => ({ ...prev, isLoading: false }));
+            }
+          } catch {
+            if (cancelled) return;
+            setPlayerState((prev) => ({
+              ...prev,
+              error: `Failed to load audio for ${src.name}`,
+              isLoading: false,
+            }));
           }
         };
 
         // Load all stems
-        entries.forEach(([key, src]) => loadStem(key, src));
+        await Promise.all(entries.map(([key, src]) => loadStem(key, src)));
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load audio engine"
-          );
-          setIsLoading(false);
+          setPlayerState((prev) => ({
+            ...prev,
+            error:
+              err instanceof Error
+                ? err.message
+                : "Failed to load audio engine",
+            isLoading: false,
+          }));
         }
       }
     };
@@ -224,22 +198,62 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
     return () => {
       cancelled = true;
     };
-  }, [stems, context, transport]);
+  }, [stems]);
 
-  // Animation loop for time updates
-  // Note: Uses shared transport timer - all stems sync to same timeline
-  // Shorter stems will mute early, longest stem sets UI duration
-  const updateTime = () => {
-    if (playingStems.size > 0 && transport) {
-      const elapsed = transport.seconds;
-      setStemCurrentTime(elapsed);
+  // 3. DEBOUNCE TIME UPDATES - Reduce animation frame frequency for better performance
+  const updateTime = useCallback(() => {
+    if (isTransportRunningRef.current && audioContextRef.current) {
+      const currentTime = audioContextRef.current.currentTime;
+      // FIXED: Proper time calculation
+      // When transport is running: elapsed = (currentTime - startTime) + initialPauseTime
+      const elapsed =
+        currentTime -
+        transportStartTimeRef.current +
+        transportPauseTimeRef.current;
+
+      // Only update if time changed significantly (reduce from 60fps to 30fps)
+      if (Math.abs(elapsed - playerState.currentTime) > 0.033) {
+        setPlayerState((prev) => ({
+          ...prev,
+          currentTime: Math.max(0, elapsed),
+        }));
+      }
+
+      // Check if we've reached the end
+      if (elapsed >= transportDurationRef.current) {
+        // Stop transport and reset
+        isTransportRunningRef.current = false;
+        setPlayerState((prev) => ({
+          ...prev,
+          currentTime: 0,
+          playingStems: new Set(),
+          pausedStems: new Set(),
+        }));
+        transportPauseTimeRef.current = 0;
+        // Stop all source nodes
+        Object.values(sourceNodesRef.current).forEach((sourceNode) => {
+          try {
+            sourceNode.stop();
+            sourceNode.disconnect();
+          } catch {
+            // Source might already be stopped
+          }
+        });
+        sourceNodesRef.current = {};
+        // Mute all stems
+        Object.values(gainNodesRef.current).forEach((gainNode) => {
+          gainNode.gain.value = 0;
+        });
+        return;
+      }
+
       animationFrameRef.current = requestAnimationFrame(updateTime);
     }
-  };
+  }, [playerState.currentTime]);
 
   // Start time update loop
   useEffect(() => {
-    if (playingStems.size > 0) {
+    if (isTransportRunningRef.current) {
       updateTime();
     } else {
       if (animationFrameRef.current) {
@@ -254,79 +268,166 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         animationFrameRef.current = null;
       }
     };
-  }, [playingStems.size]);
+  }, [
+    isTransportRunningRef.current,
+    playerState.playingStems.size,
+    updateTime,
+  ]);
 
-  const stopAllSources = () => {
-    Object.values(tonePlayersRef.current).forEach((player: any) => {
-      player.mute = true;
+  // FIXED: Proper source node cleanup
+  const cleanupSourceNodes = () => {
+    Object.values(sourceNodesRef.current).forEach((sourceNode) => {
+      try {
+        sourceNode.stop();
+        sourceNode.disconnect();
+      } catch {
+        // Source might already be stopped
+      }
     });
-    transport?.pause();
+    sourceNodesRef.current = {};
   };
 
-  // Recording functions
-  const startRecording = async () => {
-    const Tone = toneRef.current;
-    if (!Tone || !context) return;
+  const stopAllSources = useCallback(() => {
+    // Stop all source nodes first
+    cleanupSourceNodes();
+
+    // Mute all stems (like Tone.js)
+    Object.values(gainNodesRef.current).forEach((gainNode) => {
+      gainNode.gain.value = 0;
+    });
+
+    // Stop transport
+    isTransportRunningRef.current = false;
+    transportPauseTimeRef.current = 0;
+    transportStartTimeRef.current = 0;
+
+    // FIXED: Reset React state to prevent inconsistencies
+    setPlayerState((prev) => ({
+      ...prev,
+      playingStems: new Set(),
+      pausedStems: new Set(),
+      currentTime: 0,
+    }));
+  }, []);
+
+  const startTransport = () => {
+    if (!audioContextRef.current) return;
+
+    // FIXED: Clean up existing source nodes first
+    cleanupSourceNodes();
+
+    const currentTime = audioContextRef.current.currentTime;
+    transportStartTimeRef.current = currentTime;
+    isTransportRunningRef.current = true;
+
+    // Create and start all source nodes simultaneously (like Tone.js transport)
+    Object.entries(audioBuffersRef.current).forEach(([key, audioBuffer]) => {
+      const gainNode = gainNodesRef.current[key];
+      if (audioBuffer && gainNode) {
+        // Create new source node
+        const sourceNode = audioContextRef.current!.createBufferSource();
+        sourceNode.buffer = audioBuffer;
+        sourceNode.loop = true;
+        sourceNode.connect(gainNode);
+
+        // Start with offset based on current transport time
+        const offset = Math.max(0, transportPauseTimeRef.current);
+        sourceNode.start(currentTime, offset);
+        sourceNodesRef.current[key] = sourceNode;
+      }
+    });
+  };
+
+  const pauseTransport = () => {
+    if (!audioContextRef.current) return;
+
+    const currentTime = audioContextRef.current.currentTime;
+    // FIXED: Proper pause time accumulation
+    transportPauseTimeRef.current +=
+      currentTime - transportStartTimeRef.current;
+    isTransportRunningRef.current = false;
+
+    // FIXED: Use cleanup function
+    cleanupSourceNodes();
+  };
+
+  // Recording functions using Web Audio API
+  const startRecording = useCallback(async () => {
+    if (!audioContextRef.current || !masterGainRef.current) return;
 
     // Only allow recording if there are stems loaded
-    if (Object.keys(toneGainsRef.current).length === 0) {
+    if (Object.keys(audioBuffersRef.current).length === 0) {
       console.warn("No stems loaded for recording");
       return;
     }
 
     try {
-      // Create a Recorder node with the same context
-      const recorder = new Tone.Recorder({ context: context });
+      // Create a MediaStreamDestination to capture the mixed audio
+      const destination =
+        audioContextRef.current.createMediaStreamDestination();
 
-      // Connect the mixed output to the recorder
-      // We'll connect all active gains to the recorder
-      Object.values(toneGainsRef.current).forEach((gain: any) => {
-        try {
-          gain.connect(recorder);
-        } catch {}
-      });
+      // FIXED: Disconnect previous recording connection if any
+      if (masterGainRef.current.numberOfOutputs > 1) {
+        masterGainRef.current.disconnect();
+        masterGainRef.current.connect(audioContextRef.current.destination);
+      }
+
+      masterGainRef.current.connect(destination);
+
+      // Create MediaRecorder
+      const mediaRecorder = new MediaRecorder(destination.stream);
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: "audio/webm",
+        });
+        setPlayerState((prev) => ({
+          ...prev,
+          recordedAudio: blob,
+          isRecording: false,
+        }));
+      };
 
       // Clear previous recording
-      setRecordedAudio(null);
+      setPlayerState((prev) => ({ ...prev, recordedAudio: null }));
 
       // Start recording
-      recorder.start();
-      setIsRecording(true);
-      recorderRef.current = recorder;
+      mediaRecorder.start();
+      setPlayerState((prev) => ({ ...prev, isRecording: true }));
+      mediaRecorderRef.current = mediaRecorder;
     } catch (error) {
       console.error("Error starting recording:", error);
     }
-  };
+  }, []);
 
-  const stopRecording = async () => {
-    if (recorderRef.current && isRecording) {
+  const stopRecording = useCallback(async () => {
+    if (mediaRecorderRef.current && playerState.isRecording) {
       try {
-        // Stop recording and get the audio data
-        const recording = await recorderRef.current.stop();
-        setRecordedAudio(recording);
-        setIsRecording(false);
-
-        // Disconnect the recorder from all gains
-        Object.values(toneGainsRef.current).forEach((gain: any) => {
-          try {
-            gain.disconnect(recorderRef.current);
-          } catch {}
-        });
+        // Stop recording
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
       } catch (error) {
         console.error("Error stopping recording:", error);
-        setIsRecording(false);
+        setPlayerState((prev) => ({ ...prev, isRecording: false }));
       }
     }
-  };
+  }, [playerState.isRecording]);
 
-  const downloadRecordedAudio = async () => {
-    if (recordedAudio) {
+  const downloadRecordedAudio = useCallback(async () => {
+    if (playerState.recordedAudio) {
       try {
         // Convert the recorded audio to WAV format
-        const arrayBuffer = await recordedAudio.arrayBuffer();
+        const arrayBuffer = await playerState.recordedAudio.arrayBuffer();
 
-        // Reuse existing AudioContext from Tone.js instead of creating new one
-        const audioContext = context?.rawContext || new AudioContext();
+        // Use existing AudioContext
+        const audioContext = audioContextRef.current || new AudioContext();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
         // Convert AudioBuffer to the format expected by wav-encoder
@@ -348,15 +449,10 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
-        // Only close if we created a new context (not reusing existing one)
-        if (!context?.rawContext && "close" in audioContext) {
-          await (audioContext as any).close();
-        }
       } catch (error) {
         console.error("Error converting to WAV:", error);
         // Fallback to original format if WAV conversion fails
-        const url = URL.createObjectURL(recordedAudio);
+        const url = URL.createObjectURL(playerState.recordedAudio);
         const a = document.createElement("a");
         a.href = url;
         a.download = `stem-mix-${Date.now()}.webm`;
@@ -366,65 +462,74 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         URL.revokeObjectURL(url);
       }
     }
-  };
+  }, [playerState.recordedAudio]);
 
-  const togglePlayback = async (audioId: string) => {
-    const Tone = toneRef.current;
-    const player = tonePlayersRef.current[audioId];
-    if (!Tone || !player) return;
+  const togglePlayback = useCallback(
+    async (audioId: string) => {
+      if (!audioContextRef.current || !gainNodesRef.current[audioId]) return;
 
-    // Ensure audio is started by user gesture
-    try {
-      await startAudio();
-    } catch {}
-
-    if (playingStems.has(audioId)) {
-      // Pause this stem via mute
-      player.mute = true;
-      setPlayingStems((prev) => {
-        const next = new Set(prev);
-        next.delete(audioId);
-        return next;
-      });
-      setPausedStems((prev) => {
-        const next = new Set(prev);
-        next.add(audioId);
-        return next;
-      });
-      // If no stems left playing, pause transport
-      setTimeout(() => {
-        if (playingStems.size - 1 <= 0) {
-          transport?.pause();
-        }
-      }, 0);
-    } else {
-      // Unmute this stem and ensure transport runs
-      player.mute = false;
-      if (playingStems.size === 0) {
-        // If transport is at or beyond end, wrap to start when starting fresh
-        const end = transportDurationRef.current || stemDuration || 0;
-        if (end && (transport?.seconds || 0) >= end - 0.01) {
-          if (transport) transport.seconds = 0;
-        }
-        transport?.start();
+      // Resume audio context if suspended
+      if (audioContextRef.current.state === "suspended") {
+        await audioContextRef.current.resume();
       }
-      setPlayingStems((prev) => {
-        const next = new Set(prev);
-        next.add(audioId);
-        return next;
-      });
-      setPausedStems((prev) => {
-        const next = new Set(prev);
-        next.delete(audioId);
-        return next;
-      });
-    }
-  };
 
-  // Debounced seeking function using Tone.Transport
-  const handleStemSeekDebounced = (value: number[]) => {
+      const gainNode = gainNodesRef.current[audioId];
+
+      if (playerState.playingStems.has(audioId)) {
+        // Mute this stem (like Tone.js)
+        gainNode.gain.value = 0;
+
+        setPlayerState((prev) => ({
+          ...prev,
+          playingStems: new Set(
+            [...prev.playingStems].filter((id) => id !== audioId)
+          ),
+          pausedStems: new Set([...prev.pausedStems, audioId]),
+        }));
+
+        // If no stems left playing, pause transport
+        // FIXED: Use the updated state directly
+        if (playerState.playingStems.size - 1 <= 0) {
+          pauseTransport();
+        }
+      } else {
+        // Unmute this stem (like Tone.js)
+        gainNode.gain.value = playerState.volumes[audioId] ?? 1;
+
+        if (playerState.playingStems.size === 0) {
+          // If we're at or beyond the end, reset to start
+          const end = transportDurationRef.current || playerState.duration || 0;
+          if (end && playerState.currentTime >= end - 0.01) {
+            setPlayerState((prev) => ({ ...prev, currentTime: 0 }));
+            transportPauseTimeRef.current = 0;
+          }
+          startTransport();
+          // Force restart of time update loop
+          updateTime();
+        }
+
+        setPlayerState((prev) => ({
+          ...prev,
+          playingStems: new Set([...prev.playingStems, audioId]),
+          pausedStems: new Set(
+            [...prev.pausedStems].filter((id) => id !== audioId)
+          ),
+        }));
+      }
+    },
+    [
+      playerState.playingStems,
+      playerState.pausedStems,
+      playerState.volumes,
+      playerState.currentTime,
+      playerState.duration,
+    ]
+  );
+
+  // Debounced seeking function using Web Audio API
+  const handleStemSeekDebounced = useCallback((value: number[]) => {
     const newTime = value[0];
-    setStemCurrentTime(newTime);
+    setPlayerState((prev) => ({ ...prev, currentTime: newTime }));
 
     // Clear any existing timeout
     if (seekTimeoutRef.current) {
@@ -435,61 +540,134 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
     seekTimeoutRef.current = setTimeout(() => {
       handleStemSeekActual(newTime);
     }, 150); // 150ms delay after user stops dragging
-  };
+  }, []);
 
-  // Actual seeking function that moves the Transport
-  const handleStemSeekActual = async (newTime: number) => {
-    if (!transport) return;
-    transport.seconds = newTime;
-  };
+  // FIXED: Proper seeking function
+  const handleStemSeekActual = useCallback(async (newTime: number) => {
+    if (!audioContextRef.current) return;
 
-  const handleVolumeChange = (audioId: string, value: number) => {
-    const gain = toneGainsRef.current[audioId];
-    if (gain) {
-      gain.gain.rampTo(value, 0);
+    // Update transport state (like Tone.js transport.seconds)
+    transportPauseTimeRef.current = newTime;
+
+    // If transport is running, restart all source nodes at the new time
+    if (isTransportRunningRef.current) {
+      const currentTime = audioContextRef.current.currentTime;
+      transportStartTimeRef.current = currentTime;
+
+      // FIXED: Use cleanup function
+      cleanupSourceNodes();
+
+      // Restart all source nodes at the new time with proper offset
+      Object.entries(audioBuffersRef.current).forEach(([key, audioBuffer]) => {
+        const gainNode = gainNodesRef.current[key];
+        if (audioBuffer && gainNode) {
+          const sourceNode = audioContextRef.current!.createBufferSource();
+          sourceNode.buffer = audioBuffer;
+          sourceNode.loop = true;
+          sourceNode.connect(gainNode);
+
+          // Start with offset based on seek position
+          const offset = Math.max(0, newTime);
+          sourceNode.start(currentTime, offset);
+          sourceNodesRef.current[key] = sourceNode;
+        }
+      });
     }
-    setStemVolumes((prev) => ({
-      ...prev,
-      [audioId]: value,
-    }));
-  };
+  }, []);
 
-  // Cleanup function
+  const handleVolumeChange = useCallback(
+    (audioId: string, value: number) => {
+      const gainNode = gainNodesRef.current[audioId];
+      if (gainNode) {
+        // FIXED: Always update the gain node, but only apply if playing
+        gainNode.gain.value = playerState.playingStems.has(audioId) ? value : 0;
+      }
+      setPlayerState((prev) => ({
+        ...prev,
+        volumes: {
+          ...prev.volumes,
+          [audioId]: value,
+        },
+      }));
+    },
+    [playerState.playingStems]
+  );
+
+  // 7. IMPROVE CLEANUP - Enhanced cleanup logic for better memory management
   useEffect(() => {
     return () => {
+      // Stop all audio sources first
       stopAllSources();
+
+      // Cancel all timeouts and animation frames
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
       if (seekTimeoutRef.current) {
         clearTimeout(seekTimeoutRef.current);
+        seekTimeoutRef.current = null;
       }
-      // Dispose Tone resources
-      Object.values(tonePlayersRef.current).forEach((player: any) => {
-        try {
-          player.dispose();
-        } catch {}
-      });
-      Object.values(toneGainsRef.current).forEach((gain: any) => {
-        try {
-          gain.dispose();
-        } catch {}
-      });
-      tonePlayersRef.current = {};
-      toneGainsRef.current = {};
 
-      // Properly stop transport
-      try {
-        if (transport) {
-          transport.stop();
-          transport.cancel();
+      // Clean up all audio nodes
+      Object.values(sourceNodesRef.current).forEach((sourceNode) => {
+        try {
+          sourceNode.stop();
+          sourceNode.disconnect();
+        } catch {
+          // Source might already be stopped
         }
-      } catch {}
+      });
+      sourceNodesRef.current = {};
 
-      // Clear refs
-      recorderRef.current = null;
+      Object.values(gainNodesRef.current).forEach((gainNode) => {
+        try {
+          gainNode.disconnect();
+        } catch {
+          // Node might already be disconnected
+        }
+      });
+      gainNodesRef.current = {};
+
+      // Clear audio buffers
+      audioBuffersRef.current = {};
+
+      // Stop and cleanup media recorder
+      if (mediaRecorderRef.current) {
+        try {
+          if (mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.stop();
+          }
+        } catch {
+          // Recorder might already be stopped
+        }
+        mediaRecorderRef.current = null;
+      }
+
+      // Clear recorded chunks
+      recordedChunksRef.current = [];
+
+      // Close audio context
+      if (
+        audioContextRef.current &&
+        audioContextRef.current.state !== "closed"
+      ) {
+        try {
+          audioContextRef.current.close();
+        } catch {
+          // Context might already be closed
+        }
+        audioContextRef.current = null;
+      }
+
+      // Reset all refs
+      masterGainRef.current = null;
+      transportStartTimeRef.current = 0;
+      transportPauseTimeRef.current = 0;
+      transportDurationRef.current = 0;
+      isTransportRunningRef.current = false;
     };
-  }, []);
+  }, [stopAllSources]);
 
   return (
     <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
@@ -500,157 +678,60 @@ export default function StemPlayer({ audioUrls = {} }: StemPlayerProps) {
         </p>
       </div>
 
-      {Object.keys(stems).length === 0 ? (
+      {!hasStems ? (
         <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
           <Music className="h-12 w-12" />
           <p>No Audio Stems Available, Please Process the Audio First</p>
         </div>
-      ) : isLoading ? (
+      ) : playerState.isLoading ? (
         <div className="flex justify-center items-center py-12">
           <div className="w-24 h-24">
             <RunnerLoader />
           </div>
         </div>
-      ) : error ? (
+      ) : playerState.error ? (
         <Alert variant="destructive" className="animate-in fade-in-50">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{playerState.error}</AlertDescription>
         </Alert>
       ) : (
         <>
-          {Object.keys(stems).length > 0 && (
+          {hasStems && (
             <div className="space-y-4">
-              <div className="flex items-center justify-center gap-2">
-                <Button
-                  onClick={isRecording ? stopRecording : startRecording}
-                  variant="outline"
-                  size="sm"
-                  disabled={Object.keys(stems).length === 0}
-                  className="h-9 border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div
-                    className={`w-2.5 h-2.5 rounded-full bg-red-500 ${
-                      isRecording ? "animate-pulse" : ""
-                    }`}
-                  />
-                  <span className="ml-2">
-                    {isRecording ? "Stop Recording" : "Record Mix"}
-                  </span>
-                </Button>
-
-                {recordedAudio && (
-                  <Button
-                    onClick={downloadRecordedAudio}
-                    variant="outline"
-                    size="sm"
-                    className="h-9 border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="ml-2">Download WAV</span>
-                  </Button>
-                )}
-              </div>
+              <RecordingControls
+                isRecording={playerState.isRecording}
+                hasRecordedAudio={hasRecordedAudio}
+                onStartRecording={startRecording}
+                onStopRecording={stopRecording}
+                onDownload={downloadRecordedAudio}
+              />
             </div>
           )}
 
           <div>
-            {Object.keys(stems).length > 0 && (
+            {hasStems && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Object.entries(stems).map(([audioId, audioSource]) => (
-                  <div
+                {stemEntries.map(([audioId, audioSource]) => (
+                  <StemControl
                     key={audioId}
-                    className="border border-black dark:border-white rounded-lg overflow-hidden transition-all"
-                  >
-                    <div className="flex flex-col">
-                      <div className="flex items-center justify-between p-3">
-                        <div className="flex items-center">
-                          <div className="w-9 h-9 rounded-full border border-black dark:border-white flex items-center justify-center mr-3">
-                            {audioSource.icon}
-                          </div>
-                          <span className="font-semibold text-lg">
-                            {audioSource.name}
-                          </span>
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={`h-9 w-9 rounded-full transition-colors border border-black dark:border-white ${
-                            playingStems.has(audioId) ||
-                            pausedStems.has(audioId)
-                              ? "bg-black text-white dark:bg-white dark:text-black"
-                              : "bg-transparent text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                          }`}
-                          onClick={() => togglePlayback(audioId)}
-                        >
-                          {playingStems.has(audioId) ? (
-                            <Pause className="h-4 w-4" />
-                          ) : pausedStems.has(audioId) ? (
-                            <Play className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-
-                      <div className="flex items-center gap-3 bg-white dark:bg-black border-y border-black dark:border-white px-3 py-1.5">
-                        <span className="text-xs font-mono whitespace-nowrap">
-                          {formatTime(stemCurrentTime)}
-                        </span>
-                        <Slider
-                          value={[stemCurrentTime]}
-                          min={0}
-                          max={stemDuration}
-                          step={0.1}
-                          onValueChange={handleStemSeekDebounced}
-                          className="flex-grow"
-                        />
-                        <span className="text-xs font-mono w-8">
-                          {formatTime(stemDuration)}
-                        </span>
-                      </div>
-
-                      <div className="p-3 flex justify-between items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full h-9 border border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-                          asChild
-                        >
-                          <a
-                            href={audioSource.audioUrl}
-                            download={`${audioSource.name.toLowerCase()}.wav`}
-                            title={`Download ${audioSource.name}`}
-                            className="flex items-center gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            <span>Download</span>
-                          </a>
-                        </Button>
-                      </div>
-
-                      <div className="px-3 pb-3 flex items-center gap-2">
-                        <Volume2 className="h-4 w-4 text-muted-foreground" />
-                        <Slider
-                          value={[stemVolumes[audioId] ?? 1]}
-                          min={0}
-                          max={1}
-                          step={0.01}
-                          onValueChange={(value) =>
-                            handleVolumeChange(audioId, value[0])
-                          }
-                          className="flex-grow"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                    audioId={audioId}
+                    audioSource={audioSource}
+                    isPlaying={playerState.playingStems.has(audioId)}
+                    isPaused={playerState.pausedStems.has(audioId)}
+                    currentTime={playerState.currentTime}
+                    duration={playerState.duration}
+                    volume={playerState.volumes[audioId] ?? 1}
+                    onToggle={togglePlayback}
+                    onSeek={handleStemSeekDebounced}
+                    onVolumeChange={handleVolumeChange}
+                  />
                 ))}
               </div>
             )}
           </div>
         </>
       )}
-
-      {/* Transport Controls */}
     </div>
   );
-}
+});
+
+export default StemPlayer;

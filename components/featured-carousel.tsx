@@ -137,9 +137,9 @@ const featuredSongs: Song[] = [
       drums: "/featured/glueSong/drums.mp3",
     },
     audioEffects: {
-      speed: 1.2,
-      reverb: 0.7,
-      delay: 6.5,
+      speed: 0.75,
+      reverb: 0.8,
+      delay: 8.0,
     },
     midi: null,
   },
