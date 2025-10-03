@@ -57,7 +57,7 @@ export default function Home() {
 
             <Button
               variant="outline"
-              className="rounded-full mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+              className="mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
               onClick={() => setShowHelper(true)}
             >
               How To Use

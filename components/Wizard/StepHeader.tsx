@@ -10,7 +10,7 @@ interface StepHeaderProps {
 
 export default function StepHeader({ title, onBack }: StepHeaderProps) {
   return (
-    <div className="flex items-center justify-between border border-black dark:border-white p-4 rounded-lg">
+    <div className="flex items-center justify-between border border-black dark:border-white p-4">
       <h2 className="text-xl font-semibold flex items-center gap-2">{title}</h2>
       <Button
         variant="ghost"

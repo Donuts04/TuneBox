@@ -19,6 +19,7 @@ type Step =
 import ProcessView from "@/components/Process/process-view";
 import UploadDropzone from "./upload-dropzone";
 import StepHeader from "./StepHeader";
+import { cn } from "@/lib/utils";
 
 export default function TuneWizard() {
   const [currentStep, setCurrentStep] = useState<Step>("initial");
@@ -37,7 +38,10 @@ export default function TuneWizard() {
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-8 md:gap-0 w-full mx-auto">
         <div className="flex flex-col h-full">
           <Card
-            className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full bg-transparent"
+            className={cn(
+              "transition-all cursor-pointer h-full bg-transparent",
+              "border-black dark:border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
+            )}
             onClick={() => setCurrentStep("search")}
           >
             <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full group">
@@ -75,7 +79,10 @@ export default function TuneWizard() {
 
         <div className="flex flex-col h-full">
           <Card
-            className="border border-black/50 dark:border-white/50 hover:border-black/80 dark:hover:border-white/80 transition-all cursor-pointer h-full bg-transparent"
+            className={cn(
+              "transition-all cursor-pointer h-full bg-transparent",
+              "border-black dark:border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
+            )}
             onClick={() => setCurrentStep("upload")}
           >
             <CardContent className="p-8 flex flex-col items-center justify-center text-center h-full group">

@@ -15,6 +15,9 @@ interface AudioContextType {
   context: Tone.Context | null;
   transport: any | null;
   startAudio: () => Promise<void>;
+  registerPlayer: (playerId: string, stopCallback: () => void) => void;
+  unregisterPlayer: (playerId: string) => void;
+  stopOtherPlayers: (currentPlayerId: string) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -25,6 +28,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const transportRef = useRef<any | null>(null);
   const hasStartedRef = useRef(false);
   const hasUnblockedRef = useRef(false);
+  const playersRef = useRef<Map<string, () => void>>(new Map());
 
   const startAudio = async () => {
     if (hasStartedRef.current) return;
@@ -103,11 +107,30 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const registerPlayer = (playerId: string, stopCallback: () => void) => {
+    playersRef.current.set(playerId, stopCallback);
+  };
+
+  const unregisterPlayer = (playerId: string) => {
+    playersRef.current.delete(playerId);
+  };
+
+  const stopOtherPlayers = (currentPlayerId: string) => {
+    playersRef.current.forEach((stopCallback, playerId) => {
+      if (playerId !== currentPlayerId) {
+        stopCallback();
+      }
+    });
+  };
+
   const value: AudioContextType = {
     isReady,
     context: contextRef.current,
     transport: transportRef.current,
     startAudio,
+    registerPlayer,
+    unregisterPlayer,
+    stopOtherPlayers,
   };
 
   return (

@@ -84,7 +84,7 @@ export default function AudioHeader({
   };
 
   return (
-    <div className="border border-black dark:border-white p-4 rounded-lg">
+    <div className="border border-black dark:border-white p-4">
       <div className="flex flex-col md:flex-row items-start md:items-center text-lg gap-3 w-full">
         {title ? (
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-4">
@@ -96,10 +96,10 @@ export default function AudioHeader({
                     alt={title}
                     width={60}
                     height={60}
-                    className="rounded-md border border-black dark:border-white"
+                    className="border border-black dark:border-white"
                   />
                 ) : (
-                  <div className="flex-shrink-0 bg-muted/30 rounded-md p-3 border border-black dark:border-white">
+                  <div className="flex-shrink-0 bg-muted/30 p-3 border border-black dark:border-white">
                     <Music className="h-6 w-6" />
                   </div>
                 )}
@@ -117,7 +117,7 @@ export default function AudioHeader({
             {audioUrl && (
               <div className="flex items-center gap-2 w-full md:w-[300px] flex-shrink-0">
                 <Button
-                  className={`rounded-full h-8 w-8 border border-black dark:border-white ${
+                  className={`h-8 w-8 p-0 border border-black dark:border-white ${
                     isHeaderPlaying
                       ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                       : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
@@ -131,7 +131,7 @@ export default function AudioHeader({
                   )}
                 </Button>
 
-                <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white rounded-full px-3 py-1.5 flex-grow">
+                <div className="flex items-center gap-2 bg-white dark:bg-black border border-black dark:border-white px-3 h-8 flex-grow">
                   <span className="text-xs font-mono whitespace-nowrap">
                     {formatTime(headerCurrentTime)}
                   </span>

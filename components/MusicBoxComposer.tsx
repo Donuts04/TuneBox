@@ -135,7 +135,14 @@ const TEMPLATES = {
 };
 
 export function MusicBoxComposer() {
-  const { context, transport, startAudio } = useAudio();
+  const {
+    context,
+    transport,
+    startAudio,
+    registerPlayer,
+    unregisterPlayer,
+    stopOtherPlayers,
+  } = useAudio();
   const [grid, setGrid] = useState<boolean[][]>(
     Array(NOTES.length)
       .fill(null)
@@ -226,6 +233,24 @@ export function MusicBoxComposer() {
     gridRef.current = grid;
   }, [grid]);
 
+  // Register this player and provide stop callback
+  useEffect(() => {
+    const stopCallback = () => {
+      transport?.stop();
+      transport?.cancel?.();
+      setIsPlaying(false);
+      setCurrentColumn(0);
+      loopRef.current?.dispose();
+      loopRef.current = null;
+    };
+
+    registerPlayer("musicBoxComposer", stopCallback);
+
+    return () => {
+      unregisterPlayer("musicBoxComposer");
+    };
+  }, [registerPlayer, unregisterPlayer, transport]);
+
   // Cleanup function
   useEffect(() => {
     return () => {
@@ -281,6 +306,8 @@ export function MusicBoxComposer() {
       setIsPlaying(false);
       setCurrentColumn(0);
     } else {
+      // Stop other players before starting this one
+      stopOtherPlayers("musicBoxComposer");
       // Clear and reset context before playing
       try {
         // Stop any existing transport
@@ -395,15 +422,16 @@ export function MusicBoxComposer() {
         />
       </div>
 
-      <div className="bg-background border rounded-md">
+      <div className="bg-background border">
         <div className="relative">
           <div className="absolute left-0 top-0 z-10 bg-background">
             <div className="w-10 h-6 border-r border-b" />{" "}
             {/* Empty cell for column numbers */}
-            {NOTES.map((note) => (
+            {NOTES.map((note, index) => (
               <div
                 key={`note-label-${note}`}
-                className="w-10 h-6 flex items-center justify-center text-xs font-medium border-r border-b"
+                className={`w-10 h-6 flex items-center justify-center text-xs font-medium border-r
+                  ${index < NOTES.length - 1 ? "border-b" : ""}`}
               >
                 {note}
               </div>
@@ -422,7 +450,8 @@ export function MusicBoxComposer() {
                 .map((_, col) => (
                   <div
                     key={col}
-                    className={`h-6 border-r border-b flex items-center justify-center text-[10px]
+                    className={`h-6 border-b flex items-center justify-center text-[10px]
+                      ${col < COLUMNS - 1 ? "border-r" : ""}
                       ${
                         isPlaying && currentColumn === col
                           ? "bg-primary/10"
@@ -442,7 +471,9 @@ export function MusicBoxComposer() {
                       <button
                         key={`${row}-${col}`}
                         onClick={() => toggleNote(row, col)}
-                        className={`h-6 border-r border-b transition-colors
+                        className={`h-6 transition-colors
+                          ${col < COLUMNS - 1 ? "border-r" : ""}
+                          ${row < NOTES.length - 1 ? "border-b" : ""}
                           ${
                             grid[row][col] ? "bg-primary" : "hover:bg-primary/5"
                           }
@@ -461,10 +492,10 @@ export function MusicBoxComposer() {
       </div>
 
       <TooltipProvider>
-        <div className="flex flex-col md:flex-row gap-4 justify-between">
-          <div className="flex items-center gap-4 flex-1">
+        <div className="flex flex-col md:flex-row gap-2 justify-between">
+          <div className="flex items-center gap-2 flex-1">
             <Button
-              className={`h-10 w-10 flex-shrink-0 rounded-full border border-black dark:border-white ${
+              className={`h-9 w-9 flex-shrink-0 border border-black dark:border-white ${
                 isPlaying
                   ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                   : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black"
@@ -478,7 +509,7 @@ export function MusicBoxComposer() {
               )}
             </Button>
 
-            <div className="flex items-center gap-3 bg-white dark:bg-black border border-black dark:border-white rounded-full px-4 py-2 shadow-sm flex-grow min-w-[180px]">
+            <div className="flex items-center gap-3 bg-white dark:bg-black border border-black dark:border-white px-4 py-2 shadow-sm flex-grow min-w-[180px] h-9">
               <span className="text-sm font-medium whitespace-nowrap">
                 Tempo:
               </span>
@@ -497,7 +528,7 @@ export function MusicBoxComposer() {
           <div className="flex items-center gap-2 justify-start sm:justify-end flex-1">
             <div className="w-full">
               <Select onValueChange={loadTemplate}>
-                <SelectTrigger className="w-full border-black dark:border-white bg-white dark:bg-black h-10 w-full rounded-full">
+                <SelectTrigger className="w-full border-black dark:border-white bg-white dark:bg-black h-9 w-full">
                   <Music className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Load template" />
                 </SelectTrigger>
@@ -516,7 +547,7 @@ export function MusicBoxComposer() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-full h-10 w-10 sm:w-auto sm:px-4 border-black dark:border-white bg-white dark:bg-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                  className="h-9 w-9 sm:w-auto sm:px-4 border-black dark:border-white bg-white dark:bg-black hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                   onClick={clearGrid}
                 >
                   <RefreshCw className="h-4 w-4 sm:mr-2" />

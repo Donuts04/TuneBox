@@ -40,11 +40,11 @@ const StemControl = memo(
     onSeek,
     onVolumeChange,
   }: StemControlProps) => (
-    <div className="border border-black dark:border-white rounded-lg overflow-hidden transition-all">
+    <div className="border border-black dark:border-white overflow-hidden transition-all">
       <div className="flex flex-col">
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center">
-            <div className="w-9 h-9 rounded-full border border-black dark:border-white flex items-center justify-center mr-3">
+            <div className="w-9 h-9 border border-black dark:border-white flex items-center justify-center mr-3">
               {audioSource.icon}
             </div>
             <span className="font-semibold text-lg">{audioSource.name}</span>
@@ -53,7 +53,7 @@ const StemControl = memo(
           <Button
             variant="outline"
             size="icon"
-            className={`h-9 w-9 rounded-full transition-colors border border-black dark:border-white ${
+            className={`h-9 w-9 p-0 transition-colors border border-black dark:border-white ${
               isPlaying || isPaused
                 ? "bg-black text-white dark:bg-white dark:text-black"
                 : "bg-transparent text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"

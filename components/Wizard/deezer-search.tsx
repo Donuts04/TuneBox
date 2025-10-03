@@ -113,7 +113,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
 
   return (
     <div className="space-y-4">
-      <div className="border border-black dark:border-white rounded-lg relative">
+      <div className="border border-black dark:border-white relative">
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-black dark:text-white" />
         <Input
           type="text"
@@ -162,22 +162,22 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
                 transition: { delay: i * 0.1 },
               }}
             >
-              <div className="group rounded-lg border border-black dark:border-white">
+              <div className="group border border-black dark:border-white">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 overflow-hidden">
                   <div className="flex items-center w-full sm:w-auto">
                     <div className="relative flex-shrink-0 mr-4">
-                      <Skeleton className="h-14 w-14 rounded-md bg-black/10 dark:bg-white/10" />
+                      <Skeleton className="h-14 w-14 bg-black/10 dark:bg-white/10 rounded-none" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <Skeleton className="h-5 w-full sm:w-96 lg:w-[28rem] xl:w-[32rem] mb-2 bg-black/10 dark:bg-white/10" />
+                      <Skeleton className="h-5 w-full sm:w-96 lg:w-[28rem] xl:w-[32rem] mb-2 bg-black/10 dark:bg-white/10 rounded-none" />
                       <div className="flex items-center">
-                        <Skeleton className="h-4 w-full sm:w-64 lg:w-80 xl:w-96 bg-black/10 dark:bg-white/10" />
-                        <Skeleton className="h-3 w-1 mx-2 bg-black/10 dark:bg-white/10 rounded-full" />
-                        <Skeleton className="h-4 w-12 bg-black/10 dark:bg-white/10" />
+                        <Skeleton className="h-4 w-full sm:w-64 lg:w-80 xl:w-96 bg-black/10 dark:bg-white/10 rounded-none" />
+                        <Skeleton className="h-3 w-1 mx-2 bg-black/10 dark:bg-white/10 rounded-none" />
+                        <Skeleton className="h-4 w-12 bg-black/10 dark:bg-white/10 rounded-none" />
                       </div>
                     </div>
                   </div>
-                  <Skeleton className="h-9 w-full sm:w-24 rounded-md bg-black/10 dark:bg-white/10" />
+                  <Skeleton className="h-9 w-full sm:w-24 rounded-none bg-black/10 dark:bg-white/10" />
                 </div>
               </div>
             </motion.div>
@@ -188,7 +188,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="text-center py-12 border border-black dark:border-white rounded-lg"
+          className="text-center py-12 border border-black dark:border-white"
         >
           <div className="text-6xl mb-4">😔</div>
           <p className="text-black/70 dark:text-white/70">
@@ -208,7 +208,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
                   transition: { delay: index * 0.05 },
                 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="group rounded-lg border border-black dark:border-white hover:shadow-md transition-all"
+                className="group border border-black dark:border-white hover:shadow-md transition-all"
               >
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 overflow-hidden">
                   <div className="flex items-center w-full sm:w-auto">
@@ -217,7 +217,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
                       onClick={() => togglePlayPreview(track)}
                     >
                       {track.album.cover_medium ? (
-                        <div className="relative w-14 h-14 rounded-md overflow-hidden border border-black dark:border-white">
+                        <div className="relative w-14 h-14 overflow-hidden border border-black dark:border-white">
                           <Image
                             src={track.album.cover_medium || "/placeholder.svg"}
                             alt={track.album.title}
