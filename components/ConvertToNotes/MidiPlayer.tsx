@@ -27,7 +27,7 @@ export default function MidiPlayer({
   );
 
   return (
-    <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
+    <div className="w-full border border-black dark:border-white p-4 space-y-4">
       <div>
         <h2 className="text-2xl font-semibold">Notes Converter</h2>
         <p className="text-sm text-muted-foreground">

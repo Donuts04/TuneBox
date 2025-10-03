@@ -6,7 +6,7 @@ import * as Tone from "tone";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Play, Pause, Square, Volume2, Music } from "lucide-react";
+import { Play, Pause, Square, Volume2 } from "lucide-react";
 import { INSTRUMENTS } from "@/lib/constants";
 import { Midi } from "@tonejs/midi";
 import { NoteVisualization } from "./NoteVisualization2";
@@ -26,7 +26,14 @@ export default function TonePlayer({
   selectedInstrument,
   originalAudioUrl,
 }: TonePlayerProps) {
-  const { context, transport, startAudio } = useAudio();
+  const {
+    context,
+    transport,
+    startAudio,
+    registerPlayer,
+    unregisterPlayer,
+    stopOtherPlayers,
+  } = useAudio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(0.8);
@@ -65,6 +72,23 @@ export default function TonePlayer({
     }
   }, [context, transport, playbackTempo]);
 
+  // Register this player and provide stop callback
+  useEffect(() => {
+    const stopCallback = () => {
+      transport?.stop();
+      transport?.cancel?.();
+      setIsPlaying(false);
+      setCurrentTime(0);
+      originalPlayerRef.current?.stop?.();
+    };
+
+    registerPlayer("tonePlayer", stopCallback);
+
+    return () => {
+      unregisterPlayer("tonePlayer");
+    };
+  }, [registerPlayer, unregisterPlayer, transport]);
+
   // Initialize/Update original audio player
   useEffect(() => {
     if (!originalAudioUrl || !context) {
@@ -90,8 +114,8 @@ export default function TonePlayer({
       context: context,
     });
     (player as any).connect(gain);
-    // Set initial playback rate (will be updated by the dedicated effect)
-    (player as any).playbackRate = playbackTempo / 120;
+    // Keep original audio at normal tempo (1.0 playback rate)
+    (player as any).playbackRate = 1.0;
     originalPlayerRef.current = player;
 
     return () => {
@@ -111,12 +135,7 @@ export default function TonePlayer({
     }
   }, [originalVolume]);
 
-  // Update original playbackRate when BPM changes
-  useEffect(() => {
-    if (originalPlayerRef.current) {
-      (originalPlayerRef.current as any).playbackRate = playbackTempo / 120;
-    }
-  }, [playbackTempo]);
+  // Keep original audio at normal tempo - no playback rate changes
 
   // Initialize the selected instrument
   useEffect(() => {
@@ -310,15 +329,18 @@ export default function TonePlayer({
         transport?.pause();
         // Stop original audio (no pause) so we can resume at current position
         originalPlayerRef.current?.stop?.();
+        setIsPlaying(false);
       } else {
+        // Stop other players before starting this one
+        stopOtherPlayers("tonePlayer");
         // If resuming from pause, just start the transport
         if ((transport?.seconds || 0) > 0) {
           transport?.start();
           if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
             const resumePos = transport?.seconds || 0;
-            const rate = playbackTempo / 120;
+            // Keep original audio at normal tempo - no rate conversion
             originalPlayerRef.current?.stop?.();
-            originalPlayerRef.current?.start?.(undefined, resumePos / rate);
+            originalPlayerRef.current?.start?.(undefined, resumePos);
           }
         } else {
           // If starting from beginning, set up everything
@@ -365,13 +387,12 @@ export default function TonePlayer({
           transport?.start();
           if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
             originalPlayerRef.current?.stop?.();
-            const rate = playbackTempo / 120;
-            originalPlayerRef.current?.start?.(undefined, 0 / rate);
+            // Keep original audio at normal tempo - start from beginning
+            originalPlayerRef.current?.start?.(undefined, 0);
           }
         }
+        setIsPlaying(true);
       }
-
-      setIsPlaying(!isPlaying);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error playing audio");
       setIsPlaying(false);
@@ -445,8 +466,8 @@ export default function TonePlayer({
       // Restart original from new seek position if enabled
       if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
         originalPlayerRef.current?.stop?.();
-        const rate = playbackTempo / 120;
-        originalPlayerRef.current?.start?.(undefined, newTime / rate);
+        // Keep original audio at normal tempo - no rate conversion
+        originalPlayerRef.current?.start?.(undefined, newTime);
       }
     }
   };
@@ -496,7 +517,7 @@ export default function TonePlayer({
             onClick={togglePlayback}
             disabled={!isInstrumentLoaded}
             className={cn(
-              "h-8 w-8 rounded-full border border-black dark:border-white",
+              "h-8 w-8 border border-black dark:border-white",
               isPlaying
                 ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                 : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
@@ -512,7 +533,7 @@ export default function TonePlayer({
             onClick={stopPlayback}
             disabled={!isPlaying}
             className={cn(
-              "h-8 w-8 rounded-full border border-black dark:border-white",
+              "h-8 w-8 border border-black dark:border-white",
               "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
             )}
           >
@@ -589,15 +610,15 @@ export default function TonePlayer({
                     originalPlayerRef.current?.buffer?.loaded
                   ) {
                     const pos = transport?.seconds || 0;
-                    const rate = playbackTempo / 120;
+                    // Keep original audio at normal tempo - no rate conversion
                     originalPlayerRef.current?.stop?.();
-                    originalPlayerRef.current?.start?.(undefined, pos / rate);
+                    originalPlayerRef.current?.start?.(undefined, pos);
                   }
                 }}
-                className={`flex items-center gap-1 text-xs px-3 py-1 rounded-full border transition-colors ${
+                className={`flex items-center gap-1 text-xs px-3 py-1 border transition-colors ${
                   playOriginal
                     ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
-                    : "bg-transparent text-black border-black dark:text-white dark:border-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                    : "bg-transparent text-black border-black dark:text-white dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                 }`}
               >
                 Play with Original

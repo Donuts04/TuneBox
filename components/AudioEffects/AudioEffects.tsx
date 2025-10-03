@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -38,7 +38,13 @@ export default function AudioEffects({
   initialReverbWet = 0.7,
   initialReverbDecay = 6.5,
 }: AudioEffectsProps) {
-  const { context, startAudio } = useAudio();
+  const {
+    context,
+    startAudio,
+    registerPlayer,
+    unregisterPlayer,
+    stopOtherPlayers,
+  } = useAudio();
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8);
@@ -52,6 +58,26 @@ export default function AudioEffects({
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Memoize expensive calculations
+  const formattedCurrentTime = useMemo(
+    () => formatTime(currentTime),
+    [currentTime]
+  );
+  const formattedTotalDuration = useMemo(
+    () => formatTime(totalDuration),
+    [totalDuration]
+  );
+  const volumePercentage = useMemo(() => (volume * 100).toFixed(0), [volume]);
+  const speedFormatted = useMemo(() => speed.toFixed(2), [speed]);
+  const reverbWetPercentage = useMemo(
+    () => (reverbWet * 100).toFixed(0),
+    [reverbWet]
+  );
+  const reverbDecayFormatted = useMemo(
+    () => reverbDecay.toFixed(1),
+    [reverbDecay]
+  );
 
   // Sync ref with state for performance optimization in tick function
   useEffect(() => {
@@ -86,6 +112,32 @@ export default function AudioEffects({
     toneRef.current = Tone;
     setIsReady(true);
   }, [context]);
+
+  // Register this player and provide stop callback
+  useEffect(() => {
+    const stopCallback = () => {
+      if (playerRef.current) {
+        try {
+          playerRef.current.stop();
+        } catch {}
+      }
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      setCurrentTime(0);
+      setIsLooping(false);
+      isLoopingRef.current = false;
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+
+    registerPlayer("audioEffects", stopCallback);
+
+    return () => {
+      unregisterPlayer("audioEffects");
+    };
+  }, [registerPlayer, unregisterPlayer]);
 
   // Resolve source URL whenever inputs change
   useEffect(() => {
@@ -226,30 +278,43 @@ export default function AudioEffects({
     }
   };
 
-  // React to control changes
-  useEffect(() => {
+  // Optimized control change handlers with debouncing
+  const updateGain = useCallback((newVolume: number) => {
     if (gainRef.current) {
       try {
-        gainRef.current.gain.value = volume;
+        gainRef.current.gain.value = newVolume;
       } catch {}
     }
-  }, [volume]);
+  }, []);
 
-  useEffect(() => {
+  const updateReverbWet = useCallback((newWet: number) => {
     if (reverbRef.current) {
       try {
-        reverbRef.current.wet.value = reverbWet;
+        reverbRef.current.wet.value = newWet;
       } catch {}
     }
-  }, [reverbWet]);
+  }, []);
 
-  useEffect(() => {
+  const updateReverbDecay = useCallback((newDecay: number) => {
     if (reverbRef.current) {
       try {
-        reverbRef.current.decay = reverbDecay;
+        reverbRef.current.decay = newDecay;
       } catch {}
     }
-  }, [reverbDecay]);
+  }, []);
+
+  // React to control changes with optimized handlers
+  useEffect(() => {
+    updateGain(volume);
+  }, [volume, updateGain]);
+
+  useEffect(() => {
+    updateReverbWet(reverbWet);
+  }, [reverbWet, updateReverbWet]);
+
+  useEffect(() => {
+    updateReverbDecay(reverbDecay);
+  }, [reverbDecay, updateReverbDecay]);
 
   useEffect(() => {
     if (playerRef.current) {
@@ -290,6 +355,8 @@ export default function AudioEffects({
         rafRef.current = null;
       }
     } else {
+      // Stop other players before starting this one
+      stopOtherPlayers("audioEffects");
       try {
         // Map UI time (seconds) to buffer time (seconds)
         playerRef.current.start(undefined, currentTime);
@@ -317,7 +384,7 @@ export default function AudioEffects({
     }
   }, []);
 
-  // Animation frame update for current time display (throttled for performance)
+  // Memoize the tick function to prevent recreation on every render
   const tick = useCallback(() => {
     const now = performance.now();
 
@@ -335,7 +402,11 @@ export default function AudioEffects({
     const bufferPos = startBufferOffsetRef.current + elapsed * rate;
     const dur = totalDuration || originalDurationRef.current || 0;
     const clamped = Math.min(bufferPos, dur);
-    setCurrentTime(clamped);
+
+    // Only update state if value actually changed to prevent unnecessary re-renders
+    if (Math.abs(clamped - currentTime) > 0.01) {
+      setCurrentTime(clamped);
+    }
 
     if (clamped >= dur && dur > 0) {
       // reached end - check current loop state using ref for performance
@@ -358,7 +429,7 @@ export default function AudioEffects({
     if (isPlayingRef.current) {
       rafRef.current = requestAnimationFrame(tick);
     }
-  }, [speed, totalDuration, onStop]);
+  }, [speed, totalDuration, onStop, currentTime]);
 
   // Handle loop toggle during playback
   const handleLoopToggle = () => {
@@ -508,7 +579,7 @@ export default function AudioEffects({
   const disabled = !sourceUrlRef.current || !isReady || !isBufferLoaded;
 
   return (
-    <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
+    <div className="w-full border border-black dark:border-white p-4 space-y-4">
       <div>
         <h2 className="text-2xl font-semibold">Audio Effects</h2>
         <p className="text-sm text-muted-foreground">
@@ -517,7 +588,7 @@ export default function AudioEffects({
       </div>
       <div className="space-y-4">
         {loadError ? (
-          <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
+          <div className="flex items-center justify-between gap-3 border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
             <div className="flex items-center gap-2 text-sm">
               <AlertCircle className="h-4 w-4" />
               <span>{loadError}</span>
@@ -543,9 +614,9 @@ export default function AudioEffects({
         ) : (
           <>
             <div className="flex flex-col gap-4 md:flex-row md:gap-2 items-center justify-between">
-              <div className="flex items-center gap-2 border border-black dark:border-white rounded-full px-3 py-1.5 w-full md:w-auto md:flex-1">
+              <div className="flex items-center gap-2 border border-black dark:border-white px-3 h-8 w-full md:w-auto md:flex-1">
                 <span className="text-xs font-mono whitespace-nowrap">
-                  {formatTime(currentTime)}
+                  {formattedCurrentTime}
                 </span>
                 <Slider
                   value={[currentTime]}
@@ -557,7 +628,7 @@ export default function AudioEffects({
                   disabled={disabled}
                 />
                 <span className="text-xs font-mono w-8 text-right">
-                  {formatTime(totalDuration)}
+                  {formattedTotalDuration}
                 </span>
               </div>
               <TooltipProvider>
@@ -568,7 +639,7 @@ export default function AudioEffects({
                         onClick={onTogglePlay}
                         disabled={disabled}
                         className={cn(
-                          "h-8 w-8 rounded-full border border-black dark:border-white",
+                          "h-8 w-8 p-0 border border-black dark:border-white",
                           isPlaying
                             ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                             : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
@@ -592,7 +663,7 @@ export default function AudioEffects({
                         onClick={onStop}
                         disabled={disabled}
                         className={cn(
-                          "h-8 w-8 rounded-full border border-black dark:border-white",
+                          "h-8 w-8 p-0 border border-black dark:border-white",
                           "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                         )}
                       >
@@ -610,7 +681,7 @@ export default function AudioEffects({
                         onClick={handleLoopToggle}
                         disabled={disabled}
                         className={cn(
-                          "h-8 w-8 rounded-full border border-black dark:border-white",
+                          "h-8 w-8 p-0 border border-black dark:border-white",
                           isLooping
                             ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                             : "bg-white text-black  hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
@@ -632,7 +703,7 @@ export default function AudioEffects({
                         size="icon"
                         disabled={disabled}
                         className={cn(
-                          "h-8 w-8 rounded-full border border-black dark:border-white",
+                          "h-8 w-8 p-0 border border-black dark:border-white",
                           "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                         )}
                       >
@@ -656,7 +727,7 @@ export default function AudioEffects({
                         <Button
                           onClick={downloadRecordedAudio}
                           className={cn(
-                            "h-8 w-8 rounded-full border border-black dark:border-white",
+                            "h-8 w-8 p-0 border border-black dark:border-white",
                             "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                           )}
                         >
@@ -675,7 +746,7 @@ export default function AudioEffects({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
-                  Volume: {(volume * 100).toFixed(0)}%
+                  Volume: {volumePercentage}%
                 </Label>
                 <Slider
                   value={[volume]}
@@ -689,7 +760,7 @@ export default function AudioEffects({
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
-                  Speed: {speed.toFixed(2)}x
+                  Speed: {speedFormatted}x
                 </Label>
                 <Slider
                   value={[speed]}
@@ -703,7 +774,7 @@ export default function AudioEffects({
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
-                  Reverb Mix: {(reverbWet * 100).toFixed(0)}%
+                  Reverb Mix: {reverbWetPercentage}%
                 </Label>
                 <Slider
                   value={[reverbWet]}
@@ -717,7 +788,7 @@ export default function AudioEffects({
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
-                  Reverb Decay: {reverbDecay.toFixed(1)}s
+                  Reverb Decay: {reverbDecayFormatted}s
                 </Label>
                 <Slider
                   value={[reverbDecay]}

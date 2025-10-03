@@ -19,21 +19,29 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
 
   const steps: Step[] = [
     {
-      title: "Find Your Music",
-      description: "Search for a song or upload your own audio file",
-    },
-    {
-      title: "Choose Your Path",
+      title: "Elo Mate!",
       description:
-        "Decide whether to separate your audio or convert it to notes",
+        "I'm Tuney, your music assistant! Ready to transform some tunes? Let me show you what I can do!",
     },
     {
-      title: "Transform Your Sound",
-      description: "Watch as TuneBox works its magic on your audio",
+      title: "First things first...",
+      description:
+        "You can either search for a song using our music search, or upload your own audio file.",
     },
     {
-      title: "Enjoy & Create",
-      description: "Download your processed audio and get creative!",
+      title: "Want to spice things up?",
+      description:
+        "I can speed up or slow down your song and add some awesome reverb effects. Perfect for creating different vibes!",
+    },
+    {
+      title: "Here's where it gets fun...",
+      description:
+        "I can split your song into separate parts - vocals, drums, bass, and other instruments. Play them one by one or mix them like a DJ!",
+    },
+    {
+      title: "And finally...",
+      description:
+        "I can convert your audio into musical notes. Pretty cool, right?",
     },
   ];
 
@@ -56,7 +64,7 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="max-w-xs sm:max-w-sm bg-white dark:bg-black text-black dark:text-white border border-gray-200 dark:border-gray-800 shadow-lg rounded-2xl p-4"
+          className="max-w-xs sm:max-w-sm bg-white dark:bg-black text-black dark:text-white border border-black dark:border-white shadow-lg p-4"
         >
           <div className="flex-1 min-w-0">
             <p className="font-semibold leading-snug truncate">
@@ -69,30 +77,25 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
 
           <div className="flex items-center justify-between mt-3">
             <div className="text-xs text-muted-foreground">
-              Step {index + 1} of {steps.length}
+              {index + 1} of {steps.length}
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={goPrev}
-                className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-zinc-900"
+                className="h-8 w-8 inline-flex items-center justify-center border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-zinc-900"
                 aria-label="Previous step"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={goNext}
-                className="h-8 w-8 inline-flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-zinc-900"
+                className="h-8 w-8 inline-flex items-center justify-center  border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-zinc-900"
                 aria-label="Next step"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
-
-          <div
-            className="absolute -bottom-2 right-24 h-4 w-4 rotate-45 bg-white dark:bg-black border-r border-b border-gray-200 dark:border-gray-800"
-            aria-hidden="true"
-          />
         </motion.div>
 
         <motion.div
@@ -105,7 +108,7 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
           <button
             aria-label="Close helper"
             onClick={onClose}
-            className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-black text-white dark:bg-white dark:text-black shadow hover:opacity-90"
+            className="inline-flex items-center justify-center h-7 w-7 bg-black text-white dark:bg-white dark:text-black shadow hover:opacity-90"
           >
             <X className="h-4 w-4" />
           </button>

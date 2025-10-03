@@ -670,7 +670,7 @@ const StemPlayer = memo(function StemPlayer({
   }, [stopAllSources]);
 
   return (
-    <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
+    <div className="w-full border border-black dark:border-white p-4 space-y-4">
       <div>
         <h2 className="text-2xl font-semibold">Audio Separator</h2>
         <p className="text-sm text-muted-foreground">
@@ -695,18 +695,6 @@ const StemPlayer = memo(function StemPlayer({
         </Alert>
       ) : (
         <>
-          {hasStems && (
-            <div className="space-y-4">
-              <RecordingControls
-                isRecording={playerState.isRecording}
-                hasRecordedAudio={hasRecordedAudio}
-                onStartRecording={startRecording}
-                onStopRecording={stopRecording}
-                onDownload={downloadRecordedAudio}
-              />
-            </div>
-          )}
-
           <div>
             {hasStems && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -728,6 +716,17 @@ const StemPlayer = memo(function StemPlayer({
               </div>
             )}
           </div>
+          {hasStems && (
+            <div className="space-y-4">
+              <RecordingControls
+                isRecording={playerState.isRecording}
+                hasRecordedAudio={hasRecordedAudio}
+                onStartRecording={startRecording}
+                onStopRecording={stopRecording}
+                onDownload={downloadRecordedAudio}
+              />
+            </div>
+          )}
         </>
       )}
     </div>
