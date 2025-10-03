@@ -57,7 +57,7 @@ export function AboutSection() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                 asChild
               >
                 <a
@@ -73,7 +73,7 @@ export function AboutSection() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                 asChild
               >
                 <a
@@ -89,7 +89,7 @@ export function AboutSection() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
                 asChild
               >
                 <a

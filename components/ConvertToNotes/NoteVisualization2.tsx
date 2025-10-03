@@ -102,55 +102,6 @@ export function NoteVisualization({
   const PIXELS_PER_SECOND_FALL = FIXED_HEIGHT / 4; // 4 seconds to fall
   const KEY_WIDTH = Math.max(20, containerWidth / allPitches.length); // Dynamic key width based on container
 
-  const drawGridLines = useCallback(
-    (ctx: CanvasRenderingContext2D, height: number) => {
-      // Set grid line properties
-      ctx.strokeStyle = "rgba(148, 163, 184, 0.2)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
-
-      // Draw vertical grid lines (note columns)
-      for (let i = 0; i <= allPitches.length; i++) {
-        const x = i * KEY_WIDTH;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-
-      // Draw horizontal grid lines (time markers)
-      const timeInterval = 0.5; // Every 0.5 seconds
-      const pixelsPerSecond = PIXELS_PER_SECOND_FALL;
-
-      for (let time = 0; time <= 10; time += timeInterval) {
-        const y = height - time * pixelsPerSecond;
-        if (y > 0 && y < height) {
-          // Different line styles for different time intervals
-          if (time % 2 === 0) {
-            // Major grid lines (every 2 seconds)
-            ctx.strokeStyle = "rgba(148, 163, 184, 0.3)";
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([]);
-          } else {
-            // Minor grid lines (every 0.5 seconds)
-            ctx.strokeStyle = "rgba(148, 163, 184, 0.15)";
-            ctx.lineWidth = 1;
-            ctx.setLineDash([2, 4]);
-          }
-
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(allPitches.length * KEY_WIDTH, y);
-          ctx.stroke();
-        }
-      }
-
-      // Reset line dash
-      ctx.setLineDash([]);
-    },
-    [allPitches, KEY_WIDTH, PIXELS_PER_SECOND_FALL]
-  );
-
   const drawFallingNotes = useCallback(
     (ctx: CanvasRenderingContext2D) => {
       const bottomY = FIXED_HEIGHT;
@@ -173,58 +124,66 @@ export function NoteVisualization({
 
         // Only draw if the note is visible
         if (y + noteHeight > 0 && y < FIXED_HEIGHT) {
-          const opacity = 0.4 + note.velocity * 0.6;
           const isActive = isNoteActive(note);
 
-          ctx.save();
-
-          // Draw rounded note with different colors for active/inactive
-          const radius = Math.min(noteWidth / 4, noteHeight / 4, 8);
+          // Simple rectangular notes
           if (isActive) {
-            ctx.fillStyle = `rgba(59, 130, 246, ${opacity})`; // Blue for active
+            ctx.fillStyle = "#3b82f6"; // Blue for active
           } else {
-            ctx.fillStyle = `rgba(239, 68, 68, ${opacity})`; // Red for inactive
+            ctx.fillStyle = "#6b7280"; // Gray for inactive
           }
-          ctx.beginPath();
-          ctx.roundRect(x, y, noteWidth, noteHeight, radius);
-          ctx.fill();
+          ctx.fillRect(x, y, noteWidth, noteHeight);
 
-          // Draw border with different colors
-          ctx.strokeStyle = isActive ? "#3b82f6" : "#dc2626";
+          // Simple border
+          ctx.strokeStyle = isActive ? "#1d4ed8" : "#4b5563";
           ctx.lineWidth = 1;
-          ctx.stroke();
+          ctx.strokeRect(x, y, noteWidth, noteHeight);
 
-          // Draw splash effect when note hits the bottom
+          // Draw splash effect when note hits the bottom (more prominent)
           if (y + noteHeight >= bottomY - 5) {
-            const splashRadius = Math.min(noteWidth * 1.5, 30);
+            const splashRadius = Math.min(noteWidth * 2.0, 40);
             const splashOpacity = Math.max(
               0,
-              1 - (y + noteHeight - bottomY + 5) / 10
+              1 - (y + noteHeight - bottomY + 5) / 20
             );
 
-            ctx.fillStyle = `rgba(59, 130, 246, ${splashOpacity * 0.3})`;
-            ctx.beginPath();
-            ctx.arc(x + noteWidth / 2, bottomY, splashRadius, 0, Math.PI * 2);
-            ctx.fill();
+            if (splashOpacity > 0.05) {
+              // Outer splash - larger and more visible
+              ctx.fillStyle = `rgba(59, 130, 246, ${splashOpacity * 0.4})`;
+              ctx.beginPath();
+              ctx.arc(x + noteWidth / 2, bottomY, splashRadius, 0, Math.PI * 2);
+              ctx.fill();
 
-            // Inner splash
-            ctx.fillStyle = `rgba(255, 255, 255, ${splashOpacity * 0.5})`;
-            ctx.beginPath();
-            ctx.arc(
-              x + noteWidth / 2,
-              bottomY,
-              splashRadius * 0.6,
-              0,
-              Math.PI * 2
-            );
-            ctx.fill();
+              // Middle splash - medium size
+              ctx.fillStyle = `rgba(147, 197, 253, ${splashOpacity * 0.6})`;
+              ctx.beginPath();
+              ctx.arc(
+                x + noteWidth / 2,
+                bottomY,
+                splashRadius * 0.6,
+                0,
+                Math.PI * 2
+              );
+              ctx.fill();
+
+              // Inner splash - bright center
+              ctx.fillStyle = `rgba(255, 255, 255, ${splashOpacity * 0.8})`;
+              ctx.beginPath();
+              ctx.arc(
+                x + noteWidth / 2,
+                bottomY,
+                splashRadius * 0.3,
+                0,
+                Math.PI * 2
+              );
+              ctx.fill();
+            }
           }
 
-          // Draw note name
-          if (noteHeight > 12) {
+          // Draw note name (simplified)
+          if (noteHeight > 16) {
             ctx.fillStyle = "#ffffff";
-            ctx.font =
-              "bold 9px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+            ctx.font = "10px Arial, sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(
@@ -233,8 +192,6 @@ export function NoteVisualization({
               y + noteHeight / 2
             );
           }
-
-          ctx.restore();
         }
       }
     },
@@ -271,23 +228,18 @@ export function NoteVisualization({
     canvas.style.width = rect.width + "px";
     canvas.style.height = rect.height + "px";
 
-    // Improve text rendering
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    // Optimize rendering for better performance
+    ctx.imageSmoothingEnabled = false; // Disable for crisp pixels
 
     const width = rect.width;
     const height = rect.height;
 
-    // Clear canvas
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
-    // Draw grid lines
-    drawGridLines(ctx, height);
+    // Clear canvas with transparent background
+    ctx.clearRect(0, 0, width, height);
 
     // Draw falling notes
     drawFallingNotes(ctx);
-  }, [drawGridLines, drawFallingNotes]);
+  }, [drawFallingNotes]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -296,15 +248,8 @@ export function NoteVisualization({
       return;
     }
 
-    let lastTime = 0;
-    const targetFPS = 20; // Further reduced to 20 FPS for better performance
-    const frameInterval = 1000 / targetFPS;
-
-    const animate = (currentTime: number) => {
-      if (currentTime - lastTime >= frameInterval) {
-        draw();
-        lastTime = currentTime;
-      }
+    const animate = () => {
+      draw();
       animationRef.current = requestAnimationFrame(animate);
     };
 
@@ -345,7 +290,7 @@ export function NoteVisualization({
   return (
     <div
       ref={containerRef}
-      className="relative w-full bg-transparent rounded-md overflow-hidden border border-black/20 dark:border-white/20"
+      className="relative w-full bg-transparent rounded-lg overflow-hidden"
     >
       <div
         className="overflow-x-auto overflow-y-hidden"
