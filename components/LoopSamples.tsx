@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Play, Pause, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface LoopItem {
   text: string;
@@ -121,7 +122,11 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-full h-8 w-8 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+              className={cn(
+                "h-8 w-8 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black",
+                activeIndex === index &&
+                  "bg-black text-white dark:bg-white dark:text-black"
+              )}
               onClick={() => togglePlay(index)}
               disabled={loadingIndex === index || !item.audioUrl}
             >

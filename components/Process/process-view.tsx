@@ -1,12 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Layers,
-  KeyboardMusic,
-  CircleChevronRight,
-  RefreshCw,
-} from "lucide-react";
+import { Layers, KeyboardMusic, RefreshCw, ChevronRight } from "lucide-react";
 import AudioHeader from "@/components/AudioCard.tsx/AudioHeader";
 import AudioEffects from "@/components/AudioEffects/AudioEffects";
 import StemPlayer from "@/components/AudioSeperator/StemPlayer";
@@ -162,11 +157,11 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
         <div className="flex flex-col md:flex-row gap-4">
           {!showSeparator && (
             <div
-              className="border border-black dark:border-white cursor-pointer flex-1 p-4 flex items-center justify-between rounded-lg"
+              className="border border-black dark:border-white cursor-pointer flex-1 p-4 flex items-center justify-between"
               onClick={() => handleSeparate()}
             >
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black">
+                <div className="w-14 h-14 flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black">
                   <Layers className="h-6 w-6" />
                 </div>
                 <div>
@@ -179,19 +174,19 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
                 </div>
               </div>
 
-              <div className="h-9 w-9 rounded-full border border-black/20 dark:border-white/20 flex items-center justify-center">
-                <CircleChevronRight className="h-5 w-5" />
+              <div className="h-9 w-9 border border-black/20 dark:border-white/20 flex items-center justify-center">
+                <ChevronRight className="h-5 w-5" />
               </div>
             </div>
           )}
 
           {!showConverter && (
             <div
-              className="border border-black dark:border-white transition-all cursor-pointer flex-1 p-4 flex items-center justify-between rounded-lg"
+              className="border border-black dark:border-white transition-all cursor-pointer flex-1 p-4 flex items-center justify-between"
               onClick={() => handleConvert()}
             >
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black">
+                <div className="w-14 h-14 flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black">
                   <KeyboardMusic className="h-6 w-6" />
                 </div>
                 <div>
@@ -204,8 +199,8 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
                 </div>
               </div>
 
-              <div className="h-9 w-9 rounded-full border border-black/20 dark:border-white/20 flex items-center justify-center">
-                <CircleChevronRight className="h-5 w-5" />
+              <div className="h-9 w-9 border border-black/20 dark:border-white/20 flex items-center justify-center">
+                <ChevronRight className="h-5 w-5" />
               </div>
             </div>
           )}
@@ -213,7 +208,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       )}
 
       {separateLoading && (
-        <div className="w-full border border-black dark:border-white rounded-lg p-4 space-y-4">
+        <div className="w-full border border-black dark:border-white p-4 space-y-4">
           <div className="flex justify-center items-center max-w-md mx-auto">
             <TuneBoxLoader />
           </div>
@@ -232,6 +227,12 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
             <RefreshCw className="h-4 w-4" />
             Try Again
           </Button>
+        </div>
+      )}
+
+      {showSeparator && !separateLoading && !separateError && (
+        <div className="space-y-3">
+          <StemPlayer audioUrls={audioUrls} />
         </div>
       )}
 
@@ -255,12 +256,6 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
             <RefreshCw className="h-4 w-4" />
             Try Again
           </Button>
-        </div>
-      )}
-
-      {showSeparator && !separateLoading && !separateError && (
-        <div className="space-y-3">
-          <StemPlayer audioUrls={audioUrls} />
         </div>
       )}
 

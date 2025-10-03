@@ -18,6 +18,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -303,7 +304,9 @@ export function FeaturedCarousel() {
   );
   const [selectedSong, setSelectedSong] = React.useState<Song | null>(null);
   const [showSeparator, setShowSeparator] = React.useState(false);
+  const [currentSlide, setCurrentSlide] = React.useState(0);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const carouselApi = React.useRef<CarouselApi | null>(null);
 
   // Initialize audio element and handle cleanup
   React.useEffect(() => {
@@ -368,6 +371,7 @@ export function FeaturedCarousel() {
   const handleBack = () => {
     setShowSeparator(false);
     setSelectedSong(null);
+    // Keep the current slide position when going back
   };
 
   return (
@@ -382,8 +386,22 @@ export function FeaturedCarousel() {
             <Carousel
               opts={{
                 align: "start",
+                dragFree: true,
+                containScroll: "trimSnaps",
               }}
               className="w-full"
+              setApi={(api) => {
+                carouselApi.current = api;
+                if (api) {
+                  // Set the current slide position when carousel is ready
+                  api.scrollTo(currentSlide);
+
+                  // Listen for slide changes to update currentSlide state
+                  api.on("select", () => {
+                    setCurrentSlide(api.selectedScrollSnap());
+                  });
+                }
+              }}
             >
               <CarouselContent className="-ml-4 md:-ml-6 py-1">
                 {featuredSongs.map((song) => (
@@ -399,7 +417,7 @@ export function FeaturedCarousel() {
                         >
                           {currentlyPlaying === song.id &&
                             !audioRef.current?.paused && (
-                              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 bg-white text-black dark:bg-black dark:text-white border border-2 border-black dark:border-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 z-20">
+                              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 bg-white text-black dark:bg-black dark:text-white border border-2 border-black dark:border-white px-2 py-0.5 text-xs font-medium flex items-center gap-1 z-20">
                                 <Disc className="h-2.5 w-2.5 animate-spin" />
                                 <span>Now Playing</span>
                               </div>
@@ -422,7 +440,7 @@ export function FeaturedCarousel() {
 
                             <Button
                               className={cn(
-                                "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[17%] h-[17%] rounded-full bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black transition-colors flex items-center justify-center"
+                                "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[15%] h-[15%] bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black transition-colors flex items-center justify-center"
                               )}
                             >
                               {currentlyPlaying === song.id &&
@@ -441,20 +459,23 @@ export function FeaturedCarousel() {
                           </div>
                         </div>
 
-                        <div className="mt-6 text-center px-2">
+                        <div className="mt-4 text-center px-2">
                           <h3 className="font-bold text-xl tracking-tight line-clamp-1">
                             {song.title}
                           </h3>
-                          <p className="text-muted-foreground text-base mt-2">
+                          <p className="text-muted-foreground text-base">
                             {song.artist}
                           </p>
 
                           <Button
                             size="sm"
-                            className="mt-4 rounded-full bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black transition-colors"
+                            className={cn(
+                              "mt-4 gap-4 bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black transition-colors",
+                              "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                            )}
                             onClick={() => handleShowDetails(song)}
                           >
-                            <Info className="h-3.5 w-3.5 mr-1.5" />
+                            <Info className="h-3.5 w-3.5" />
                             Details
                           </Button>
                         </div>
@@ -466,7 +487,7 @@ export function FeaturedCarousel() {
 
               <div className="flex justify-center items-center gap-4 mt-8">
                 <CarouselPrevious
-                  className="static transform-none border border-black dark:border-white h-10 w-10 rounded-full 
+                  className="static transform-none border border-black dark:border-white h-10 w-10 rounded-none
                     bg-white text-black hover:bg-black hover:text-white 
                     dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                 >
@@ -474,7 +495,7 @@ export function FeaturedCarousel() {
                 </CarouselPrevious>
 
                 <CarouselNext
-                  className="static transform-none border border-black dark:border-white h-10 w-10 rounded-full
+                  className="static transform-none border border-black dark:border-white h-10 w-10 rounded-none
                     bg-white text-black hover:bg-black hover:text-white 
                     dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                 >
@@ -490,7 +511,7 @@ export function FeaturedCarousel() {
             <Button
               variant="outline"
               size="sm"
-              className="rounded-full border border-black dark:border-white flex gap-1 bg-white dark:bg-black text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+              className="border border-black dark:border-white flex gap-1 bg-white dark:bg-black text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
               onClick={handleBack}
             >
               <ArrowLeft className="h-4 w-4" />

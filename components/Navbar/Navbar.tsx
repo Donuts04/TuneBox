@@ -51,7 +51,7 @@ const NavbarComponent = () => {
         </NavBody>
 
         {/* Mobile Navigation */}
-        <MobileNav>
+        <MobileNav isOpen={isMobileMenuOpen}>
           <MobileNavHeader>
             <NavbarLogo />
             <div className="flex items-center gap-4">
