@@ -210,11 +210,17 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
                 exit={{ opacity: 0, y: -20 }}
                 className="group border border-black dark:border-white hover:shadow-md transition-all"
               >
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 overflow-hidden">
+                <div
+                  className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 overflow-hidden cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                  onClick={() => track.preview && selectTrack(track)}
+                >
                   <div className="flex items-center w-full sm:w-auto">
                     <div
                       className="relative flex-shrink-0 mr-4 cursor-pointer"
-                      onClick={() => togglePlayPreview(track)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePlayPreview(track);
+                      }}
                     >
                       {track.album.cover_medium ? (
                         <div className="relative w-14 h-14 overflow-hidden border border-black dark:border-white">
@@ -234,7 +240,11 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
                       <Button
                         variant="default"
                         size="icon"
-                        className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-white dark:bg-black border border-black dark:border-white hover:bg-black dark:hover:bg-white  text-black dark:text-white hover:text-white dark:hover:text-black"
+                        className="absolute -bottom-2 -right-2 h-7 w-7 bg-white dark:bg-black border border-black dark:border-white hover:bg-black dark:hover:bg-white  text-black dark:text-white hover:text-white dark:hover:text-black"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePlayPreview(track);
+                        }}
                       >
                         {currentlyPlaying === track.id ? (
                           <Pause className="h-4 w-4" />
@@ -269,7 +279,10 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
                     <>
                       <Button
                         className="w-full sm:w-auto h-9 flex items-center justify-center gap-2 border border-black dark:border-white text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-                        onClick={() => selectTrack(track)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectTrack(track);
+                        }}
                       >
                         <BoomBox className="h-4 w-4" />
                         <span>Select</span>
