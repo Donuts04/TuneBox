@@ -78,14 +78,46 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${poppins.variable} ${comfortaa.variable} ${gotham.variable} ${helvetica.variable}`}
     >
-      <link rel="icon" href="/tuney.png" sizes="any" />
-      <link rel="preload" as="image" href="/TuneBoxLogo.png" />
-      <link rel="preload" as="image" href="/TuneBoxLogoClean.png" />
-      <link rel="preload" as="image" href="/tuney/pointRight.png" />
-      <link rel="preload" as="image" href="/tuney/tuney.svg" />
-      <link rel="preload" as="image" href="/tuney/dance.png" />
-      <link rel="preload" as="image" href="/tuney/pointDown.png" />
-      <link rel="preload" as="image" href="/tuney/coolCross.png" />
+      <link
+        rel="icon"
+        href="https://storage.googleapis.com/tunebox-stuff/tuney/tuney.png"
+        sizes="any"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="https://storage.googleapis.com/tunebox-stuff/logos/TuneBoxLogo.png"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="https://storage.googleapis.com/tunebox-stuff/logos/TuneBoxLogoClean.png"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="https://storage.googleapis.com/tunebox-stuff/tuney/pointRight.png"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="https://storage.googleapis.com/tunebox-stuff/tuney/tuney.svg"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="https://storage.googleapis.com/tunebox-stuff/tuney/dance.png"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="https://storage.googleapis.com/tunebox-stuff/tuney/pointDown.png"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="https://storage.googleapis.com/tunebox-stuff/tuney/coolCross.png"
+      />
       <body className="bg-white dark:bg-black">
         <AudioProvider>{children}</AudioProvider>
         <Analytics />
@@ -94,7 +126,7 @@ export default function RootLayout({
         {/* Silent audio element for iOS silent mode unblock */}
         <audio
           id="silent-audio"
-          src="/1-minute-of-silence.mp3"
+          src="https://storage.googleapis.com/tunebox-stuff/1-minute-of-silence.mp3"
           preload="auto"
           loop
           style={{ display: "none" }}

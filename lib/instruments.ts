@@ -43,7 +43,7 @@ export const INSTRUMENTS: Instrument[] = [
     urls: {
       C4: "music-box-note-c_C_major.wav",
     },
-    baseUrl: "/",
+    baseUrl: "/sounds/music-box/",
   },
   {
     id: "piano",

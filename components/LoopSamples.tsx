@@ -103,7 +103,7 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
   };
 
   return (
-    <div>
+    <div id="loops">
       <h2 className="text-3xl font-bold sm:text-4xl text-center mb-10">
         Some Good Loops
       </h2>
