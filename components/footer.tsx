@@ -5,7 +5,7 @@ const Footer = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-6">
       <Image
-        src="/okLogo.png"
+        src="https://storage.googleapis.com/tunebox-stuff/logos/okLogo.png"
         alt="Logo"
         width={140}
         height={140}

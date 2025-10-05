@@ -183,9 +183,9 @@ export function MusicBoxComposer() {
         // Step 3: Create sampler with context
         const sampler = new Tone.Sampler({
           urls: {
-            C4: "/music-box-note-c_C_major.wav",
+            C4: "music-box-note-c_C_major.wav",
           },
-          baseUrl: "",
+          baseUrl: "/sounds/music-box/",
           context: context,
           onload: () => {
             if (cancelled) return;
@@ -403,7 +403,7 @@ export function MusicBoxComposer() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="music-box">
       <div className="flex items-end justify-between">
         <div className="flex flex-col items-start justify-center">
           <h1 className="text-3xl font-bold sm:text-4xl">Music Box</h1>
@@ -413,7 +413,7 @@ export function MusicBoxComposer() {
         </div>
 
         <Image
-          src="/tuney/pointDown.png"
+          src="https://storage.googleapis.com/tunebox-stuff/tuney/pointDown.png"
           alt="TuneBox Logo"
           width={100}
           height={100}

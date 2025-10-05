@@ -19,12 +19,12 @@ const NavbarComponent = () => {
       link: "/",
     },
     {
-      name: "Start",
-      link: "#start",
-    },
-    {
       name: "Featured",
       link: "#featured",
+    },
+    {
+      name: "Start",
+      link: "#start",
     },
     {
       name: "Music Box",
@@ -50,7 +50,6 @@ const NavbarComponent = () => {
           <NavItems items={navItems} />
         </NavBody>
 
-        {/* Mobile Navigation */}
         <MobileNav isOpen={isMobileMenuOpen}>
           <MobileNavHeader>
             <NavbarLogo />
@@ -70,8 +69,23 @@ const NavbarComponent = () => {
               <a
                 key={`mobile-link-${idx}`}
                 href={item.link}
-                onClick={() => setIsMobileMenuOpen(false)}
-                // className="relative text-neutral-600 dark:text-neutral-300"
+                onClick={(e) => {
+                  setIsMobileMenuOpen(false);
+                  if (item.link && item.link.startsWith("#")) {
+                    e.preventDefault();
+                    const target = document.querySelector(item.link);
+                    if (target) {
+                      (target as HTMLElement).scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    }
+                  } else if (item.link === "/") {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+                className="block w-full px-4 py-3 text-left text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200"
               >
                 <span className="block">{item.name}</span>
               </a>

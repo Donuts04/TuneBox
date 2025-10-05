@@ -127,7 +127,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
       {!query.trim() ? (
         <div className="flex justify-center pt-6">
           <Image
-            src="/tuney/tuney.svg"
+            src="https://storage.googleapis.com/tunebox-stuff/tuney/tuney.svg"
             alt="Tuney"
             width={150}
             height={150}
@@ -155,11 +155,11 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
           {[1, 2, 3, 4].map((i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{
                 opacity: 1,
-                y: 0,
-                transition: { delay: i * 0.1 },
+                scale: 1,
+                transition: { delay: i * 0.1, duration: 0.3, ease: "easeOut" },
               }}
             >
               <div className="group border border-black dark:border-white">
@@ -201,13 +201,17 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
             {tracks.map((track, index) => (
               <motion.div
                 key={track.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{
                   opacity: 1,
-                  y: 0,
-                  transition: { delay: index * 0.05 },
+                  scale: 1,
+                  transition: {
+                    delay: index * 0.05,
+                    duration: 0.3,
+                    ease: "easeOut",
+                  },
                 }}
-                exit={{ opacity: 0, y: -20 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 className="group border border-black dark:border-white hover:shadow-md transition-all"
               >
                 <div
