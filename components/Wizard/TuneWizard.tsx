@@ -68,7 +68,7 @@ export default function TuneWizard() {
 
         <div className="flex items-center justify-center px-8">
           <Image
-            src="/tuney/dance.png"
+            src="https://storage.googleapis.com/tunebox-stuff/tuney/dance.png"
             alt="TuneBox Logo"
             width={150}
             height={150}

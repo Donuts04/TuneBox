@@ -6,7 +6,7 @@ import OkLoader from "./loaders/ok-loader";
 
 export function AboutSection() {
   return (
-    <section>
+    <section id="about">
       <div className="text-center mb-10">
         <h2 className="text-3xl font-bold sm:text-4xl text-center">About</h2>
       </div>
@@ -16,7 +16,7 @@ export function AboutSection() {
           <div className="md:col-span-5 relative">
             <div className="relative w-full aspect-square border-[3px] border-black dark:border-white">
               <Image
-                src="/osamaSrs.png"
+                src="https://storage.googleapis.com/tunebox-stuff/logos/osamaSrs.png"
                 alt="Osama Khalil"
                 fill
                 className="object-cover grayscale hover:grayscale-0 transition-all duration-500"

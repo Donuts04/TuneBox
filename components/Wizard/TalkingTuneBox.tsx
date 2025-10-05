@@ -54,7 +54,7 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
-      className="fixed bottom-4 right-4 z-50"
+      className="fixed bottom-4 right-4 z-50 p-4 sm:p-0"
       role="dialog"
       aria-label="How to use TuneBox"
     >
@@ -103,7 +103,7 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 10, opacity: 0 }}
           transition={{ delay: 0.05 }}
-          className="shrink-0 flex flex-col items-end gap-2"
+          className="shrink-0 flex flex-col items-end gap-2 -mr-4 sm:mr-0"
         >
           <button
             aria-label="Close helper"
@@ -113,7 +113,7 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
             <X className="h-4 w-4" />
           </button>
           <Image
-            src="/tuney/coolCross.png"
+            src="https://storage.googleapis.com/tunebox-stuff/tuney/coolCross.png"
             alt="TuneBox Assistant"
             width={84}
             height={84}
