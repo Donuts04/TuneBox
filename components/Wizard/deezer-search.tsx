@@ -11,12 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
 import { formatTime } from "@/lib/utils";
+import { useAudio } from "@/contexts/audio-context";
 
 interface DeezerSearchProps {
   onSelect: (track: DeezerTrack) => void;
 }
 
 export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
+  // Get audio context for global audio management
+  const { registerPlayer, unregisterPlayer, stopOtherPlayers, startAudio } =
+    useAudio();
+
   const [query, setQuery] = useState("");
   const [tracks, setTracks] = useState<DeezerTrack[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +29,22 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Register this player with the global audio management system
+  useEffect(() => {
+    const stopCallback = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setCurrentlyPlaying(null);
+      }
+    };
+
+    registerPlayer("deezerSearch", stopCallback);
+
+    return () => {
+      unregisterPlayer("deezerSearch");
+    };
+  }, [registerPlayer, unregisterPlayer]);
 
   useEffect(() => {
     audioRef.current = new Audio();
@@ -70,7 +91,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
     };
   }, [query]);
 
-  const togglePlayPreview = (track: DeezerTrack) => {
+  const togglePlayPreview = async (track: DeezerTrack) => {
     if (!track.preview) {
       setError("No preview available for this track 😔");
       return;
@@ -80,16 +101,22 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
       audioRef.current?.pause();
       setCurrentlyPlaying(null);
     } else {
+      // Stop other players before starting this one
+      stopOtherPlayers("deezerSearch");
+
       if (audioRef.current) {
         audioRef.current.pause();
       }
 
       audioRef.current = new Audio(track.preview);
-      audioRef.current.play().catch(() => {
-        setError("Failed to play preview 😔");
-      });
 
-      setCurrentlyPlaying(track.id);
+      try {
+        await startAudio();
+        await audioRef.current.play();
+        setCurrentlyPlaying(track.id);
+      } catch {
+        setError("Failed to play preview 😔");
+      }
 
       audioRef.current.onended = () => {
         setCurrentlyPlaying(null);

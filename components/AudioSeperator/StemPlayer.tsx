@@ -8,6 +8,7 @@ import { encode } from "wav-encoder";
 import RunnerLoader from "@/components/loaders/runner-loader";
 import StemControl, { StemSource } from "./StemControl";
 import RecordingControls from "./RecordingControls";
+import { useAudio } from "@/contexts/audio-context";
 
 // 1. MEMOIZE STATIC OBJECTS - Move outside component to prevent recreation
 const STEM_META: Record<string, { name: string; icon: React.ReactNode }> = {
@@ -31,11 +32,17 @@ const STEM_META: Record<string, { name: string; icon: React.ReactNode }> = {
 
 interface StemPlayerProps {
   audioUrls?: Record<string, string>;
+  playerId?: string; // Unique identifier for audio management
 }
 
 const StemPlayer = memo(function StemPlayer({
   audioUrls = {},
+  playerId = "stemPlayer",
 }: StemPlayerProps) {
+  // Get audio context for global audio management
+  const { registerPlayer, unregisterPlayer, stopOtherPlayers, startAudio } =
+    useAudio();
+
   // 2. OPTIMIZE STATE MANAGEMENT - Combine related state to reduce re-renders
   const [playerState, setPlayerState] = useState({
     isLoading: true,
@@ -73,6 +80,19 @@ const StemPlayer = memo(function StemPlayer({
   );
 
   const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Register this player with the global audio management system
+  useEffect(() => {
+    const stopCallback = () => {
+      stopAllSources();
+    };
+
+    registerPlayer(playerId, stopCallback);
+
+    return () => {
+      unregisterPlayer(playerId);
+    };
+  }, [registerPlayer, unregisterPlayer]);
 
   // Web Audio API refs
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -473,6 +493,11 @@ const StemPlayer = memo(function StemPlayer({
         await audioContextRef.current.resume();
       }
 
+      // Start audio context if needed
+      try {
+        await startAudio();
+      } catch {}
+
       const gainNode = gainNodesRef.current[audioId];
 
       if (playerState.playingStems.has(audioId)) {
@@ -493,6 +518,9 @@ const StemPlayer = memo(function StemPlayer({
           pauseTransport();
         }
       } else {
+        // Stop other players before starting this one
+        stopOtherPlayers(playerId);
+
         // Unmute this stem (like Tone.js)
         gainNode.gain.value = playerState.volumes[audioId] ?? 1;
 
@@ -523,6 +551,8 @@ const StemPlayer = memo(function StemPlayer({
       playerState.volumes,
       playerState.currentTime,
       playerState.duration,
+      stopOtherPlayers,
+      startAudio,
     ]
   );
 

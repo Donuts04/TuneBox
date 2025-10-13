@@ -28,6 +28,7 @@ import MidiPlayer from "@/components/ConvertToNotes/MidiPlayer";
 import { Midi } from "@tonejs/midi";
 import AudioHeader from "./AudioCard.tsx/AudioHeader";
 import { analytics } from "@/lib/analytics";
+import { useAudio } from "@/contexts/audio-context";
 
 interface AudioEffectsSettings {
   speed?: number;
@@ -355,6 +356,10 @@ const featuredSongs: Song[] = [
 ];
 
 export function FeaturedCarousel() {
+  // Get audio context for global audio management
+  const { registerPlayer, unregisterPlayer, stopOtherPlayers, startAudio } =
+    useAudio();
+
   const [currentlyPlaying, setCurrentlyPlaying] = React.useState<string | null>(
     null
   );
@@ -363,6 +368,22 @@ export function FeaturedCarousel() {
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const carouselApi = React.useRef<CarouselApi | null>(null);
+
+  // Register this player with the global audio management system
+  React.useEffect(() => {
+    const stopCallback = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setCurrentlyPlaying(null);
+      }
+    };
+
+    registerPlayer("featuredCarousel", stopCallback);
+
+    return () => {
+      unregisterPlayer("featuredCarousel");
+    };
+  }, [registerPlayer, unregisterPlayer]);
 
   // Initialize audio element and handle cleanup
   React.useEffect(() => {
@@ -384,7 +405,7 @@ export function FeaturedCarousel() {
     };
   }, []);
 
-  const handlePlay = (song: Song) => {
+  const handlePlay = async (song: Song) => {
     if (!audioRef.current) return;
 
     const audio = audioRef.current;
@@ -392,24 +413,34 @@ export function FeaturedCarousel() {
     if (currentlyPlaying === song.id) {
       // If the same song is clicked, toggle play/pause
       if (audio.paused) {
-        audio.play().catch((err) => {
+        try {
+          await startAudio();
+          await audio.play();
+        } catch (err) {
           console.error("Error playing audio:", err);
-        });
+        }
       } else {
         audio.pause();
         setCurrentlyPlaying(null);
       }
     } else {
+      // Stop other players before starting this one
+      stopOtherPlayers("featuredCarousel");
+
       // Stop any currently playing audio
       audio.pause();
 
       // Update source and play new track
       audio.src = song.audioUrl;
       audio.load(); // Ensure the new source is loaded
-      audio.play().catch((err) => {
+
+      try {
+        await startAudio();
+        await audio.play();
+        setCurrentlyPlaying(song.id);
+      } catch (err) {
         console.error("Error playing audio:", err);
-      });
-      setCurrentlyPlaying(song.id);
+      }
     }
   };
 
@@ -589,6 +620,7 @@ export function FeaturedCarousel() {
                 subtitle={selectedSong.artist}
                 imageUrl={selectedSong.coverImage}
                 audioUrl={selectedSong.audioUrl}
+                playerId="featured-audioHeader"
               />
 
               <AudioEffects
@@ -596,13 +628,18 @@ export function FeaturedCarousel() {
                 initialSpeed={selectedSong.audioEffects?.speed}
                 initialReverbWet={selectedSong.audioEffects?.reverb}
                 initialReverbDecay={selectedSong.audioEffects?.delay}
+                playerId="featured-audioEffects"
               />
 
-              <StemPlayer audioUrls={selectedSong.audioUrls || {}} />
+              <StemPlayer
+                audioUrls={selectedSong.audioUrls || {}}
+                playerId="featured-stemPlayer"
+              />
 
               <MidiPlayer
                 midi={selectedSong.midi || null}
                 originalAudioUrl={selectedSong.audioUrl}
+                playerId="featured-midiPlayer"
               />
             </div>
           )}

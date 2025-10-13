@@ -4,12 +4,14 @@ import Image from "next/image";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useRef, useState } from "react";
 import { formatTime } from "@/lib/utils";
+import { useAudio } from "@/contexts/audio-context";
 
 interface AudioHeaderProps {
   title: string;
   subtitle?: string;
   imageUrl?: string;
   audioUrl?: string;
+  playerId?: string; // Unique identifier for audio management
 }
 
 export default function AudioHeader({
@@ -17,11 +19,33 @@ export default function AudioHeader({
   subtitle,
   imageUrl,
   audioUrl,
+  playerId = "audioHeader",
 }: AudioHeaderProps) {
+  // Get audio context for global audio management
+  const { registerPlayer, unregisterPlayer, stopOtherPlayers, startAudio } =
+    useAudio();
+
   const [isHeaderPlaying, setIsHeaderPlaying] = useState(false);
   const [headerAudioDuration, setHeaderAudioDuration] = useState(0);
   const headerAudioRef = useRef<HTMLAudioElement | null>(null);
   const [headerCurrentTime, setHeaderCurrentTime] = useState(0);
+
+  // Register this player with the global audio management system
+  useEffect(() => {
+    const stopCallback = () => {
+      const audioEl = headerAudioRef.current;
+      if (audioEl) {
+        audioEl.pause();
+        setIsHeaderPlaying(false);
+      }
+    };
+
+    registerPlayer(playerId, stopCallback);
+
+    return () => {
+      unregisterPlayer(playerId);
+    };
+  }, [registerPlayer, unregisterPlayer]);
 
   // Initialize simple header <audio> element independent of Tone.js
   useEffect(() => {
@@ -59,11 +83,17 @@ export default function AudioHeader({
   const toggleHeaderPlayback = async () => {
     const audioEl = headerAudioRef.current;
     if (!audioEl) return;
+
     if (isHeaderPlaying) {
       audioEl.pause();
       setIsHeaderPlaying(false);
     } else {
+      // Stop other players before starting this one
+      stopOtherPlayers(playerId);
+
       try {
+        // Start audio context if needed
+        await startAudio();
         await audioEl.play();
         setIsHeaderPlaying(true);
       } catch {
