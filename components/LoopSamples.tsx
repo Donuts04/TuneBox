@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Play, Pause, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAudio } from "@/contexts/audio-context";
 
 interface LoopItem {
   text: string;
@@ -15,9 +16,31 @@ interface LoopSamplesProps {
 }
 
 export default function LoopSamples({ items }: LoopSamplesProps) {
+  // Get audio context for global audio management
+  const { registerPlayer, unregisterPlayer, stopOtherPlayers, startAudio } =
+    useAudio();
+
   const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
+
+  // Register this player with the global audio management system
+  useEffect(() => {
+    const stopCallback = () => {
+      audioRefs.current.forEach((audio) => {
+        if (audio) {
+          audio.pause();
+        }
+      });
+      setActiveIndex(null);
+    };
+
+    registerPlayer("loopSamples", stopCallback);
+
+    return () => {
+      unregisterPlayer("loopSamples");
+    };
+  }, [registerPlayer, unregisterPlayer]);
 
   // Recreate audio elements when items change
   useEffect(() => {
@@ -90,6 +113,12 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
       if (!current.paused) {
         current.pause();
       } else {
+        // Stop other players before starting this one
+        stopOtherPlayers("loopSamples");
+
+        // Start audio context if needed
+        await startAudio();
+
         // Pause all others first
         if (activeIndex !== null && activeIndex !== index) {
           const active = audioRefs.current[activeIndex];

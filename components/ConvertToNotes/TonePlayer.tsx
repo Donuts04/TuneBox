@@ -19,12 +19,14 @@ interface TonePlayerProps {
   midiData: Midi | null;
   selectedInstrument: string;
   originalAudioUrl?: string;
+  playerId?: string; // Unique identifier for audio management
 }
 
 export default function TonePlayer({
   midiData,
   selectedInstrument,
   originalAudioUrl,
+  playerId = "tonePlayer",
 }: TonePlayerProps) {
   const {
     context,
@@ -82,10 +84,10 @@ export default function TonePlayer({
       originalPlayerRef.current?.stop?.();
     };
 
-    registerPlayer("tonePlayer", stopCallback);
+    registerPlayer(playerId, stopCallback);
 
     return () => {
-      unregisterPlayer("tonePlayer");
+      unregisterPlayer(playerId);
     };
   }, [registerPlayer, unregisterPlayer, transport]);
 
@@ -332,7 +334,7 @@ export default function TonePlayer({
         setIsPlaying(false);
       } else {
         // Stop other players before starting this one
-        stopOtherPlayers("tonePlayer");
+        stopOtherPlayers(playerId);
         // If resuming from pause, just start the transport
         if ((transport?.seconds || 0) > 0) {
           transport?.start();
