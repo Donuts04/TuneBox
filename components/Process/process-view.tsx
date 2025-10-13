@@ -33,6 +33,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
   );
   const [hasSeparated, setHasSeparated] = useState(false);
   const [hasConverted, setHasConverted] = useState(false);
+
   useEffect(() => {
     if (uploadedFile) {
       const url = URL.createObjectURL(uploadedFile);
@@ -45,6 +46,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       setUploadedObjectUrl(null);
     }
   }, [uploadedFile]);
+
   const originalAudioUrl = useMemo(
     () => uploadedObjectUrl || track?.preview || null,
     [uploadedObjectUrl, track]
@@ -74,6 +76,14 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       if (!input) throw new Error("No audio selected");
       const formData = new FormData();
       formData.append("file", input);
+      const songName = track?.title || uploadedFile?.name || "Unknown";
+      const songType = track ? "deezer" : "upload";
+      formData.append("songName", songName);
+      formData.append("songType", songType);
+      if (track?.artist?.name) {
+        formData.append("artistName", track.artist.name);
+      }
+
       const response = await fetch("/api/separate", {
         method: "POST",
         body: formData,
@@ -104,7 +114,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
     } finally {
       setSeparateLoading(false);
     }
-  }, [getInputFile, hasSeparated, audioUrls]);
+  }, [getInputFile, hasSeparated, audioUrls, track, uploadedFile]);
 
   const handleConvert = useCallback(async () => {
     setShowConverter(true);
@@ -117,6 +127,14 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       if (!input) throw new Error("No audio selected");
       const formData = new FormData();
       formData.append("file", input);
+      const songName = track?.title || uploadedFile?.name || "Unknown";
+      const songType = track ? "deezer" : "upload";
+      formData.append("songName", songName);
+      formData.append("songType", songType);
+      if (track?.artist?.name) {
+        formData.append("artistName", track.artist.name);
+      }
+
       const apiResponse = await fetch("/api/generate-midi", {
         method: "POST",
         body: formData,
@@ -132,7 +150,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
     } finally {
       setConvertLoading(false);
     }
-  }, [getInputFile, midi, hasConverted]);
+  }, [getInputFile, midi, hasConverted, track, uploadedFile]);
 
   return (
     <div className="space-y-4">

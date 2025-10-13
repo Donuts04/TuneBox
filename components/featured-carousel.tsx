@@ -27,6 +27,7 @@ import AudioEffects from "@/components/AudioEffects/AudioEffects";
 import MidiPlayer from "@/components/ConvertToNotes/MidiPlayer";
 import { Midi } from "@tonejs/midi";
 import AudioHeader from "./AudioCard.tsx/AudioHeader";
+import { analytics } from "@/lib/analytics";
 
 interface AudioEffectsSettings {
   speed?: number;
@@ -418,6 +419,9 @@ export function FeaturedCarousel() {
       audioRef.current.pause();
       setCurrentlyPlaying(null);
     }
+
+    // Track analytics for featured song details view
+    analytics.trackFeaturedDetails(song.id.toString(), song.title, song.artist);
 
     setSelectedSong(song);
     setShowSeparator(true);
