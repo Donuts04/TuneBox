@@ -94,11 +94,11 @@ export default function UploadDropzone({
   });
 
   return (
-    <Card className="border border-dashed border-black dark:border-white rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
+    <Card className="border border-dashed border-black dark:border-white hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
       <CardContent className="p-10">
         <div
           {...getRootProps()}
-          className={`flex flex-col items-center justify-center gap-4 text-center cursor-pointer rounded-lg p-10 transition-colors ${
+          className={`flex flex-col items-center justify-center gap-4 text-center cursor-pointer p-10 transition-colors ${
             isDragActive ? "bg-black/5 dark:bg-white/5" : "bg-transparent"
           }`}
           tabIndex={0}
@@ -107,7 +107,7 @@ export default function UploadDropzone({
         >
           <input {...getInputProps()} />
           <div
-            className={`w-20 h-20 rounded-full border border-dashed border-black dark:border-white flex items-center justify-center transition-transform ${
+            className={`w-20 h-20 border border-dashed border-black dark:border-white flex items-center justify-center transition-transform ${
               isDragActive ? "scale-110" : ""
             }`}
           >
