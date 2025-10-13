@@ -12,12 +12,19 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
+          "--normal-bg": "hsl(var(--popover))",
+          "--normal-text": "hsl(var(--popover-foreground))",
+          "--normal-border": "hsl(var(--foreground))",
+          "--border-radius": "0px",
+          "--shadow": "none",
         } as React.CSSProperties
       }
-      richColors
+      toastOptions={{
+        classNames: {
+          actionButton:
+            "!bg-black !text-white !px-2 !py-4 !font-medium !border !border-black !rounded-none hover:!bg-gray-800 hover:!border-gray-800",
+        },
+      }}
       {...props}
     />
   );

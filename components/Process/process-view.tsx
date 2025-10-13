@@ -175,11 +175,11 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
         <div className="flex flex-col md:flex-row gap-4">
           {!showSeparator && (
             <div
-              className="border border-black dark:border-white cursor-pointer flex-1 p-4 flex items-center justify-between"
+              className="border border-black dark:border-white cursor-pointer flex-1 p-4 flex items-center justify-between group"
               onClick={() => handleSeparate()}
             >
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black">
+                <div className="w-14 h-14 flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black group-hover:bg-white group-hover:dark:bg-black group-hover:text-black group-hover:dark:text-white transition-colors">
                   <Layers className="h-6 w-6" />
                 </div>
                 <div>
@@ -192,7 +192,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
                 </div>
               </div>
 
-              <div className="h-9 w-9 border border-black/20 dark:border-white/20 flex items-center justify-center">
+              <div className="h-9 w-9 border border-black/20 dark:border-white/20 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
                 <ChevronRight className="h-5 w-5" />
               </div>
             </div>
@@ -200,11 +200,11 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
 
           {!showConverter && (
             <div
-              className="border border-black dark:border-white transition-all cursor-pointer flex-1 p-4 flex items-center justify-between"
+              className="border border-black dark:border-white transition-all cursor-pointer flex-1 p-4 flex items-center justify-between group"
               onClick={() => handleConvert()}
             >
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black">
+                <div className="w-14 h-14 flex items-center justify-center border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black group-hover:bg-white group-hover:dark:bg-black group-hover:text-black group-hover:dark:text-white transition-colors">
                   <KeyboardMusic className="h-6 w-6" />
                 </div>
                 <div>
@@ -217,7 +217,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
                 </div>
               </div>
 
-              <div className="h-9 w-9 border border-black/20 dark:border-white/20 flex items-center justify-center">
+              <div className="h-9 w-9 border border-black/20 dark:border-white/20 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
                 <ChevronRight className="h-5 w-5" />
               </div>
             </div>
