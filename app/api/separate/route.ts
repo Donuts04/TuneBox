@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
+import { trackAudioProcessing } from "@/lib/analytics-utils";
+import { validateRequest } from "@/lib/security";
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
+
   try {
+    const requestValidation = validateRequest(request);
+    if (!requestValidation.isValid) {
+      return NextResponse.json(
+        { error: requestValidation.error },
+        { status: 403 }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const songName = formData.get("songName") as string;
+    const songType = formData.get("songType") as string;
 
     if (!file) {
       return NextResponse.json(
@@ -24,11 +37,36 @@ export async function POST(request: Request) {
     );
 
     if (!backendResponse.ok) {
+      // Track failed processing
+      const processingTimeMs = Date.now() - startTime;
+      await trackAudioProcessing(request, {
+        audioSource: songType === "deezer" ? "deezer_search" : "file_upload",
+        audioName: songName || file.name,
+        artistName:
+          songType === "deezer" ? (formData.get("artistName") as string) : null,
+        processingType: "separation",
+        processingSuccess: false,
+        processingTimeMs,
+        errorMessage: `Backend error: ${backendResponse.statusText}`,
+      });
+
       return NextResponse.json(
         { error: `Backend error: ${backendResponse.statusText}` },
         { status: backendResponse.status }
       );
     }
+
+    const processingTimeMs = Date.now() - startTime;
+    await trackAudioProcessing(request, {
+      audioSource: songType === "deezer" ? "deezer_search" : "file_upload",
+      audioName: songName || file.name,
+      artistName:
+        songType === "deezer" ? (formData.get("artistName") as string) : null,
+      processingType: "separation",
+      processingSuccess: true,
+      processingTimeMs,
+      errorMessage: null,
+    });
 
     const result = await backendResponse.json();
 

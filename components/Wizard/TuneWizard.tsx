@@ -20,6 +20,7 @@ import ProcessView from "@/components/Process/process-view";
 import UploadDropzone from "./upload-dropzone";
 import StepHeader from "./StepHeader";
 import { cn } from "@/lib/utils";
+import { analytics } from "@/lib/analytics";
 
 export default function TuneWizard() {
   const [currentStep, setCurrentStep] = useState<Step>("initial");
@@ -117,6 +118,7 @@ export default function TuneWizard() {
 
         <DeezerSearch
           onSelect={(track) => {
+            analytics.trackDeezerSelection(track.title, track.artist.name);
             setSelectedTrack(track);
             setCurrentStep("process");
           }}
@@ -135,6 +137,7 @@ export default function TuneWizard() {
 
         <UploadDropzone
           onFileSelected={(file) => {
+            analytics.trackUploadSelection(file.name);
             setUploadedFile(file);
             setCurrentStep("process");
           }}
