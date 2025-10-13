@@ -16,11 +16,13 @@ import TonePlayer from "./TonePlayer";
 interface MidiPlayerProps {
   midi?: Midi | null;
   originalAudioUrl?: string | null;
+  playerId?: string; // Unique identifier for audio management
 }
 
 export default function MidiPlayer({
   midi,
   originalAudioUrl,
+  playerId = "midiPlayer",
 }: MidiPlayerProps) {
   const [selectedInstrument, setSelectedInstrument] = useState(
     INSTRUMENTS[0].id
@@ -73,6 +75,7 @@ export default function MidiPlayer({
                     midiData={midi}
                     selectedInstrument={selectedInstrument}
                     originalAudioUrl={originalAudioUrl || undefined}
+                    playerId={playerId}
                   />
                 </div>
               </div>

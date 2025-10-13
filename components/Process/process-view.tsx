@@ -167,9 +167,13 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
         }
         imageUrl={track?.album.cover_medium}
         audioUrl={originalAudioUrl || undefined}
+        playerId="process-audioHeader"
       />
 
-      <AudioEffects audioUrl={originalAudioUrl} />
+      <AudioEffects
+        audioUrl={originalAudioUrl}
+        playerId="process-audioEffects"
+      />
 
       {(!showSeparator || !showConverter) && (
         <div className="flex flex-col md:flex-row gap-4">
@@ -250,7 +254,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
 
       {showSeparator && !separateLoading && !separateError && (
         <div className="space-y-3">
-          <StemPlayer audioUrls={audioUrls} />
+          <StemPlayer audioUrls={audioUrls} playerId="process-stemPlayer" />
         </div>
       )}
 
@@ -279,7 +283,11 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
 
       {showConverter && !convertLoading && !convertError && (
         <div className="space-y-3">
-          <MidiPlayer midi={midi} originalAudioUrl={originalAudioUrl} />
+          <MidiPlayer
+            midi={midi}
+            originalAudioUrl={originalAudioUrl}
+            playerId="process-midiPlayer"
+          />
         </div>
       )}
     </div>

@@ -30,6 +30,7 @@ interface AudioEffectsProps {
   initialSpeed?: number;
   initialReverbWet?: number; // 0-1 (e.g., 0.7 for 70%)
   initialReverbDecay?: number; // seconds (e.g., 6.5)
+  playerId?: string; // Unique identifier for audio management
 }
 
 export default function AudioEffects({
@@ -37,6 +38,7 @@ export default function AudioEffects({
   initialSpeed = 1,
   initialReverbWet = 0.7,
   initialReverbDecay = 6.5,
+  playerId = "audioEffects",
 }: AudioEffectsProps) {
   const {
     context,
@@ -132,10 +134,10 @@ export default function AudioEffects({
       }
     };
 
-    registerPlayer("audioEffects", stopCallback);
+    registerPlayer(playerId, stopCallback);
 
     return () => {
-      unregisterPlayer("audioEffects");
+      unregisterPlayer(playerId);
     };
   }, [registerPlayer, unregisterPlayer]);
 
@@ -356,7 +358,7 @@ export default function AudioEffects({
       }
     } else {
       // Stop other players before starting this one
-      stopOtherPlayers("audioEffects");
+      stopOtherPlayers(playerId);
       try {
         // Map UI time (seconds) to buffer time (seconds)
         playerRef.current.start(undefined, currentTime);
