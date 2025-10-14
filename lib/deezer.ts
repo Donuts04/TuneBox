@@ -47,6 +47,8 @@ export async function searchTracks(query: string): Promise<DeezerTrack[]> {
 
     const data: DeezerSearchResponse = await response.json();
 
+    console.log(JSON.stringify(data, null, 2));
+
     return data.data;
   } catch (error) {
     console.error("Error searching Deezer tracks:", error);
