@@ -45,243 +45,12 @@ interface Song {
   audioUrl: string;
   audioUrls: Record<string, string>;
   audioEffects?: AudioEffectsSettings;
-  midi: Midi | null;
+  midi: string | null;
 }
 
 const featuredSongs: Song[] = [
   {
     id: "1",
-    title: "Stargazing",
-    artist: "The Neighbourhood",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/stargazing.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/original.mp3",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/other.mp3",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/vocals.mp3",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/bass.mp3",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/drums.mp3",
-    },
-    audioEffects: {
-      speed: 1.2,
-      reverb: 0.85,
-      delay: 5.5,
-    },
-    midi: null,
-  },
-
-  // {
-  //   id: "2",
-  //   title: "Mystery of Love",
-  //   artist: "Sufjan Stevens",
-  //   coverImage: "https://storage.googleapis.com/tunebox-stuff/featured/mysteryOfLove/mysteryOfLove.jpg",
-  //   audioUrl: "https://storage.googleapis.com/tunebox-stuff/featured/mysteryOfLove/original.mp3",
-  //   audioUrls: {
-  //     other: "https://storage.googleapis.com/tunebox-stuff/featured/mysteryOfLove/other.mp3",
-  //     vocals: "https://storage.googleapis.com/tunebox-stuff/featured/mysteryOfLove/vocals.mp3",
-  //     bass: "https://storage.googleapis.com/tunebox-stuff/featured/mysteryOfLove/bass.mp3",
-  //     drums: "https://storage.googleapis.com/tunebox-stuff/featured/mysteryOfLove/drums.mp3",
-  //   },
-  //   audioEffects: {
-  //     speed: 0.9,
-  //     reverb: 0.5,
-  //     delay: 3.0,
-  //   },
-  //   midi: null,
-  // },
-
-  {
-    id: "3",
-    title: "Sunsetz",
-    artist: "Cigarettes After Sex",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/sunsetz.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/original.mp3",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/other.mp3",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/vocals.mp3",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/bass.mp3",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/drums.mp3",
-    },
-    audioEffects: {
-      speed: 1.2,
-      reverb: 0.7,
-      delay: 4.0,
-    },
-    midi: null,
-  },
-  {
-    id: "4",
-    title: "My Love Mine All Mine",
-    artist: "Mitski",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/myLoveMineAllMine.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/original.mp3",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/other.mp3",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/vocals.mp3",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/bass.mp3",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/drums.mp3",
-    },
-    audioEffects: {
-      speed: 1.3,
-      reverb: 0.5,
-      delay: 3.0,
-    },
-    midi: null,
-  },
-  {
-    id: "5",
-    title: "Glue Song",
-    artist: "Beabadoobee",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/glueSong/glueSong.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/glueSong/original.mp3",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/glueSong/other.mp3",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/glueSong/vocals.mp3",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/glueSong/bass.mp3",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/glueSong/drums.mp3",
-    },
-    audioEffects: {
-      speed: 0.75,
-      reverb: 0.8,
-      delay: 8.0,
-    },
-    midi: null,
-  },
-  {
-    id: "6",
-    title: "I'm Not Them",
-    artist: "Them & I",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/imNotThem.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/original.mp3",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/other.mp3",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/vocals.mp3",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/bass.mp3",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/drums.mp3",
-    },
-    audioEffects: {
-      speed: 1.2,
-      reverb: 0.75,
-      delay: 10.0,
-    },
-    midi: null,
-  },
-  // {
-  //   id: "7",
-  //   title: "Lost",
-  //   artist: "Frank Ocean",
-  //   coverImage: "https://storage.googleapis.com/tunebox-stuff/featured/lost/lost.jpg",
-  //   audioUrl: "https://storage.googleapis.com/tunebox-stuff/featured/lost/original.mp3",
-  //   audioUrls: {
-  //     other: "/featured/lost/other.mp3",
-  //     vocals: "https://storage.googleapis.com/tunebox-stuff/featured/lost/vocals.mp3",
-  //     bass: "https://storage.googleapis.com/tunebox-stuff/featured/lost/bass.mp3",
-  //     drums: "https://storage.googleapis.com/tunebox-stuff/featured/lost/drums.mp3",
-  //   },
-  //   midi: null,
-  // },
-
-  {
-    id: "8",
-    title: "About You",
-    artist: "The 1975",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/aboutYou.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/original.wav",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/other.wav",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/vocals.wav",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/bass.wav",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/drums.wav",
-    },
-    audioEffects: {
-      speed: 0.9,
-      reverb: 0.65,
-      delay: 5.0,
-    },
-    midi: null,
-  },
-
-  {
-    id: "9",
-    title: "Heseeny",
-    artist: "TUL8TE",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/heseeny.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/original.wav",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/other.wav",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/vocals.wav",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/bass.wav",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/drums.wav",
-    },
-    audioEffects: {
-      speed: 0.9,
-      reverb: 0.65,
-      delay: 5.0,
-    },
-    midi: null,
-  },
-
-  {
-    id: "10",
-    title: "One Last Time",
-    artist: "Summer Salt",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/oneLastTime.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/original.wav",
-    audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/other.wav",
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/vocals.wav",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/bass.wav",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/drums.wav",
-    },
-    audioEffects: {
-      speed: 0.9,
-      reverb: 0.8,
-      delay: 5.5,
-    },
-    midi: null,
-  },
-
-  {
-    id: "11",
     title: "Pretty Boy",
     artist: "The Neighbourhood",
     coverImage:
@@ -289,69 +58,252 @@ const featuredSongs: Song[] = [
     audioUrl:
       "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/original.mp3",
     audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/other.wav",
       vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/vocals.wav",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/bass.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/vocals.wav",
       drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/drums.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/drums.wav",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/bass.wav",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/other.wav",
     },
     audioEffects: {
       speed: 0.85,
       reverb: 0.8,
       delay: 7.0,
     },
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/converted_piano.mid",
     midi: null,
   },
 
   {
-    id: "12",
-    title: "Nothing Compares 2 U",
-    artist: "Prince (Lara's Pick)",
+    id: "2",
+    title: "Sunsetz",
+    artist: "Cigarettes After Sex",
     coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/nothingCompares2U/nothingCompares2U.jpg",
+      "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/sunsetz.jpg",
     audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/nothingCompares2U/original.wav",
+      "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/original.mp3",
     audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/other.wav",
       vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/vocals.wav",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/bass.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/vocals.mp3",
       drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/drums.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/other.mp3",
     },
     audioEffects: {
-      speed: 0.85,
-      reverb: 0.8,
-      delay: 7.0,
+      speed: 1.2,
+      reverb: 0.7,
+      delay: 4.0,
     },
     midi: null,
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/sunsetz/converted_piano.mid",
   },
+
   {
-    id: "13",
-    title: "Hold Me Down",
-    artist: "Daniel Caesar (Lara's Pick)",
+    id: "3",
+    title: "About You",
+    artist: "The 1975",
     coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/holdMeDown/holdMeDown.jpg",
+      "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/aboutYou.jpg",
     audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/holdMeDown/original.wav",
+      "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/original.mp3",
     audioUrls: {
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/other.wav",
       vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/vocals.wav",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/bass.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/vocals.mp3",
       drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/drums.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/other.mp3",
     },
     audioEffects: {
-      speed: 0.85,
+      speed: 0.9,
+      reverb: 0.65,
+      delay: 5.0,
+    },
+    midi: "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/converted_piano.mid",
+  },
+
+  {
+    id: "4",
+    title: "Somewhere Only We Know",
+    artist: "Keane",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/somewhereOnlyWeKnow.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/other.mp3",
+    },
+    audioEffects: {
+      speed: 0.9,
       reverb: 0.8,
-      delay: 7.0,
+      delay: 5.5,
+    },
+    midi: "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/converted_piano.mid",
+  },
+
+  {
+    id: "5",
+    title: "The Way You'd Love Her",
+    artist: "Mac DeMarco",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/theWayYoudLoveHer.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/other.mp3",
+    },
+    audioEffects: {
+      speed: 0.9,
+      reverb: 0.8,
+      delay: 5.5,
+    },
+    midi: "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/converted_piano.mid",
+  },
+
+  {
+    id: "6",
+    title: "Stargazing",
+    artist: "The Neighbourhood",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/stargazing.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/other.mp3",
+    },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.85,
+      delay: 5.5,
     },
     midi: null,
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/converted_piano.mid",
+  },
+
+  {
+    id: "7",
+    title: "My Love Mine All Mine",
+    artist: "Mitski",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/myLoveMineAllMine.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/other.mp3",
+    },
+    audioEffects: {
+      speed: 1.3,
+      reverb: 0.5,
+      delay: 3.0,
+    },
+    midi: null,
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/myLoveMineAllMine/converted_piano.mid",
+  },
+
+  {
+    id: "8",
+    title: "I'm Not Them",
+    artist: "Them & I",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/imNotThem.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/other.mp3",
+    },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.75,
+      delay: 10.0,
+    },
+    midi: null,
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/converted_piano.mid",
+  },
+
+  {
+    id: "9",
+    title: "One Last Time",
+    artist: "Summer Salt",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/oneLastTime.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/other.mp3",
+    },
+    audioEffects: {
+      speed: 0.9,
+      reverb: 0.8,
+      delay: 5.5,
+    },
+    midi: null,
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/oneLastTime/converted_piano.mid",
+  },
+
+  {
+    id: "10",
+    title: "Heseeny",
+    artist: "TUL8TE",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/heseeny.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/other.mp3",
+    },
+    audioEffects: {
+      speed: 0.9,
+      reverb: 0.65,
+      delay: 5.0,
+    },
+    // midi: null,
+    midi: "https://storage.googleapis.com/tunebox-stuff/featured/heseeny/converted_piano.mid",
   },
 ];
 
@@ -366,8 +318,20 @@ export function FeaturedCarousel() {
   const [selectedSong, setSelectedSong] = React.useState<Song | null>(null);
   const [showSeparator, setShowSeparator] = React.useState(false);
   const [currentSlide, setCurrentSlide] = React.useState(0);
+  const [loadedMidi, setLoadedMidi] = React.useState<Midi | null>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const carouselApi = React.useRef<CarouselApi | null>(null);
+
+  // Simple function to load MIDI from URL
+  const loadMidiFromUrl = React.useCallback(async (url: string) => {
+    try {
+      const midi = await Midi.fromUrl(url);
+      setLoadedMidi(midi);
+    } catch (error) {
+      console.error("Error loading MIDI:", error);
+      setLoadedMidi(null);
+    }
+  }, []);
 
   // Register this player with the global audio management system
   React.useEffect(() => {
@@ -456,6 +420,13 @@ export function FeaturedCarousel() {
 
     setSelectedSong(song);
     setShowSeparator(true);
+
+    // Load MIDI if available
+    if (song.midi) {
+      loadMidiFromUrl(song.midi);
+    } else {
+      setLoadedMidi(null);
+    }
   };
 
   const handleBack = () => {
@@ -482,7 +453,7 @@ export function FeaturedCarousel() {
                 dragFree: true,
                 containScroll: "trimSnaps",
               }}
-              className="w-full"
+              className="w-full select-none"
               setApi={(api) => {
                 carouselApi.current = api;
                 if (api) {
@@ -636,11 +607,13 @@ export function FeaturedCarousel() {
                 playerId="featured-stemPlayer"
               />
 
-              <MidiPlayer
-                midi={selectedSong.midi || null}
-                originalAudioUrl={selectedSong.audioUrl}
-                playerId="featured-midiPlayer"
-              />
+              {loadedMidi && (
+                <MidiPlayer
+                  midi={loadedMidi}
+                  originalAudioUrl={selectedSong.audioUrl}
+                  playerId="featured-midiPlayer"
+                />
+              )}
             </div>
           )}
         </div>

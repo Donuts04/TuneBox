@@ -45,7 +45,7 @@ export default function AudioHeader({
     return () => {
       unregisterPlayer(playerId);
     };
-  }, [registerPlayer, unregisterPlayer]);
+  }, [registerPlayer, unregisterPlayer, playerId]);
 
   // Initialize simple header <audio> element independent of Tone.js
   useEffect(() => {
