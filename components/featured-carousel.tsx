@@ -59,12 +59,12 @@ const featuredSongs: Song[] = [
       "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/original.mp3",
     audioUrls: {
       vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/vocals.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/vocals.mp3",
       drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/drums.wav",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/bass.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/bass.mp3",
       other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/other.wav",
+        "https://storage.googleapis.com/tunebox-stuff/featured/prettyBoy/other.mp3",
     },
     audioEffects: {
       speed: 0.85,
@@ -144,9 +144,9 @@ const featuredSongs: Song[] = [
         "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/other.mp3",
     },
     audioEffects: {
-      speed: 0.9,
+      speed: 1.4,
       reverb: 0.8,
-      delay: 5.5,
+      delay: 6.5,
     },
     midi: "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/converted_piano.mid",
   },
@@ -170,8 +170,8 @@ const featuredSongs: Song[] = [
     },
     audioEffects: {
       speed: 0.9,
-      reverb: 0.8,
-      delay: 5.5,
+      reverb: 1.0,
+      delay: 5.0,
     },
     midi: "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/converted_piano.mid",
   },
@@ -246,8 +246,8 @@ const featuredSongs: Song[] = [
         "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/other.mp3",
     },
     audioEffects: {
-      speed: 1.2,
-      reverb: 0.75,
+      speed: 0.95,
+      reverb: 1.0,
       delay: 10.0,
     },
     midi: null,

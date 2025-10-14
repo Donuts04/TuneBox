@@ -102,6 +102,16 @@ export function AboutSection() {
                 </a>
               </Button>
 
+              <Button
+                variant="outline"
+                className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex-1 min-w-[120px]"
+                asChild
+              >
+                <a href="/disclaimer" aria-label="Disclaimer">
+                  Disclaimer
+                </a>
+              </Button>
+
               {/* <Button
                   variant="outline"
                   size="icon"
