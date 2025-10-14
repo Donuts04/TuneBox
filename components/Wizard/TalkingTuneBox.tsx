@@ -41,7 +41,7 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
     {
       title: "And finally...",
       description:
-        "I can convert your audio into musical notes. Pretty cool, right?",
+        "I can convert your audio into musical notes, it is a hit or miss tho, some songs are goated others meh. Pretty cool, right?",
     },
   ];
 
