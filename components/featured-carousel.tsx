@@ -119,7 +119,7 @@ const featuredSongs: Song[] = [
         "https://storage.googleapis.com/tunebox-stuff/featured/aboutYou/other.mp3",
     },
     audioEffects: {
-      speed: 0.9,
+      speed: 1.3,
       reverb: 0.65,
       delay: 5.0,
     },
@@ -169,9 +169,9 @@ const featuredSongs: Song[] = [
         "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/other.mp3",
     },
     audioEffects: {
-      speed: 0.9,
+      speed: 0.8,
       reverb: 1.0,
-      delay: 5.0,
+      delay: 10.0,
     },
     midi: "https://storage.googleapis.com/tunebox-stuff/featured/theWayYoudLoveHer/converted_piano.mid",
   },
