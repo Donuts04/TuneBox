@@ -26,7 +26,7 @@ export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
     {
       title: "First things first...",
       description:
-        "You can either search for a song using our music search, or upload your own audio file.",
+        "You can either search for a song using music search, or upload your own audio file.",
     },
     {
       title: "Want to spice things up?",
