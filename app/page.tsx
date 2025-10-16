@@ -37,9 +37,9 @@ export default function Home() {
             className="dark:invert w-[300px] h-[300px] md:w-[450px] md:h-[450px]"
             priority
           />
-          <p className="text-base md:text-xl text-muted-foreground max-w-md">
-            Separate audio tracks and convert them into musical notes with
-            TuneBox!
+          <p className="text-base md:text-xl text-muted-foreground max-w-2xl">
+            Separate audio tracks, apply audio effects, and convert them into
+            music box melodies with TuneBox!
           </p>
         </div>
       </section>
@@ -75,27 +75,32 @@ export default function Home() {
             {
               text: "Loop The Cigarette Duet",
               audioUrl:
-                "https://storage.googleapis.com/tunebox-stuff/samples/cigaretteDuet.wav",
+                "https://storage.googleapis.com/tunebox-stuff/samples/cigaretteDuet.mp3",
             },
             {
               text: "Loop Goodbye Weekend",
               audioUrl:
-                "https://storage.googleapis.com/tunebox-stuff/samples/goodbyeWeekend.wav",
+                "https://storage.googleapis.com/tunebox-stuff/samples/goodbyeWeekend.mp3",
             },
             {
               text: "Loop Moon River",
               audioUrl:
-                "https://storage.googleapis.com/tunebox-stuff/samples/moonRiver.wav",
+                "https://storage.googleapis.com/tunebox-stuff/samples/moonRiver.mp3",
             },
             {
               text: "Loop Swan",
               audioUrl:
-                "https://storage.googleapis.com/tunebox-stuff/samples/swan.wav",
+                "https://storage.googleapis.com/tunebox-stuff/samples/swan.mp3",
+            },
+            {
+              text: "Loop Mr Loverman",
+              audioUrl:
+                "https://storage.googleapis.com/tunebox-stuff/samples/mrLoverman.mp3",
             },
             {
               text: "Loop Brooklyn Bridge To Chorus",
               audioUrl:
-                "https://storage.googleapis.com/tunebox-stuff/samples/brooklynBridgeToChorus.wav",
+                "https://storage.googleapis.com/tunebox-stuff/samples/brooklynBridgeToChorus.mp3",
             },
           ]}
         />
