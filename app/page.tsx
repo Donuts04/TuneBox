@@ -5,6 +5,7 @@ import TuneWizard from "@/components/Wizard/TuneWizard";
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ArrowDown } from "lucide-react";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { MusicBoxComposer } from "@/components/MusicBoxComposer";
 import { AboutSection } from "@/components/about-section";
@@ -14,6 +15,7 @@ import TalkingTuneBox from "@/components/Wizard/TalkingTuneBox";
 
 export default function Home() {
   const [showHelper, setShowHelper] = useState(false);
+  const [buttonPressed, setButtonPressed] = useState(false);
 
   return (
     <main className="min-h-screen bg-white dark:bg-black">
@@ -58,13 +60,24 @@ export default function Home() {
               priority
             />
 
-            <Button
-              variant="outline"
-              className="mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
-              onClick={() => setShowHelper(true)}
-            >
-              How To Use
-            </Button>
+            <div className="relative">
+              {!buttonPressed && (
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 flex gap-2">
+                  <ArrowDown className="h-5 w-5 text-black dark:text-white animate-bounce" />
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                className="mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+                onClick={() => {
+                  setShowHelper(true);
+                  setButtonPressed(true);
+                }}
+              >
+                How To Use
+              </Button>
+            </div>
           </div>
           <TuneWizard />
         </div>

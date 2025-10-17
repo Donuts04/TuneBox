@@ -1,10 +1,11 @@
-import { Pause, Play, Music } from "lucide-react";
+import { Pause, Play, Music, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useRef, useState } from "react";
 import { formatTime } from "@/lib/utils";
 import { useAudio } from "@/contexts/audio-context";
+import { toast } from "sonner";
 
 interface AudioHeaderProps {
   title: string;
@@ -29,6 +30,7 @@ export default function AudioHeader({
   const [headerAudioDuration, setHeaderAudioDuration] = useState(0);
   const headerAudioRef = useRef<HTMLAudioElement | null>(null);
   const [headerCurrentTime, setHeaderCurrentTime] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Register this player with the global audio management system
   useEffect(() => {
@@ -54,25 +56,63 @@ export default function AudioHeader({
 
     const audioEl = headerAudioRef.current;
     if (!audioEl) return;
+
+    setIsLoading(true);
     audioEl.src = audioUrl;
+
+    const onLoadStart = () => setIsLoading(true);
     const onLoaded = () => {
       const dur = audioEl.duration;
       if (Number.isFinite(dur) && dur > 0) setHeaderAudioDuration(dur);
+      setIsLoading(false);
     };
     const onTime = () => setHeaderCurrentTime(audioEl.currentTime);
     const onEnded = () => setIsHeaderPlaying(false);
+    const onError = (e: Event) => {
+      setIsLoading(false);
+      const target = e.target as HTMLAudioElement;
+      const error = target.error;
+      let errorMessage = "Failed to load audio";
+
+      if (error) {
+        switch (error.code) {
+          case error.MEDIA_ERR_ABORTED:
+            errorMessage = "Audio loading was aborted";
+            break;
+          case error.MEDIA_ERR_NETWORK:
+            errorMessage = "Network error while loading audio";
+            break;
+          case error.MEDIA_ERR_DECODE:
+            errorMessage = "Audio format not supported";
+            break;
+          case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = "Audio source not supported";
+            break;
+          default:
+            errorMessage = "Unknown audio error";
+        }
+      }
+
+      toast.error(errorMessage);
+    };
+
+    audioEl.addEventListener("loadstart", onLoadStart);
     audioEl.addEventListener("loadedmetadata", onLoaded);
     audioEl.addEventListener("timeupdate", onTime);
     audioEl.addEventListener("ended", onEnded);
+    audioEl.addEventListener("error", onError);
+
     // Reset UI state
     setIsHeaderPlaying(false);
     setHeaderCurrentTime(0);
 
     return () => {
       audioEl.pause();
+      audioEl.removeEventListener("loadstart", onLoadStart);
       audioEl.removeEventListener("loadedmetadata", onLoaded);
       audioEl.removeEventListener("timeupdate", onTime);
       audioEl.removeEventListener("ended", onEnded);
+      audioEl.removeEventListener("error", onError);
       // Revoke blob URL if created
       if (audioUrl.startsWith("blob:")) {
         URL.revokeObjectURL(audioUrl);
@@ -94,10 +134,14 @@ export default function AudioHeader({
       try {
         // Start audio context if needed
         await startAudio();
+        setIsLoading(true);
         await audioEl.play();
         setIsHeaderPlaying(true);
+        setIsLoading(false);
       } catch {
-        // Autoplay policies may block; ignore
+        // Autoplay policies may block or other playback errors
+        setIsLoading(false);
+        toast.error("Failed to play audio");
       }
     }
   };
@@ -153,8 +197,11 @@ export default function AudioHeader({
                       : "bg-white text-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                   }`}
                   onClick={toggleHeaderPlayback}
+                  disabled={isLoading}
                 >
-                  {isHeaderPlaying ? (
+                  {isLoading ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : isHeaderPlaying ? (
                     <Pause className="h-3 w-3" />
                   ) : (
                     <Play className="h-3 w-3" />
