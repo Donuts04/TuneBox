@@ -39,6 +39,7 @@ export default function TuneWizard() {
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-8 md:gap-0 w-full mx-auto">
         <div className="flex flex-col h-full">
           <Card
+            data-step="search"
             className={cn(
               "transition-all cursor-pointer h-full bg-transparent",
               "border-black dark:border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
@@ -53,8 +54,8 @@ export default function TuneWizard() {
                 Find a Song
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-6 tracking-normal leading-tight">
-                Search for songs to process or separate. Choose from millions of
-                tracks to analyze.
+                Search for songs to process, separate, or convert into musical
+                notes. Choose from millions of tracks to analyze.
               </p>
               <Button
                 size="lg"
@@ -73,13 +74,14 @@ export default function TuneWizard() {
             alt="TuneBox Logo"
             width={150}
             height={150}
-            className="object-cover dark:invert"
+            className="object-cover dark:invert dance-rotate"
             priority
           />
         </div>
 
         <div className="flex flex-col h-full">
           <Card
+            data-step="upload"
             className={cn(
               "transition-all cursor-pointer h-full bg-transparent",
               "border-black dark:border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
@@ -94,8 +96,8 @@ export default function TuneWizard() {
                 Upload Audio
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-6 tracking-normal leading-tight">
-                Search for songs to process or separate. Choose from millions of
-                tracks to analyze.
+                Upload your own audio files to process, separate, or convert
+                into musical notes. Support for MP3, WAV, and other formats.
               </p>
               <Button
                 size="lg"

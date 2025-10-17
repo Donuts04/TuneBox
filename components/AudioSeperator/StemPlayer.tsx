@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
-import { Music, Mic, Drum, AudioLines } from "lucide-react";
+import { Music, Mic, Drum, AudioLines, RotateCcw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { encode } from "wav-encoder";
 import RunnerLoader from "@/components/loaders/runner-loader";
@@ -54,6 +54,7 @@ const StemPlayer = memo(function StemPlayer({
     volumes: {} as Record<string, number>,
     currentTime: 0,
     duration: 0,
+    isLooping: false,
   });
 
   const stems: Record<string, StemSource> = useMemo(
@@ -241,35 +242,45 @@ const StemPlayer = memo(function StemPlayer({
 
       // Check if we've reached the end
       if (elapsed >= transportDurationRef.current) {
-        // Stop transport and reset
-        isTransportRunningRef.current = false;
-        setPlayerState((prev) => ({
-          ...prev,
-          currentTime: 0,
-          playingStems: new Set(),
-          pausedStems: new Set(),
-        }));
-        transportPauseTimeRef.current = 0;
-        // Stop all source nodes
-        Object.values(sourceNodesRef.current).forEach((sourceNode) => {
-          try {
-            sourceNode.stop();
-            sourceNode.disconnect();
-          } catch {
-            // Source might already be stopped
-          }
-        });
-        sourceNodesRef.current = {};
-        // Mute all stems
-        Object.values(gainNodesRef.current).forEach((gainNode) => {
-          gainNode.gain.value = 0;
-        });
-        return;
+        if (playerState.isLooping) {
+          // Loop mode: reset to beginning and continue
+          transportPauseTimeRef.current = 0;
+          transportStartTimeRef.current = currentTime;
+          setPlayerState((prev) => ({
+            ...prev,
+            currentTime: 0,
+          }));
+        } else {
+          // No loop: stop transport and reset
+          isTransportRunningRef.current = false;
+          setPlayerState((prev) => ({
+            ...prev,
+            currentTime: 0,
+            playingStems: new Set(),
+            pausedStems: new Set(),
+          }));
+          transportPauseTimeRef.current = 0;
+          // Stop all source nodes
+          Object.values(sourceNodesRef.current).forEach((sourceNode) => {
+            try {
+              sourceNode.stop();
+              sourceNode.disconnect();
+            } catch {
+              // Source might already be stopped
+            }
+          });
+          sourceNodesRef.current = {};
+          // Mute all stems
+          Object.values(gainNodesRef.current).forEach((gainNode) => {
+            gainNode.gain.value = 0;
+          });
+          return;
+        }
       }
 
       animationFrameRef.current = requestAnimationFrame(updateTime);
     }
-  }, [playerState.currentTime]);
+  }, [playerState.currentTime, playerState.isLooping]);
 
   // Start time update loop
   useEffect(() => {
@@ -623,6 +634,13 @@ const StemPlayer = memo(function StemPlayer({
     [playerState.playingStems]
   );
 
+  const toggleLoop = useCallback(() => {
+    setPlayerState((prev) => ({
+      ...prev,
+      isLooping: !prev.isLooping,
+    }));
+  }, []);
+
   // 7. IMPROVE CLEANUP - Enhanced cleanup logic for better memory management
   useEffect(() => {
     return () => {
@@ -751,9 +769,11 @@ const StemPlayer = memo(function StemPlayer({
               <RecordingControls
                 isRecording={playerState.isRecording}
                 hasRecordedAudio={hasRecordedAudio}
+                isLooping={playerState.isLooping}
                 onStartRecording={startRecording}
                 onStopRecording={stopRecording}
                 onDownload={downloadRecordedAudio}
+                onToggleLoop={toggleLoop}
               />
             </div>
           )}

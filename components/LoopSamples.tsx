@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Play, Pause, Loader } from "lucide-react";
+import { Play, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAudio } from "@/contexts/audio-context";
+import { toast } from "sonner";
 
 interface LoopItem {
   text: string;
@@ -22,7 +23,7 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
 
   const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
+  const [loadingSamples, setLoadingSamples] = useState<Set<number>>(new Set());
 
   // Register this player with the global audio management system
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
     };
   }, [registerPlayer, unregisterPlayer]);
 
-  // Recreate audio elements when items change
+  // Initialize empty audio refs when items change
   useEffect(() => {
     // Cleanup previous audios
     audioRefs.current.forEach((a) => {
@@ -52,50 +53,12 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
       }
     });
 
-    audioRefs.current = items.map((item) => {
-      if (!item.audioUrl) return null;
-      const audio = new Audio(item.audioUrl);
-      audio.loop = true;
-      return audio;
-    });
-
+    // Initialize with null values - audio will be created on demand
+    audioRefs.current = new Array(items.length).fill(null);
     setActiveIndex(null);
-    setLoadingIndex(null);
-
-    // Attach event listeners
-    const cleanups: (() => void)[] = [];
-    audioRefs.current.forEach((audio, index) => {
-      if (!audio) return;
-
-      const handleLoadStart = () => setLoadingIndex(index);
-      const handleCanPlay = () =>
-        setLoadingIndex((current) => (current === index ? null : current));
-      const handlePlay = () => setActiveIndex(index);
-      const handlePause = () =>
-        setActiveIndex((current) => (current === index ? null : current));
-      const handleError = () => {
-        setLoadingIndex((current) => (current === index ? null : current));
-        setActiveIndex((current) => (current === index ? null : current));
-        console.error("Error loading audio");
-      };
-
-      audio.addEventListener("loadstart", handleLoadStart);
-      audio.addEventListener("canplay", handleCanPlay);
-      audio.addEventListener("play", handlePlay);
-      audio.addEventListener("pause", handlePause);
-      audio.addEventListener("error", handleError);
-
-      cleanups.push(() => {
-        audio.removeEventListener("loadstart", handleLoadStart);
-        audio.removeEventListener("canplay", handleCanPlay);
-        audio.removeEventListener("play", handlePlay);
-        audio.removeEventListener("pause", handlePause);
-        audio.removeEventListener("error", handleError);
-      });
-    });
+    setLoadingSamples(new Set());
 
     return () => {
-      cleanups.forEach((fn) => fn());
       audioRefs.current.forEach((a) => {
         if (a) {
           a.pause();
@@ -106,8 +69,57 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
   }, [items]);
 
   const togglePlay = async (index: number) => {
-    const current = audioRefs.current[index];
-    if (!current) return;
+    const item = items[index];
+    if (!item.audioUrl) return;
+
+    let current = audioRefs.current[index];
+
+    // Create audio element if it doesn't exist
+    if (!current) {
+      try {
+        setLoadingSamples((prev) => new Set(prev).add(index));
+
+        current = new Audio(item.audioUrl);
+        current.loop = true;
+
+        // Add event listeners
+        const handlePlay = () => setActiveIndex(index);
+        const handlePause = () =>
+          setActiveIndex((current) => (current === index ? null : current));
+        const handleError = () => {
+          setLoadingSamples((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(index);
+            return newSet;
+          });
+          setActiveIndex((current) => (current === index ? null : current));
+          toast.error("Failed to load audio");
+        };
+        const handleCanPlay = () => {
+          setLoadingSamples((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(index);
+            return newSet;
+          });
+        };
+
+        current.addEventListener("play", handlePlay);
+        current.addEventListener("pause", handlePause);
+        current.addEventListener("error", handleError);
+        current.addEventListener("canplay", handleCanPlay);
+
+        audioRefs.current[index] = current;
+      } catch (error) {
+        console.error("Error creating audio:", error);
+        setLoadingSamples((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+        toast.error("Failed to load audio");
+        return;
+      }
+    }
 
     try {
       if (!current.paused) {
@@ -128,6 +140,7 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
       }
     } catch (error) {
       console.error("Error toggling audio:", error);
+      toast.error("Failed to play audio");
     }
   };
 
@@ -157,10 +170,10 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
                   "bg-black text-white dark:bg-white dark:text-black"
               )}
               onClick={() => togglePlay(index)}
-              disabled={loadingIndex === index || !item.audioUrl}
+              disabled={loadingSamples.has(index) || !item.audioUrl}
             >
-              {loadingIndex === index ? (
-                <Loader className="h-4 w-4 animate-spin" />
+              {loadingSamples.has(index) ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : activeIndex === index ? (
                 <Pause className="h-4 w-4" />
               ) : (
