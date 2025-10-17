@@ -40,7 +40,7 @@ export default function TonePlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [playOriginal, setPlayOriginal] = useState(false);
-  const [originalVolume, setOriginalVolume] = useState(0.5);
+  const [originalVolume, setOriginalVolume] = useState(0.3);
   const [isInstrumentLoaded, setIsInstrumentLoaded] = useState(false);
   const [playbackTempo, setPlaybackTempo] = useState(120);
   const [previousTempo, setPreviousTempo] = useState(120);
@@ -335,8 +335,18 @@ export default function TonePlayer({
       } else {
         // Stop other players before starting this one
         stopOtherPlayers(playerId);
-        // If resuming from pause, just start the transport
+
+        // Always reset transport state when starting playback
+        // This ensures clean state regardless of what other components were doing
+        transport?.cancel?.();
+        transport?.stop();
+
+        // Set the tempo before starting playback
+        if (transport) transport.bpm.value = playbackTempo;
+
+        // If resuming from pause, keep current position
         if ((transport?.seconds || 0) > 0) {
+          // Don't reset position, just start from current position
           transport?.start();
           if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
             const resumePos = transport?.seconds || 0;
@@ -345,15 +355,7 @@ export default function TonePlayer({
             originalPlayerRef.current?.start?.(undefined, resumePos);
           }
         } else {
-          // If starting from beginning, set up everything
-          // Stop any current playback and clear all scheduled events
-          transport?.cancel?.();
-          transport?.stop();
-
-          // Set the tempo before starting playback
-          if (transport) transport.bpm.value = playbackTempo;
-
-          // Reset transport position to start
+          // If starting from beginning, reset position and set up everything
           if (transport) transport.seconds = 0;
 
           // Schedule all MIDI events with tempo scaling
@@ -383,6 +385,8 @@ export default function TonePlayer({
             setCurrentTime(0);
             transport?.stop();
             transport?.cancel?.();
+            // Stop original audio when sequence ends
+            originalPlayerRef.current?.stop?.();
           }, totalDuration);
 
           // Start playback
@@ -631,7 +635,6 @@ export default function TonePlayer({
               min={0}
               max={1}
               step={0.01}
-              className={playOriginal ? "" : "opacity-50 pointer-events-none"}
               onValueChange={(value) => setOriginalVolume(value[0])}
               aria-label="Original audio volume"
             />

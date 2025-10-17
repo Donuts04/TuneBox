@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Helper highlighting styles */
+@layer utilities {
+  .highlight-step {
+    animation: highlight-scale 3s ease-in-out infinite;
+  }
+  
+  @keyframes highlight-scale {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.02);
+    }
+  }
+  
+  .dance-rotate-active {
+    animation: dance-rotate 4s ease-in-out infinite;
+  }
+  
+  @keyframes dance-rotate {
+    0% {
+      transform: rotate(-5deg);
+    }
+    50% {
+      transform: rotate(5deg);
+    }
+    100% {
+      transform: rotate(-5deg);
+    }
+  }
+}
+
 
 
 @layer base {
