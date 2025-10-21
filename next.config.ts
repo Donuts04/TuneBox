@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  basePath: "/projects/tunebox",
   images: {
     domains: [
       "i1.sndcdn.com",

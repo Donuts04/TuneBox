@@ -5,7 +5,7 @@ export async function trackFeaturedDetails(
   artist: string
 ): Promise<void> {
   try {
-    await fetch("/api/analytics/featured", {
+    await fetch("/projects/tunebox/api/analytics/featured", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -27,7 +27,7 @@ export async function trackDeezerSelection(
   artistName?: string
 ): Promise<void> {
   try {
-    await fetch("/api/analytics/selection", {
+    await fetch("/projects/tunebox/api/analytics/selection", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -45,7 +45,7 @@ export async function trackDeezerSelection(
 
 export async function trackUploadSelection(fileName: string): Promise<void> {
   try {
-    await fetch("/api/analytics/selection", {
+    await fetch("/projects/tunebox/api/analytics/selection", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

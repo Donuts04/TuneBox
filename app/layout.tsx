@@ -118,7 +118,7 @@ export default function RootLayout({
         as="image"
         href="https://storage.googleapis.com/tunebox-stuff/tuney/coolCross.png"
       />
-      <body className="bg-white dark:bg-black">
+      <body>
         <AudioProvider>{children}</AudioProvider>
         <Analytics />
         <SpeedInsights />

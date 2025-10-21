@@ -21,19 +21,19 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
   const { registerPlayer, unregisterPlayer, stopOtherPlayers, startAudio } =
     useAudio();
 
-  const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [loadingSamples, setLoadingSamples] = useState<Set<number>>(new Set());
 
   // Register this player with the global audio management system
   useEffect(() => {
     const stopCallback = () => {
-      audioRefs.current.forEach((audio) => {
-        if (audio) {
-          audio.pause();
-        }
-      });
-      setActiveIndex(null);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setActiveIndex(null);
+        setIsPlaying(false);
+      }
     };
 
     registerPlayer("loopSamples", stopCallback);
@@ -43,104 +43,81 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
     };
   }, [registerPlayer, unregisterPlayer]);
 
-  // Initialize empty audio refs when items change
+  // Initialize audio element and handle cleanup
   useEffect(() => {
-    // Cleanup previous audios
-    audioRefs.current.forEach((a) => {
-      if (a) {
-        a.pause();
-        a.src = "";
-      }
+    audioRef.current = new Audio();
+    audioRef.current.loop = true;
+
+    // Add event listeners
+    const audio = audioRef.current;
+    audio.addEventListener("ended", () => {
+      setActiveIndex(null);
+      setIsPlaying(false);
     });
 
-    // Initialize with null values - audio will be created on demand
-    audioRefs.current = new Array(items.length).fill(null);
-    setActiveIndex(null);
-    setLoadingSamples(new Set());
+    audio.addEventListener("play", () => {
+      setIsPlaying(true);
+    });
 
+    audio.addEventListener("pause", () => {
+      setIsPlaying(false);
+    });
+
+    // Cleanup
     return () => {
-      audioRefs.current.forEach((a) => {
-        if (a) {
-          a.pause();
-          a.src = "";
-        }
-      });
+      if (audio) {
+        audio.pause();
+        audio.removeEventListener("ended", () => {});
+        audioRef.current = null;
+      }
     };
-  }, [items]);
+  }, []);
 
   const togglePlay = async (index: number) => {
     const item = items[index];
-    if (!item.audioUrl) return;
+    if (!item.audioUrl || !audioRef.current) return;
 
-    let current = audioRefs.current[index];
+    const audio = audioRef.current;
 
-    // Create audio element if it doesn't exist
-    if (!current) {
+    if (activeIndex === index) {
+      // If the same song is clicked, toggle play/pause
+      if (audio.paused) {
+        try {
+          await startAudio();
+          await audio.play();
+        } catch (err) {
+          console.error("Error playing audio:", err);
+          toast.error("Failed to play audio");
+        }
+      } else {
+        audio.pause();
+      }
+    } else {
+      // Stop other players before starting this one
+      stopOtherPlayers("loopSamples");
+
+      // Stop any currently playing audio
+      audio.pause();
+
+      // Update source and play new track
+      audio.src = item.audioUrl;
+      audio.load(); // Ensure the new source is loaded
+
       try {
         setLoadingSamples((prev) => new Set(prev).add(index));
-
-        current = new Audio(item.audioUrl);
-        current.loop = true;
-
-        // Add event listeners
-        const handlePlay = () => setActiveIndex(index);
-        const handlePause = () =>
-          setActiveIndex((current) => (current === index ? null : current));
-        const handleError = () => {
-          setLoadingSamples((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(index);
-            return newSet;
-          });
-          setActiveIndex((current) => (current === index ? null : current));
-          toast.error("Failed to load audio");
-        };
-        const handleCanPlay = () => {
-          setLoadingSamples((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(index);
-            return newSet;
-          });
-        };
-
-        current.addEventListener("play", handlePlay);
-        current.addEventListener("pause", handlePause);
-        current.addEventListener("error", handleError);
-        current.addEventListener("canplay", handleCanPlay);
-
-        audioRefs.current[index] = current;
-      } catch (error) {
-        console.error("Error creating audio:", error);
+        await startAudio();
+        await audio.play();
+        setActiveIndex(index);
+      } catch (err) {
+        console.error("Error playing audio:", err);
+        toast.error("Failed to play audio");
+      } finally {
         setLoadingSamples((prev) => {
           const newSet = new Set(prev);
           newSet.delete(index);
           return newSet;
         });
-        toast.error("Failed to load audio");
-        return;
       }
-    }
-
-    try {
-      if (!current.paused) {
-        current.pause();
-      } else {
-        // Stop other players before starting this one
-        stopOtherPlayers("loopSamples");
-
-        // Start audio context if needed
-        await startAudio();
-
-        // Pause all others first
-        if (activeIndex !== null && activeIndex !== index) {
-          const active = audioRefs.current[activeIndex];
-          if (active) active.pause();
-        }
-        await current.play();
-      }
-    } catch (error) {
-      console.error("Error toggling audio:", error);
-      toast.error("Failed to play audio");
     }
   };
 
@@ -174,7 +151,7 @@ export default function LoopSamples({ items }: LoopSamplesProps) {
             >
               {loadingSamples.has(index) ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : activeIndex === index ? (
+              ) : activeIndex === index && isPlaying ? (
                 <Pause className="h-4 w-4" />
               ) : (
                 <Play className="h-4 w-4" />
