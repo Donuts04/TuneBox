@@ -72,8 +72,13 @@ const StemPlayer = memo(function StemPlayer({
     [audioUrls]
   );
 
-  // Memoize expensive computations
-  const stemEntries = useMemo(() => Object.entries(stems), [stems]);
+  // Memoize expensive computations - always order: vocals, drums, bass, other
+  const stemEntries = useMemo(() => {
+    const orderedKeys = ["vocals", "drums", "bass", "other"];
+    return orderedKeys
+      .filter((key) => stems[key]) // Only include keys that exist in stems
+      .map((key) => [key, stems[key]] as [string, StemSource]);
+  }, [stems]);
   const hasStems = useMemo(() => Object.keys(stems).length > 0, [stems]);
   const hasRecordedAudio = useMemo(
     () => !!playerState.recordedAudio,

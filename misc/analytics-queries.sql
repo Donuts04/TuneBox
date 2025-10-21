@@ -154,3 +154,10 @@ GROUP BY audio_name, artist_name, processing_type
 HAVING COUNT(CASE WHEN processing_success = false THEN 1 END) > 0
 ORDER BY failed_attempts DESC
 LIMIT 20;
+
+-- 12. Average Processing Times (single row with two columns)
+SELECT
+  ROUND(AVG(processing_time_ms) FILTER (WHERE processing_type = 'separation')) AS avg_separation_ms,
+  ROUND(AVG(processing_time_ms) FILTER (WHERE processing_type = 'conversion'))  AS avg_conversion_ms
+FROM audio_processing_analytics
+WHERE processing_success = true;

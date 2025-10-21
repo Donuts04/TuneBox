@@ -50,6 +50,8 @@ export default function TonePlayer({
   const sampler = useRef<Tone.Sampler | null>(null);
   const originalPlayerRef = useRef<Tone.Player | null>(null);
   const originalGainRef = useRef<Tone.Gain | null>(null);
+  const transportEventsRef = useRef<Set<string>>(new Set());
+  const currentOriginalUrlRef = useRef<string | null>(null);
 
   // Initialize with shared context
   useEffect(() => {
@@ -77,19 +79,34 @@ export default function TonePlayer({
   // Register this player and provide stop callback
   useEffect(() => {
     const stopCallback = () => {
-      transport?.stop();
-      transport?.cancel?.();
-      setIsPlaying(false);
-      setCurrentTime(0);
-      originalPlayerRef.current?.stop?.();
+      try {
+        transport?.stop();
+        transport?.cancel?.();
+        setIsPlaying(false);
+        setCurrentTime(0);
+        originalPlayerRef.current?.stop?.();
+        // Clear all transport events
+        transportEventsRef.current.clear();
+      } catch (error) {
+        console.error("Error in stop callback:", error);
+      }
     };
 
     registerPlayer(playerId, stopCallback);
 
     return () => {
-      unregisterPlayer(playerId);
+      try {
+        unregisterPlayer(playerId);
+        // Clean up any remaining transport events
+        transportEventsRef.current.forEach((eventId) => {
+          transport?.clear(eventId);
+        });
+        transportEventsRef.current.clear();
+      } catch (error) {
+        console.error("Error cleaning up player:", error);
+      }
     };
-  }, [registerPlayer, unregisterPlayer, transport]);
+  }, [registerPlayer, unregisterPlayer, transport, playerId]);
 
   // Initialize/Update original audio player
   useEffect(() => {
@@ -99,41 +116,63 @@ export default function TonePlayer({
       originalGainRef.current?.dispose?.();
       originalPlayerRef.current = null;
       originalGainRef.current = null;
+      currentOriginalUrlRef.current = null;
       return;
     }
 
-    // Dispose any previous
-    originalPlayerRef.current?.dispose?.();
-    originalGainRef.current?.dispose?.();
-
-    const gain = new Tone.Gain({ gain: originalVolume, context: context });
-    if (context.destination) (gain as any).connect(context.destination);
-    originalGainRef.current = gain;
-
-    const player = new Tone.Player({
-      url: originalAudioUrl,
-      autostart: false,
-      context: context,
-    });
-    (player as any).connect(gain);
-    // Keep original audio at normal tempo (1.0 playback rate)
-    (player as any).playbackRate = 1.0;
-    originalPlayerRef.current = player;
-
-    return () => {
-      originalPlayerRef.current?.stop?.();
+    // Only recreate if URL changed, not for volume changes
+    if (
+      !originalPlayerRef.current ||
+      currentOriginalUrlRef.current !== originalAudioUrl
+    ) {
+      // Dispose any previous
       originalPlayerRef.current?.dispose?.();
       originalGainRef.current?.dispose?.();
-      originalPlayerRef.current = null;
-      originalGainRef.current = null;
+
+      try {
+        const gain = new Tone.Gain({ gain: originalVolume, context: context });
+        gain.connect(context.destination);
+        originalGainRef.current = gain;
+
+        const player = new Tone.Player({
+          url: originalAudioUrl,
+          autostart: false,
+          context: context,
+        });
+        player.connect(gain);
+        // Keep original audio at normal tempo (1.0 playback rate)
+        player.playbackRate = 1.0;
+        originalPlayerRef.current = player;
+        currentOriginalUrlRef.current = originalAudioUrl;
+      } catch (error) {
+        console.error("Error creating original audio player:", error);
+        setError("Failed to create original audio player");
+      }
+    }
+
+    return () => {
+      try {
+        originalPlayerRef.current?.stop?.();
+        originalPlayerRef.current?.dispose?.();
+        originalGainRef.current?.dispose?.();
+      } catch (error) {
+        console.error("Error disposing original audio:", error);
+      } finally {
+        originalPlayerRef.current = null;
+        originalGainRef.current = null;
+        currentOriginalUrlRef.current = null;
+      }
     };
   }, [originalAudioUrl, context]);
 
   // Update original volume
   useEffect(() => {
     if (originalGainRef.current) {
-      // Tone.Gain expects a linear gain (0..1);
-      (originalGainRef.current as any).gain.value = originalVolume;
+      try {
+        originalGainRef.current.gain.value = originalVolume;
+      } catch (error) {
+        console.error("Error updating original volume:", error);
+      }
     }
   }, [originalVolume]);
 
@@ -178,20 +217,23 @@ export default function TonePlayer({
           onload: () => {
             setIsInstrumentLoaded(true);
           },
-          onerror: () => {
+          onerror: (error) => {
+            console.error(
+              `Failed to load ${instrumentConfig.name} samples:`,
+              error
+            );
             setError(`Failed to load ${instrumentConfig.name} samples`);
           },
           context: context,
         });
-        if (context.destination)
-          (newSampler as any).connect(context.destination);
+        newSampler.connect(context.destination);
         sampler.current = newSampler;
       } else if (instrumentConfig.type === "synth") {
         const newSynth = new Tone.Synth({
           ...instrumentConfig.options,
           context: context,
         });
-        if (context.destination) (newSynth as any).connect(context.destination);
+        newSynth.connect(context.destination);
         sampler.current = newSynth as unknown as Tone.Sampler;
         setIsInstrumentLoaded(true);
       } else if (instrumentConfig.type === "amSynth") {
@@ -199,7 +241,7 @@ export default function TonePlayer({
           ...instrumentConfig.options,
           context: context,
         });
-        if (context.destination) (newSynth as any).connect(context.destination);
+        newSynth.connect(context.destination);
         sampler.current = newSynth as unknown as Tone.Sampler;
         setIsInstrumentLoaded(true);
       } else if (instrumentConfig.type === "fmSynth") {
@@ -207,23 +249,30 @@ export default function TonePlayer({
           ...instrumentConfig.options,
           context: context,
         });
-        if (context.destination) (newSynth as any).connect(context.destination);
+        newSynth.connect(context.destination);
         sampler.current = newSynth as unknown as Tone.Sampler;
         setIsInstrumentLoaded(true);
       }
 
       if (sampler.current) {
-        (sampler.current as any).volume.value = Tone.gainToDb(volume);
+        sampler.current.volume.value = Tone.gainToDb(volume);
       }
     } catch (err) {
+      console.error("Error initializing instrument:", err);
       setError(
         err instanceof Error ? err.message : "Failed to initialize instrument"
       );
     }
 
     return () => {
-      if (sampler.current) {
-        sampler.current.dispose();
+      try {
+        if (sampler.current) {
+          sampler.current.dispose();
+        }
+      } catch (error) {
+        console.error("Error disposing sampler:", error);
+      } finally {
+        sampler.current = null;
       }
     };
   }, [selectedInstrument, midiData, isLoading, error, context]);
@@ -231,9 +280,43 @@ export default function TonePlayer({
   // Update volume when it changes
   useEffect(() => {
     if (sampler.current) {
-      (sampler.current as any).volume.value = Tone.gainToDb(volume);
+      try {
+        sampler.current.volume.value = Tone.gainToDb(volume);
+      } catch (error) {
+        console.error("Error updating volume:", error);
+      }
     }
   }, [volume]);
+
+  // Comprehensive cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      try {
+        // Stop all audio
+        transport?.stop();
+        transport?.cancel?.();
+        originalPlayerRef.current?.stop?.();
+
+        // Clear all transport events
+        transportEventsRef.current.forEach((eventId) => {
+          transport?.clear(eventId);
+        });
+        transportEventsRef.current.clear();
+
+        // Dispose all Tone.js objects
+        sampler.current?.dispose();
+        originalPlayerRef.current?.dispose?.();
+        originalGainRef.current?.dispose?.();
+
+        // Clear refs
+        sampler.current = null;
+        originalPlayerRef.current = null;
+        originalGainRef.current = null;
+      } catch (error) {
+        console.error("Error during component cleanup:", error);
+      }
+    };
+  }, []);
 
   // Set up the notes for playback (ensure clearing schedules when midi/instrument changes)
   useEffect(() => {
@@ -296,20 +379,24 @@ export default function TonePlayer({
       });
 
       // Update progress during playback
-      transport?.scheduleRepeat((time: number) => {
+      const progressEventId = transport?.scheduleRepeat((time: number) => {
         setCurrentTime(transport?.seconds || 0);
       }, 0.1);
+      if (progressEventId) transportEventsRef.current.add(progressEventId);
 
       // Handle playback completion
       const totalDuration = midiData.duration * newTempoRatio;
-      transport?.scheduleOnce(() => {
+      const completionEventId = transport?.scheduleOnce(() => {
         setIsPlaying(false);
         setCurrentTime(0);
         transport?.stop();
         transport?.cancel?.();
         // Stop original audio when sequence ends
         originalPlayerRef.current?.stop?.();
+        // Clear all events
+        transportEventsRef.current.clear();
       }, totalDuration);
+      if (completionEventId) transportEventsRef.current.add(completionEventId);
 
       // Resume playback
       transport?.start();
@@ -341,61 +428,68 @@ export default function TonePlayer({
         transport?.cancel?.();
         transport?.stop();
 
+        // Clear any existing transport events
+        transportEventsRef.current.forEach((eventId) => {
+          transport?.clear(eventId);
+        });
+        transportEventsRef.current.clear();
+
+        // Small delay to ensure transport state is properly reset
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
         // Set the tempo before starting playback
         if (transport) transport.bpm.value = playbackTempo;
 
-        // If resuming from pause, keep current position
-        if ((transport?.seconds || 0) > 0) {
-          // Don't reset position, just start from current position
-          transport?.start();
-          if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
-            const resumePos = transport?.seconds || 0;
-            // Keep original audio at normal tempo - no rate conversion
-            originalPlayerRef.current?.stop?.();
-            originalPlayerRef.current?.start?.(undefined, resumePos);
-          }
-        } else {
-          // If starting from beginning, reset position and set up everything
-          if (transport) transport.seconds = 0;
+        // Always start from beginning
+        transport?.cancel?.();
+        transport?.stop();
+        if (transport) transport.seconds = 0;
 
-          // Schedule all MIDI events with tempo scaling
-          midiData.tracks.forEach((track) => {
-            track.notes.forEach((note) => {
-              transport?.schedule((time: number) => {
-                if (sampler.current) {
-                  sampler.current.triggerAttackRelease(
-                    note.name,
-                    note.duration * tempoRatio,
-                    time,
-                    note.velocity
-                  );
-                }
-              }, note.time * tempoRatio);
-            });
+        // Calculate tempo ratio for this playback session
+        const currentTempoRatio = 120 / playbackTempo;
+
+        // Schedule all MIDI events with tempo scaling
+        midiData.tracks.forEach((track) => {
+          track.notes.forEach((note) => {
+            transport?.schedule((time: number) => {
+              if (sampler.current) {
+                sampler.current.triggerAttackRelease(
+                  note.name,
+                  note.duration * currentTempoRatio,
+                  time,
+                  note.velocity
+                );
+              }
+            }, note.time * currentTempoRatio);
           });
+        });
 
-          // Update progress during playback (optimized frequency for smooth playback)
-          transport?.scheduleRepeat((time: number) => {
-            setCurrentTime(transport?.seconds || 0);
-          }, 0.1);
+        // Update progress during playback (optimized frequency for smooth playback)
+        const progressEventId = transport?.scheduleRepeat((time: number) => {
+          setCurrentTime(transport?.seconds || 0);
+        }, 0.1);
+        if (progressEventId) transportEventsRef.current.add(progressEventId);
 
-          // Handle playback completion
-          transport?.scheduleOnce(() => {
-            setIsPlaying(false);
-            setCurrentTime(0);
-            transport?.stop();
-            transport?.cancel?.();
-            // Stop original audio when sequence ends
-            originalPlayerRef.current?.stop?.();
-          }, totalDuration);
+        // Handle playback completion
+        const completionEventId = transport?.scheduleOnce(() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          transport?.stop();
+          transport?.cancel?.();
+          // Stop original audio when sequence ends
+          originalPlayerRef.current?.stop?.();
+          // Clear all events
+          transportEventsRef.current.clear();
+        }, totalDuration);
+        if (completionEventId)
+          transportEventsRef.current.add(completionEventId);
 
-          // Start playback
-          transport?.start();
-          if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
-            originalPlayerRef.current?.stop?.();
-            // Keep original audio at normal tempo - start from beginning
-            originalPlayerRef.current?.start?.(undefined, 0);
-          }
+        // Start playback
+        transport?.start();
+        if (playOriginal && originalPlayerRef.current?.buffer?.loaded) {
+          originalPlayerRef.current?.stop?.();
+          // Keep original audio at normal tempo - start from beginning
+          originalPlayerRef.current?.start?.(undefined, 0);
         }
         setIsPlaying(true);
       }
@@ -418,8 +512,8 @@ export default function TonePlayer({
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
     setCurrentTime(newTime);
-    const tempoRatio = 120 / playbackTempo;
-    const totalDuration = (midiData?.duration || 0) * tempoRatio;
+    const currentTempoRatio = 120 / playbackTempo;
+    const totalDuration = (midiData?.duration || 0) * currentTempoRatio;
 
     if (isPlaying && midiData) {
       // Stop current playback and clear all scheduled events
@@ -436,13 +530,13 @@ export default function TonePlayer({
       // Schedule all MIDI events from new position with tempo scaling
       midiData.tracks.forEach((track) => {
         track.notes.forEach((note) => {
-          const scaledNoteTime = note.time * tempoRatio;
+          const scaledNoteTime = note.time * currentTempoRatio;
           if (scaledNoteTime >= newTime) {
             transport?.schedule((time: number) => {
               if (sampler.current) {
                 sampler.current.triggerAttackRelease(
                   note.name,
-                  note.duration * tempoRatio,
+                  note.duration * currentTempoRatio,
                   time,
                   note.velocity
                 );
@@ -453,18 +547,22 @@ export default function TonePlayer({
       });
 
       // Update progress during playback (optimized frequency for smooth playback)
-      transport?.scheduleRepeat((time: number) => {
+      const progressEventId = transport?.scheduleRepeat((time: number) => {
         setCurrentTime(transport?.seconds || 0);
       }, 0.1);
+      if (progressEventId) transportEventsRef.current.add(progressEventId);
 
       // Handle playback completion
-      transport?.scheduleOnce(() => {
+      const completionEventId = transport?.scheduleOnce(() => {
         setIsPlaying(false);
         setCurrentTime(0);
         transport?.stop();
         transport?.cancel?.();
         originalPlayerRef.current?.stop?.();
+        // Clear all events
+        transportEventsRef.current.clear();
       }, totalDuration);
+      if (completionEventId) transportEventsRef.current.add(completionEventId);
 
       // Start playback
       transport?.start();

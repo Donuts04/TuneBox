@@ -128,14 +128,14 @@ export function NoteVisualization({
 
           // Simple rectangular notes
           if (isActive) {
-            ctx.fillStyle = "#3b82f6"; // Blue for active
+            ctx.fillStyle = "#ef4444"; // Red for active
           } else {
             ctx.fillStyle = "#6b7280"; // Gray for inactive
           }
           ctx.fillRect(x, y, noteWidth, noteHeight);
 
           // Simple border
-          ctx.strokeStyle = isActive ? "#1d4ed8" : "#4b5563";
+          ctx.strokeStyle = isActive ? "#dc2626" : "#4b5563";
           ctx.lineWidth = 1;
           ctx.strokeRect(x, y, noteWidth, noteHeight);
 
@@ -149,13 +149,13 @@ export function NoteVisualization({
 
             if (splashOpacity > 0.05) {
               // Outer splash - larger and more visible
-              ctx.fillStyle = `rgba(59, 130, 246, ${splashOpacity * 0.4})`;
+              ctx.fillStyle = `rgba(239, 68, 68, ${splashOpacity * 0.4})`;
               ctx.beginPath();
               ctx.arc(x + noteWidth / 2, bottomY, splashRadius, 0, Math.PI * 2);
               ctx.fill();
 
               // Middle splash - medium size
-              ctx.fillStyle = `rgba(147, 197, 253, ${splashOpacity * 0.6})`;
+              ctx.fillStyle = `rgba(252, 165, 165, ${splashOpacity * 0.6})`;
               ctx.beginPath();
               ctx.arc(
                 x + noteWidth / 2,
@@ -290,7 +290,7 @@ export function NoteVisualization({
   return (
     <div
       ref={containerRef}
-      className="relative w-full bg-transparent rounded-lg overflow-hidden"
+      className="relative w-full bg-transparent overflow-hidden"
     >
       <div
         className="overflow-x-auto overflow-y-hidden"

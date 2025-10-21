@@ -84,7 +84,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
         formData.append("artistName", track.artist.name);
       }
 
-      const response = await fetch("/api/separate", {
+      const response = await fetch("/projects/tunebox/api/separate", {
         method: "POST",
         body: formData,
       });
@@ -135,7 +135,7 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
         formData.append("artistName", track.artist.name);
       }
 
-      const apiResponse = await fetch("/api/generate-midi", {
+      const apiResponse = await fetch("/projects/tunebox/api/generate-midi", {
         method: "POST",
         body: formData,
       });
