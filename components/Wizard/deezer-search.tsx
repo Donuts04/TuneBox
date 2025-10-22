@@ -256,10 +256,7 @@ export default function DeezerSearch({ onSelect }: DeezerSearchProps) {
                       {track.album.cover_medium ? (
                         <div className="relative w-14 h-14 overflow-hidden border border-black dark:border-white">
                           <Image
-                            src={
-                              track.album.cover_medium ||
-                              "/projects/tunebox/placeholder.svg"
-                            }
+                            src={track.album.cover_medium || "/placeholder.svg"}
                             alt={track.album.title}
                             fill
                             className="object-cover"

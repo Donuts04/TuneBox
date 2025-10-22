@@ -43,7 +43,7 @@ export const INSTRUMENTS: Instrument[] = [
     urls: {
       C4: "music-box-note-c_C_major.wav",
     },
-    baseUrl: "/projects/tunebox/sounds/music-box/",
+    baseUrl: "/sounds/music-box/",
   },
   {
     id: "piano",
@@ -255,7 +255,7 @@ export const INSTRUMENTS: Instrument[] = [
     urls: {
       C4: "cat.mp3",
     },
-    baseUrl: "/projects/tunebox/sounds/cat/",
+    baseUrl: "/sounds/cat/",
   },
   {
     id: "cat2",
@@ -264,6 +264,6 @@ export const INSTRUMENTS: Instrument[] = [
     urls: {
       G3: "cat-meow-sound-effect_G_minor.wav",
     },
-    baseUrl: "/projects/tunebox/sounds/cat/",
+    baseUrl: "/sounds/cat/",
   },
 ];

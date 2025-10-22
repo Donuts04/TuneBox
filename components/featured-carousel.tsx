@@ -604,10 +604,7 @@ export function FeaturedCarousel() {
 
                           <div className="relative mx-auto w-[90%] aspect-square">
                             <Image
-                              src={
-                                song.coverImage ||
-                                "/projects/tunebox/placeholder.svg"
-                              }
+                              src={song.coverImage || "/placeholder.svg"}
                               alt={`${song.title} by ${song.artist}`}
                               fill
                               className="object-cover transition-all duration-700 rounded-full border-2 border-black dark:border-white overflow-hidden"
