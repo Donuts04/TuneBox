@@ -185,7 +185,7 @@ export function MusicBoxComposer() {
           urls: {
             C4: "music-box-note-c_C_major.wav",
           },
-          baseUrl: "/projects/tunebox/sounds/music-box/",
+          baseUrl: "/sounds/music-box/",
           context: context,
           onload: () => {
             if (cancelled) return;
