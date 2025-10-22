@@ -1,6 +1,11 @@
 "use client";
 import Image from "next/image";
-import { FaLinkedin, FaInstagram, FaSpotify } from "react-icons/fa";
+import {
+  FaLinkedin,
+  FaInstagram,
+  FaSpotify,
+  FaExternalLinkAlt,
+} from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import OkLoader from "./loaders/ok-loader";
 
@@ -53,54 +58,71 @@ export function AboutSection() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                asChild
-              >
-                <a
-                  href="https://www.linkedin.com/in/osama-khalil-460144260/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="LinkedIn"
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-start">
+              <div className="flex gap-3 flex-1 sm:flex-none">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex-1 sm:flex-none"
+                  asChild
                 >
-                  <FaLinkedin className="h-5 w-5" />
-                </a>
-              </Button>
+                  <a
+                    href="https://www.osama-khalil.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Website"
+                  >
+                    <FaExternalLinkAlt className="h-5 w-5" />
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex-1 sm:flex-none"
+                  asChild
+                >
+                  <a
+                    href="https://www.linkedin.com/in/osama-khalil-460144260/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="LinkedIn"
+                  >
+                    <FaLinkedin className="h-5 w-5" />
+                  </a>
+                </Button>
 
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                asChild
-              >
-                <a
-                  href="https://www.instagram.com/osamaqadoumi_?igsh=dGR2cXRzaTduMWtr&utm_source=qr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex-1 sm:flex-none"
+                  asChild
                 >
-                  <FaInstagram className="h-5 w-5" />
-                </a>
-              </Button>
+                  <a
+                    href="https://www.instagram.com/osamaqadoumi_?igsh=dGR2cXRzaTduMWtr&utm_source=qr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                  >
+                    <FaInstagram className="h-5 w-5" />
+                  </a>
+                </Button>
 
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                asChild
-              >
-                <a
-                  href="https://open.spotify.com/user/31qxpb2rccdtajmtdtou3g6iq6t4?si=vg1PI3IxSr--N7QZj45O3w"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Spotify"
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex-1 sm:flex-none"
+                  asChild
                 >
-                  <FaSpotify className="h-5 w-5" />
-                </a>
-              </Button>
+                  <a
+                    href="https://open.spotify.com/user/31qxpb2rccdtajmtdtou3g6iq6t4?si=vg1PI3IxSr--N7QZj45O3w"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Spotify"
+                  >
+                    <FaSpotify className="h-5 w-5" />
+                  </a>
+                </Button>
+              </div>
 
               <Button
                 variant="outline"
@@ -111,22 +133,6 @@ export function AboutSection() {
                   Disclaimer
                 </a>
               </Button>
-
-              {/* <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
-                  asChild
-                >
-                  <a
-                    href="https://yourwebsite.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Website"
-                  >
-                    <FaExternalLinkAlt className="h-5 w-5" />
-                  </a>
-                </Button> */}
             </div>
             <div className="flex justify-start items-start w-full border-2 p-4 border-black dark:border-white bg-black dark:bg-white">
               <OkLoader />
