@@ -77,7 +77,7 @@ const NavbarComponent = () => {
                     if (target) {
                       (target as HTMLElement).scrollIntoView({
                         behavior: "smooth",
-                        block: "start",
+                        block: "center",
                       });
                     }
                   } else if (item.link === "/") {
