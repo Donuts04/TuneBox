@@ -18,18 +18,18 @@
   }
   
   .dance-rotate-active {
-    animation: dance-rotate 4s ease-in-out infinite;
+    animation: dance-rotate 2s ease-in-out infinite;
   }
   
   @keyframes dance-rotate {
     0% {
-      transform: rotate(-5deg);
+      transform: rotate(-10deg);
     }
     50% {
-      transform: rotate(5deg);
+      transform: rotate(10deg);
     }
     100% {
-      transform: rotate(-5deg);
+      transform: rotate(-10deg);
     }
   }
 }

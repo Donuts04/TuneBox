@@ -5,13 +5,13 @@ import TuneWizard from "@/components/Wizard/TuneWizard";
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowDown } from "lucide-react";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { MusicBoxComposer } from "@/components/MusicBoxComposer";
 import { AboutSection } from "@/components/about-section";
 import Footer from "@/components/footer";
 import LoopSamples from "@/components/LoopSamples";
 import TalkingTuneBox from "@/components/Wizard/TalkingTuneBox";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [showHelper, setShowHelper] = useState(false);
@@ -61,15 +61,13 @@ export default function Home() {
             />
 
             <div className="relative">
-              {!buttonPressed && (
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 flex gap-2">
-                  <ArrowDown className="h-5 w-5 text-black dark:text-white animate-bounce" />
-                </div>
-              )}
-
               <Button
                 variant="outline"
-                className="mb-3 border-black/50 dark:border-white/50 text-black dark:text-white hover:text-white hover:dark:text-black bg-transparent hover:bg-black dark:hover:bg-white transition-colors"
+                className={cn(
+                  "mb-3 bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black transition-colors",
+                  !buttonPressed &&
+                    "shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] dark:shadow-[5px_5px_0px_0px_rgba(255,255,255,1)]"
+                )}
                 onClick={() => {
                   setShowHelper(true);
                   setButtonPressed(true);

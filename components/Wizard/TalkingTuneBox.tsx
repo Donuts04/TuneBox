@@ -17,49 +17,23 @@ interface TalkingTuneBoxProps {
 export default function TalkingTuneBox({ onClose }: TalkingTuneBoxProps) {
   const [index, setIndex] = useState(0);
 
-  // Highlight the first step when helper is shown
   useEffect(() => {
     if (index === 1) {
-      // "First things first..." step
-      // Add highlighting class to the wizard cards
-      const searchCard = document.querySelector('[data-step="search"]');
-      const uploadCard = document.querySelector('[data-step="upload"]');
       const danceImage = document.querySelector(".dance-rotate");
-
-      if (searchCard && uploadCard) {
-        searchCard.classList.add("highlight-step");
-        uploadCard.classList.add("highlight-step");
-      }
 
       if (danceImage) {
         danceImage.classList.add("dance-rotate-active");
       }
     } else {
-      // Remove highlighting class
-      const searchCard = document.querySelector('[data-step="search"]');
-      const uploadCard = document.querySelector('[data-step="upload"]');
       const danceImage = document.querySelector(".dance-rotate");
-
-      if (searchCard && uploadCard) {
-        searchCard.classList.remove("highlight-step");
-        uploadCard.classList.remove("highlight-step");
-      }
 
       if (danceImage) {
         danceImage.classList.remove("dance-rotate-active");
       }
     }
 
-    // Cleanup on unmount
     return () => {
-      const searchCard = document.querySelector('[data-step="search"]');
-      const uploadCard = document.querySelector('[data-step="upload"]');
       const danceImage = document.querySelector(".dance-rotate");
-
-      if (searchCard && uploadCard) {
-        searchCard.classList.remove("highlight-step");
-        uploadCard.classList.remove("highlight-step");
-      }
 
       if (danceImage) {
         danceImage.classList.remove("dance-rotate-active");
