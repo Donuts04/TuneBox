@@ -52,14 +52,47 @@ export default function TonePlayer({
   const originalGainRef = useRef<Tone.Gain | null>(null);
   const transportEventsRef = useRef<Set<string>>(new Set());
   const currentOriginalUrlRef = useRef<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Safe state setters to prevent updates on unmounted components
+  const safeSetIsPlaying = (value: boolean) => {
+    if (isMountedRef.current) {
+      setIsPlaying(value);
+    }
+  };
+
+  const safeSetCurrentTime = (value: number) => {
+    if (isMountedRef.current) {
+      setCurrentTime(value);
+    }
+  };
+
+  const safeSetError = (value: string | null) => {
+    if (isMountedRef.current) {
+      setError(value);
+    }
+  };
+
+  // Helper function to clear all transport events safely
+  const clearAllTransportEvents = () => {
+    try {
+      transportEventsRef.current.forEach((eventId) => {
+        transport?.clear(eventId);
+      });
+      transportEventsRef.current.clear();
+    } catch (error) {
+      console.error("Error clearing transport events:", error);
+    }
+  };
 
   // Initialize with shared context
   useEffect(() => {
+    isMountedRef.current = true;
     setIsLoading(true);
-    setError(null);
+    safeSetError(null);
 
     if (!context || !transport) {
-      setError("Audio context not ready");
+      safeSetError("Audio context not ready");
       setIsLoading(false);
       return;
     }
@@ -69,11 +102,15 @@ export default function TonePlayer({
       transport.loop = false;
       setIsLoading(false);
     } catch (err) {
-      setError(
+      safeSetError(
         err instanceof Error ? err.message : "Failed to initialize audio engine"
       );
       setIsLoading(false);
     }
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [context, transport, playbackTempo]);
 
   // Register this player and provide stop callback
@@ -82,11 +119,11 @@ export default function TonePlayer({
       try {
         transport?.stop();
         transport?.cancel?.();
-        setIsPlaying(false);
-        setCurrentTime(0);
+        safeSetIsPlaying(false);
+        safeSetCurrentTime(0);
         originalPlayerRef.current?.stop?.();
         // Clear all transport events
-        transportEventsRef.current.clear();
+        clearAllTransportEvents();
       } catch (error) {
         console.error("Error in stop callback:", error);
       }
@@ -98,10 +135,7 @@ export default function TonePlayer({
       try {
         unregisterPlayer(playerId);
         // Clean up any remaining transport events
-        transportEventsRef.current.forEach((eventId) => {
-          transport?.clear(eventId);
-        });
-        transportEventsRef.current.clear();
+        clearAllTransportEvents();
       } catch (error) {
         console.error("Error cleaning up player:", error);
       }
@@ -146,7 +180,7 @@ export default function TonePlayer({
         currentOriginalUrlRef.current = originalAudioUrl;
       } catch (error) {
         console.error("Error creating original audio player:", error);
-        setError("Failed to create original audio player");
+        safeSetError("Failed to create original audio player");
       }
     }
 
@@ -186,17 +220,17 @@ export default function TonePlayer({
     transport?.stop();
     transport?.cancel?.();
     originalPlayerRef.current?.stop?.();
-    setIsPlaying(false);
-    setCurrentTime(0);
+    safeSetIsPlaying(false);
+    safeSetCurrentTime(0);
 
     setIsInstrumentLoaded(false);
-    setError(null);
+    safeSetError(null);
 
     const instrumentConfig = INSTRUMENTS.find(
       (inst) => inst.id === selectedInstrument
     );
     if (!instrumentConfig) {
-      setError("Instrument not found");
+      safeSetError("Instrument not found");
       return;
     }
 
@@ -205,7 +239,7 @@ export default function TonePlayer({
     }
 
     if (!context) {
-      setError("Audio context not available");
+      safeSetError("Audio context not available");
       return;
     }
 
@@ -222,7 +256,7 @@ export default function TonePlayer({
               `Failed to load ${instrumentConfig.name} samples:`,
               error
             );
-            setError(`Failed to load ${instrumentConfig.name} samples`);
+            safeSetError(`Failed to load ${instrumentConfig.name} samples`);
           },
           context: context,
         });
@@ -259,7 +293,7 @@ export default function TonePlayer({
       }
     } catch (err) {
       console.error("Error initializing instrument:", err);
-      setError(
+      safeSetError(
         err instanceof Error ? err.message : "Failed to initialize instrument"
       );
     }
@@ -298,10 +332,7 @@ export default function TonePlayer({
         originalPlayerRef.current?.stop?.();
 
         // Clear all transport events
-        transportEventsRef.current.forEach((eventId) => {
-          transport?.clear(eventId);
-        });
-        transportEventsRef.current.clear();
+        clearAllTransportEvents();
 
         // Dispose all Tone.js objects
         sampler.current?.dispose();
@@ -357,7 +388,7 @@ export default function TonePlayer({
       // Set transport position to the new scaled position
       const newPosition = currentMidiTime * newTempoRatio;
       if (transport) transport.seconds = newPosition;
-      setCurrentTime(newPosition);
+      safeSetCurrentTime(newPosition);
 
       // Reschedule all MIDI events from current position with new tempo
       midiData.tracks.forEach((track) => {
@@ -380,21 +411,21 @@ export default function TonePlayer({
 
       // Update progress during playback
       const progressEventId = transport?.scheduleRepeat((time: number) => {
-        setCurrentTime(transport?.seconds || 0);
+        safeSetCurrentTime(transport?.seconds || 0);
       }, 0.1);
       if (progressEventId) transportEventsRef.current.add(progressEventId);
 
       // Handle playback completion
       const totalDuration = midiData.duration * newTempoRatio;
       const completionEventId = transport?.scheduleOnce(() => {
-        setIsPlaying(false);
-        setCurrentTime(0);
+        safeSetIsPlaying(false);
+        safeSetCurrentTime(0);
         transport?.stop();
         transport?.cancel?.();
         // Stop original audio when sequence ends
         originalPlayerRef.current?.stop?.();
         // Clear all events
-        transportEventsRef.current.clear();
+        clearAllTransportEvents();
       }, totalDuration);
       if (completionEventId) transportEventsRef.current.add(completionEventId);
 
@@ -418,7 +449,7 @@ export default function TonePlayer({
         transport?.pause();
         // Stop original audio (no pause) so we can resume at current position
         originalPlayerRef.current?.stop?.();
-        setIsPlaying(false);
+        safeSetIsPlaying(false);
       } else {
         // Stop other players before starting this one
         stopOtherPlayers(playerId);
@@ -429,10 +460,7 @@ export default function TonePlayer({
         transport?.stop();
 
         // Clear any existing transport events
-        transportEventsRef.current.forEach((eventId) => {
-          transport?.clear(eventId);
-        });
-        transportEventsRef.current.clear();
+        clearAllTransportEvents();
 
         // Small delay to ensure transport state is properly reset
         await new Promise((resolve) => setTimeout(resolve, 10));
@@ -466,20 +494,20 @@ export default function TonePlayer({
 
         // Update progress during playback (optimized frequency for smooth playback)
         const progressEventId = transport?.scheduleRepeat((time: number) => {
-          setCurrentTime(transport?.seconds || 0);
+          safeSetCurrentTime(transport?.seconds || 0);
         }, 0.1);
         if (progressEventId) transportEventsRef.current.add(progressEventId);
 
         // Handle playback completion
         const completionEventId = transport?.scheduleOnce(() => {
-          setIsPlaying(false);
-          setCurrentTime(0);
+          safeSetIsPlaying(false);
+          safeSetCurrentTime(0);
           transport?.stop();
           transport?.cancel?.();
           // Stop original audio when sequence ends
           originalPlayerRef.current?.stop?.();
           // Clear all events
-          transportEventsRef.current.clear();
+          clearAllTransportEvents();
         }, totalDuration);
         if (completionEventId)
           transportEventsRef.current.add(completionEventId);
@@ -491,11 +519,11 @@ export default function TonePlayer({
           // Keep original audio at normal tempo - start from beginning
           originalPlayerRef.current?.start?.(undefined, 0);
         }
-        setIsPlaying(true);
+        safeSetIsPlaying(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error playing audio");
-      setIsPlaying(false);
+      safeSetError(err instanceof Error ? err.message : "Error playing audio");
+      safeSetIsPlaying(false);
     }
   };
 
@@ -503,15 +531,15 @@ export default function TonePlayer({
   const stopPlayback = () => {
     transport?.stop();
     transport?.cancel?.();
-    setIsPlaying(false);
-    setCurrentTime(0);
+    safeSetIsPlaying(false);
+    safeSetCurrentTime(0);
     originalPlayerRef.current?.stop?.();
   };
 
   // Handle seeking in the timeline
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
-    setCurrentTime(newTime);
+    safeSetCurrentTime(newTime);
     const currentTempoRatio = 120 / playbackTempo;
     const totalDuration = (midiData?.duration || 0) * currentTempoRatio;
 
@@ -548,19 +576,19 @@ export default function TonePlayer({
 
       // Update progress during playback (optimized frequency for smooth playback)
       const progressEventId = transport?.scheduleRepeat((time: number) => {
-        setCurrentTime(transport?.seconds || 0);
+        safeSetCurrentTime(transport?.seconds || 0);
       }, 0.1);
       if (progressEventId) transportEventsRef.current.add(progressEventId);
 
       // Handle playback completion
       const completionEventId = transport?.scheduleOnce(() => {
-        setIsPlaying(false);
-        setCurrentTime(0);
+        safeSetIsPlaying(false);
+        safeSetCurrentTime(0);
         transport?.stop();
         transport?.cancel?.();
         originalPlayerRef.current?.stop?.();
         // Clear all events
-        transportEventsRef.current.clear();
+        clearAllTransportEvents();
       }, totalDuration);
       if (completionEventId) transportEventsRef.current.add(completionEventId);
 

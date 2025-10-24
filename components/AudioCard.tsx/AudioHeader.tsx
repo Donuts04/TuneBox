@@ -173,7 +173,7 @@ export default function AudioHeader({
                     className="border border-black dark:border-white"
                   />
                 ) : (
-                  <div className="flex-shrink-0 bg-muted/30 p-3 border border-black dark:border-white">
+                  <div className="flex-shrink-0 p-3 border border-black dark:border-white">
                     <Music className="h-6 w-6" />
                   </div>
                 )}
