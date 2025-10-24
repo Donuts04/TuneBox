@@ -93,7 +93,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
               if (target) {
                 (target as HTMLElement).scrollIntoView({
                   behavior: "smooth",
-                  block: "start",
+                  block: "center",
                 });
               }
             } else if (item.link === "/") {
