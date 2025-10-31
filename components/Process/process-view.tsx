@@ -76,18 +76,23 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       if (!input) throw new Error("No audio selected");
       const formData = new FormData();
       formData.append("file", input);
-      const songName = track?.title || uploadedFile?.name || "Unknown";
-      const songType = track ? "deezer" : "upload";
-      formData.append("songName", songName);
-      formData.append("songType", songType);
+      formData.append(
+        "audio_name",
+        track?.title || uploadedFile?.name || "Unknown"
+      );
+      formData.append("audio_source", track ? "search" : "file_upload");
       if (track?.artist?.name) {
-        formData.append("artistName", track.artist.name);
+        formData.append("artist_name", track.artist.name);
       }
 
-      const response = await fetch("/api/separate", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/separate-sources`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
       if (!response.ok) throw new Error("Failed to separate audio");
       const result = await response.json();
       if (!result.stems || typeof result.stems !== "object") {
@@ -127,18 +132,23 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
       if (!input) throw new Error("No audio selected");
       const formData = new FormData();
       formData.append("file", input);
-      const songName = track?.title || uploadedFile?.name || "Unknown";
-      const songType = track ? "deezer" : "upload";
-      formData.append("songName", songName);
-      formData.append("songType", songType);
+      formData.append(
+        "audio_name",
+        track?.title || uploadedFile?.name || "Unknown"
+      );
+      formData.append("audio_source", track ? "search" : "file_upload");
       if (track?.artist?.name) {
-        formData.append("artistName", track.artist.name);
+        formData.append("artist_name", track.artist.name);
       }
 
-      const apiResponse = await fetch("/api/generate-midi", {
-        method: "POST",
-        body: formData,
-      });
+      const apiResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/generate-midi`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
       if (!apiResponse.ok) throw new Error(`Failed to convert audio`);
       const midiBlob = await apiResponse.blob();
       const arrayBuffer = await midiBlob.arrayBuffer();

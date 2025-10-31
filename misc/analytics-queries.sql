@@ -8,7 +8,7 @@ SELECT
   COUNT(*) as processing_count,
   AVG(processing_time_ms) as avg_processing_time_ms
 FROM audio_processing_analytics 
-WHERE audio_source = 'deezer_search'  -- Focus on real songs
+WHERE audio_source = 'search'  -- Focus on real songs
   AND processing_success = true
 GROUP BY audio_name, artist_name 
 ORDER BY processing_count DESC
@@ -21,7 +21,7 @@ SELECT
   COUNT(DISTINCT audio_name) as unique_songs,
   AVG(processing_time_ms) as avg_processing_time_ms
 FROM audio_processing_analytics 
-WHERE audio_source = 'deezer_search'
+WHERE audio_source = 'search'
   AND processing_success = true
   AND artist_name IS NOT NULL
 GROUP BY artist_name 

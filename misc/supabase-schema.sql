@@ -2,7 +2,7 @@
 
 -- 0. Create ENUMs for better data integrity
 CREATE TYPE processing_type_enum AS ENUM ('separation', 'conversion');
-CREATE TYPE audio_source_enum AS ENUM ('deezer_search', 'file_upload');
+CREATE TYPE audio_source_enum AS ENUM ('search', 'file_upload');
 CREATE TYPE source_enum AS ENUM ('tunebox_website');
 
 -- 1. Featured Songs Analytics Table
