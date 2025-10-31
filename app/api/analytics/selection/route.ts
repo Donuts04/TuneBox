@@ -22,11 +22,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!["deezer_search", "file_upload"].includes(audioSource)) {
+    if (!["search", "file_upload"].includes(audioSource)) {
       return NextResponse.json(
         {
-          error:
-            "Invalid audioSource. Must be 'deezer_search' or 'file_upload'",
+          error: "Invalid audioSource. Must be 'search' or 'file_upload'",
         },
         { status: 400 }
       );

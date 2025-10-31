@@ -26,7 +26,7 @@ function createAnalyticsClient() {
 export async function trackUserSelection(
   request: Request,
   data: {
-    audioSource: "deezer_search" | "file_upload";
+    audioSource: "search" | "file_upload";
     audioName: string;
     artistName?: string | null;
   }
@@ -96,7 +96,7 @@ export async function trackFeatured(
 export async function trackAudioProcessing(
   request: Request,
   data: {
-    audioSource: "deezer_search" | "file_upload";
+    audioSource: "search" | "file_upload";
     audioName: string;
     artistName?: string | null;
     processingType: "separation" | "conversion";

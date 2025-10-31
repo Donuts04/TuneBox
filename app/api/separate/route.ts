@@ -40,10 +40,10 @@ export async function POST(request: Request) {
       // Track failed processing
       const processingTimeMs = Date.now() - startTime;
       await trackAudioProcessing(request, {
-        audioSource: songType === "deezer" ? "deezer_search" : "file_upload",
+        audioSource: songType === "search" ? "search" : "file_upload",
         audioName: songName || file.name,
         artistName:
-          songType === "deezer" ? (formData.get("artistName") as string) : null,
+          songType === "search" ? (formData.get("artistName") as string) : null,
         processingType: "separation",
         processingSuccess: false,
         processingTimeMs,
@@ -58,10 +58,10 @@ export async function POST(request: Request) {
 
     const processingTimeMs = Date.now() - startTime;
     await trackAudioProcessing(request, {
-      audioSource: songType === "deezer" ? "deezer_search" : "file_upload",
+      audioSource: songType === "search" ? "search" : "file_upload",
       audioName: songName || file.name,
       artistName:
-        songType === "deezer" ? (formData.get("artistName") as string) : null,
+        songType === "search" ? (formData.get("artistName") as string) : null,
       processingType: "separation",
       processingSuccess: true,
       processingTimeMs,

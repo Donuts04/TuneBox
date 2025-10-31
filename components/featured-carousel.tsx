@@ -28,7 +28,7 @@ import AudioEffects from "@/components/AudioEffects/AudioEffects";
 import MidiPlayer from "@/components/ConvertToNotes/MidiPlayer";
 import { Midi } from "@tonejs/midi";
 import AudioHeader from "./AudioCard.tsx/AudioHeader";
-import { analytics } from "@/lib/analytics";
+import { trackFeaturedDetails } from "@/lib/analytics";
 import { useAudio } from "@/contexts/audio-context";
 import { toast } from "sonner";
 
@@ -53,6 +53,32 @@ interface Song {
 const featuredSongs: Song[] = [
   {
     id: "1",
+    title: "The Shining",
+    artist: "The Neighbourhood",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/theShining/theShining.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/theShining/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/theShining/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/theShining/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/theShining/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/theShining/other.mp3",
+    },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.7,
+      delay: 6.5,
+    },
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/theShining/converted_piano.mid",
+    midi: null,
+  },
+
+  {
+    id: "2",
     title: "Pretty Boy",
     artist: "The Neighbourhood",
     coverImage:
@@ -78,7 +104,32 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "2",
+    id: "3",
+    title: "Somewhere Only We Know",
+    artist: "Keane",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/somewhereOnlyWeKnow.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/other.mp3",
+    },
+    audioEffects: {
+      speed: 1.4,
+      reverb: 0.8,
+      delay: 6.5,
+    },
+    midi: "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/converted_piano.mid",
+  },
+
+  {
+    id: "4",
     title: "Sunsetz",
     artist: "Cigarettes After Sex",
     coverImage:
@@ -104,7 +155,33 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "3",
+    id: "5",
+    title: "Lilac Wine",
+    artist: "Jeff Buckley",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/lilacWine.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/other.mp3",
+    },
+    audioEffects: {
+      speed: 0.9,
+      reverb: 0.8,
+      delay: 3.0,
+    },
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/converted_piano.mid",
+    midi: null,
+  },
+
+  {
+    id: "6",
     title: "About You",
     artist: "The 1975",
     coverImage:
@@ -129,32 +206,7 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "4",
-    title: "Somewhere Only We Know",
-    artist: "Keane",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/somewhereOnlyWeKnow.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/original.mp3",
-    audioUrls: {
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/vocals.mp3",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/drums.mp3",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/bass.mp3",
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/other.mp3",
-    },
-    audioEffects: {
-      speed: 1.4,
-      reverb: 0.8,
-      delay: 6.5,
-    },
-    midi: "https://storage.googleapis.com/tunebox-stuff/featured/somewhereOnlyWeKnow/converted_piano.mid",
-  },
-
-  {
-    id: "5",
+    id: "7",
     title: "The Way You'd Love Her",
     artist: "Mac DeMarco",
     coverImage:
@@ -179,7 +231,7 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "6",
+    id: "8",
     title: "Stargazing",
     artist: "The Neighbourhood",
     coverImage:
@@ -205,7 +257,7 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "7",
+    id: "9",
     title: "My Love Mine All Mine",
     artist: "Mitski",
     coverImage:
@@ -231,7 +283,7 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "8",
+    id: "10",
     title: "I'm Not Them",
     artist: "Them & I",
     coverImage:
@@ -248,7 +300,7 @@ const featuredSongs: Song[] = [
         "https://storage.googleapis.com/tunebox-stuff/featured/imNotThem/other.mp3",
     },
     audioEffects: {
-      speed: 0.95,
+      speed: 1.0,
       reverb: 1.0,
       delay: 10.0,
     },
@@ -257,7 +309,7 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "9",
+    id: "11",
     title: "One Last Time",
     artist: "Summer Salt",
     coverImage:
@@ -283,7 +335,7 @@ const featuredSongs: Song[] = [
   },
 
   {
-    id: "10",
+    id: "12",
     title: "Heseeny",
     artist: "TUL8TE",
     coverImage:
@@ -321,13 +373,8 @@ export function FeaturedCarousel() {
   const [showSeparator, setShowSeparator] = React.useState(false);
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [loadedMidi, setLoadedMidi] = React.useState<Midi | null>(null);
-  const [loadingSongs, setLoadingSongs] = React.useState<Set<string>>(
-    new Set()
-  );
-  const audioRefs = React.useRef<Map<string, HTMLAudioElement>>(new Map());
-  const eventListenersRef = React.useRef<Map<string, Map<string, () => void>>>(
-    new Map()
-  );
+  const [loadingSongId, setLoadingSongId] = React.useState<string | null>(null);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const carouselApi = React.useRef<CarouselApi | null>(null);
 
   // Simple function to load MIDI from URL
@@ -341,81 +388,41 @@ export function FeaturedCarousel() {
     }
   }, []);
 
-  // Helper function to create audio element with proper event listener management
-  const createAudioElement = React.useCallback(
-    (song: Song): HTMLAudioElement => {
-      const audio = new Audio(song.audioUrl);
+  // Initialize a single audio element and basic listeners
+  React.useEffect(() => {
+    const audio = new Audio();
+    audioRef.current = audio;
 
-      // Event handlers
-      const handlePlay = () => setCurrentlyPlaying(song.id);
-      const handlePause = () =>
-        setCurrentlyPlaying((current) =>
-          current === song.id ? null : current
-        );
-      const handleEnded = () => setCurrentlyPlaying(null);
-      const handleError = () => {
-        setLoadingSongs((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(song.id);
-          return newSet;
-        });
-        setCurrentlyPlaying((current) =>
-          current === song.id ? null : current
-        );
-        toast.error("Failed to load audio");
-      };
-      const handleCanPlay = () => {
-        setLoadingSongs((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(song.id);
-          return newSet;
-        });
-      };
+    const onEnded = () => {
+      setCurrentlyPlaying(null);
+    };
+    const onError = () => {
+      setLoadingSongId(null);
+      setCurrentlyPlaying(null);
+      toast.error("Failed to load audio");
+    };
 
-      // Store event listeners for cleanup
-      const listeners = new Map<string, () => void>();
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
 
-      const removePlayListener = () =>
-        audio.removeEventListener("play", handlePlay);
-      const removePauseListener = () =>
-        audio.removeEventListener("pause", handlePause);
-      const removeEndedListener = () =>
-        audio.removeEventListener("ended", handleEnded);
-      const removeErrorListener = () =>
-        audio.removeEventListener("error", handleError);
-      const removeCanPlayListener = () =>
-        audio.removeEventListener("canplay", handleCanPlay);
-
-      listeners.set("play", removePlayListener);
-      listeners.set("pause", removePauseListener);
-      listeners.set("ended", removeEndedListener);
-      listeners.set("error", removeErrorListener);
-      listeners.set("canplay", removeCanPlayListener);
-
-      // Add event listeners
-      audio.addEventListener("play", handlePlay);
-      audio.addEventListener("pause", handlePause);
-      audio.addEventListener("ended", handleEnded);
-      audio.addEventListener("error", handleError);
-      audio.addEventListener("canplay", handleCanPlay);
-
-      // Store listeners for cleanup
-      eventListenersRef.current.set(song.id, listeners);
-
-      return audio;
-    },
-    []
-  );
+    return () => {
+      audio.pause();
+      audio.src = "";
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
+      audioRef.current = null;
+    };
+  }, []);
 
   // Register this player with the global audio management system
   React.useEffect(() => {
     const stopCallback = () => {
-      audioRefs.current.forEach((audio) => {
-        if (audio) {
-          audio.pause();
-        }
-      });
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+      }
       setCurrentlyPlaying(null);
+      setLoadingSongId(null);
     };
 
     registerPlayer("featuredCarousel", stopCallback);
@@ -425,68 +432,28 @@ export function FeaturedCarousel() {
     };
   }, [registerPlayer, unregisterPlayer]);
 
-  // Cleanup audio elements and event listeners on unmount
-  React.useEffect(() => {
-    // Capture refs at effect time to avoid stale closure warnings
-    const currentAudioRefs = audioRefs.current;
-    const currentEventListenersRef = eventListenersRef.current;
-
-    return () => {
-      currentAudioRefs.forEach((audio, songId) => {
-        if (audio) {
-          // Remove event listeners
-          const listeners = currentEventListenersRef.get(songId);
-          if (listeners) {
-            listeners.forEach((removeListener) => removeListener());
-          }
-
-          // Cleanup audio
-          audio.pause();
-          audio.src = "";
-        }
-      });
-      currentAudioRefs.clear();
-      currentEventListenersRef.clear();
-    };
-  }, []);
+  // No additional cleanup needed beyond the audioRef effect above
 
   const handlePlay = async (song: Song) => {
-    let audio = audioRefs.current.get(song.id);
-
-    // Create audio element if it doesn't exist
-    if (!audio) {
-      try {
-        setLoadingSongs((prev) => new Set(prev).add(song.id));
-        audio = createAudioElement(song);
-        audioRefs.current.set(song.id, audio);
-      } catch (error) {
-        console.error("Error creating audio:", error);
-        setLoadingSongs((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(song.id);
-          return newSet;
-        });
-        toast.error("Failed to load audio");
-        return;
-      }
-    }
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (currentlyPlaying === song.id) {
-      // If the same song is clicked, toggle play/pause
       if (audio.paused) {
         try {
-          setLoadingSongs((prev) => new Set(prev).add(song.id));
+          setLoadingSongId(song.id);
           await startAudio();
+          if (audio.src !== song.audioUrl) {
+            audio.src = song.audioUrl;
+            audio.load();
+          }
           await audio.play();
+          setCurrentlyPlaying(song.id);
         } catch (err) {
           console.error("Error playing audio:", err);
           toast.error("Failed to play audio");
         } finally {
-          setLoadingSongs((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(song.id);
-            return newSet;
-          });
+          setLoadingSongId(null);
         }
       } else {
         audio.pause();
@@ -496,15 +463,12 @@ export function FeaturedCarousel() {
       // Stop other players before starting this one
       stopOtherPlayers("featuredCarousel");
 
-      // Pause all other audio elements
-      audioRefs.current.forEach((otherAudio, otherId) => {
-        if (otherId !== song.id && otherAudio) {
-          otherAudio.pause();
-        }
-      });
-
+      // Switch source to the new song and play from the beginning
       try {
-        setLoadingSongs((prev) => new Set(prev).add(song.id));
+        setLoadingSongId(song.id);
+        audio.pause();
+        audio.src = song.audioUrl;
+        audio.load();
         await startAudio();
         await audio.play();
         setCurrentlyPlaying(song.id);
@@ -512,26 +476,21 @@ export function FeaturedCarousel() {
         console.error("Error playing audio:", err);
         toast.error("Failed to play audio");
       } finally {
-        setLoadingSongs((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(song.id);
-          return newSet;
-        });
+        setLoadingSongId(null);
       }
     }
   };
 
   const handleShowDetails = (song: Song) => {
-    // Stop any currently playing audio
-    audioRefs.current.forEach((audio) => {
-      if (audio) {
-        audio.pause();
-      }
-    });
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
     setCurrentlyPlaying(null);
 
     // Track analytics for featured song details view
-    analytics.trackFeaturedDetails(song.id.toString(), song.title, song.artist);
+    trackFeaturedDetails(song.id.toString(), song.title, song.artist);
 
     setSelectedSong(song);
     setShowSeparator(true);
@@ -595,7 +554,7 @@ export function FeaturedCarousel() {
                           onClick={() => handlePlay(song)}
                         >
                           {currentlyPlaying === song.id &&
-                            !loadingSongs.has(song.id) && (
+                            loadingSongId !== song.id && (
                               <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 bg-white text-black dark:bg-black dark:text-white border border-2 border-black dark:border-white px-2 py-0.5 text-xs font-medium flex items-center gap-1 z-20">
                                 <Disc className="h-2.5 w-2.5 animate-spin" />
                                 <span>Now Playing</span>
@@ -611,7 +570,7 @@ export function FeaturedCarousel() {
                               style={{
                                 animation:
                                   currentlyPlaying === song.id &&
-                                  !loadingSongs.has(song.id)
+                                  loadingSongId !== song.id
                                     ? "spin 20s linear infinite"
                                     : "none",
                               }}
@@ -621,9 +580,9 @@ export function FeaturedCarousel() {
                               className={cn(
                                 "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[15%] h-[15%] bg-white text-black border border-black hover:bg-black hover:text-white dark:bg-black dark:text-white dark:border-white dark:hover:bg-white dark:hover:text-black transition-colors flex items-center justify-center"
                               )}
-                              disabled={loadingSongs.has(song.id)}
+                              disabled={loadingSongId === song.id}
                             >
-                              {loadingSongs.has(song.id) ? (
+                              {loadingSongId === song.id ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
                               ) : currentlyPlaying === song.id ? (
                                 <Pause className="h-5 w-5" />
@@ -631,7 +590,7 @@ export function FeaturedCarousel() {
                                 <Play className="h-5 w-5" />
                               )}
                               <span className="sr-only">
-                                {loadingSongs.has(song.id)
+                                {loadingSongId === song.id
                                   ? `Loading ${song.title}`
                                   : currentlyPlaying === song.id
                                   ? `Pause ${song.title}`
