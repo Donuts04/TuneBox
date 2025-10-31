@@ -12,6 +12,7 @@ import { Alert } from "@/components/ui/alert";
 import { AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import TuneBoxLoader from "@/components/loaders/tunebox-loader";
+import { getClientSessionId } from "@/lib/session";
 
 interface ProcessViewProps {
   uploadedFile: File | null;
@@ -91,6 +92,9 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
           method: "POST",
           body: formData,
           credentials: "include",
+          headers: {
+            "X-Session-Id": getClientSessionId(),
+          },
         }
       );
       if (!response.ok) throw new Error("Failed to separate audio");
@@ -147,6 +151,9 @@ export default function ProcessView({ uploadedFile, track }: ProcessViewProps) {
           method: "POST",
           body: formData,
           credentials: "include",
+          headers: {
+            "X-Session-Id": getClientSessionId(),
+          },
         }
       );
       if (!apiResponse.ok) throw new Error(`Failed to convert audio`);
