@@ -51,31 +51,31 @@ interface Song {
 }
 
 const featuredSongs: Song[] = [
-  {
-    id: "1",
-    title: "The Shining",
-    artist: "The Neighbourhood",
-    coverImage:
-      "https://storage.googleapis.com/tunebox-stuff/featured/theShining/theShining.jpg",
-    audioUrl:
-      "https://storage.googleapis.com/tunebox-stuff/featured/theShining/original.mp3",
-    audioUrls: {
-      vocals:
-        "https://storage.googleapis.com/tunebox-stuff/featured/theShining/vocals.mp3",
-      drums:
-        "https://storage.googleapis.com/tunebox-stuff/featured/theShining/drums.mp3",
-      bass: "https://storage.googleapis.com/tunebox-stuff/featured/theShining/bass.mp3",
-      other:
-        "https://storage.googleapis.com/tunebox-stuff/featured/theShining/other.mp3",
-    },
-    audioEffects: {
-      speed: 1.2,
-      reverb: 0.7,
-      delay: 6.5,
-    },
-    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/theShining/converted_piano.mid",
-    midi: null,
-  },
+  // {
+  //   id: "1",
+  //   title: "The Shining",
+  //   artist: "The Neighbourhood",
+  //   coverImage:
+  //     "https://storage.googleapis.com/tunebox-stuff/featured/theShining/theShining.jpg",
+  //   audioUrl:
+  //     "https://storage.googleapis.com/tunebox-stuff/featured/theShining/original.mp3",
+  //   audioUrls: {
+  //     vocals:
+  //       "https://storage.googleapis.com/tunebox-stuff/featured/theShining/vocals.mp3",
+  //     drums:
+  //       "https://storage.googleapis.com/tunebox-stuff/featured/theShining/drums.mp3",
+  //     bass: "https://storage.googleapis.com/tunebox-stuff/featured/theShining/bass.mp3",
+  //     other:
+  //       "https://storage.googleapis.com/tunebox-stuff/featured/theShining/other.mp3",
+  //   },
+  //   audioEffects: {
+  //     speed: 0.9,
+  //     reverb: 0.6,
+  //     delay: 10.0,
+  //   },
+  //   // midi: "https://storage.googleapis.com/tunebox-stuff/featured/theShining/converted_piano.mid",
+  //   midi: null,
+  // },
 
   {
     id: "2",
@@ -172,7 +172,7 @@ const featuredSongs: Song[] = [
         "https://storage.googleapis.com/tunebox-stuff/featured/lilacWine/other.mp3",
     },
     audioEffects: {
-      speed: 0.9,
+      speed: 1.2,
       reverb: 0.8,
       delay: 3.0,
     },
@@ -248,7 +248,7 @@ const featuredSongs: Song[] = [
         "https://storage.googleapis.com/tunebox-stuff/featured/stargazing/other.mp3",
     },
     audioEffects: {
-      speed: 1.2,
+      speed: 0.85,
       reverb: 0.85,
       delay: 5.5,
     },
@@ -570,7 +570,7 @@ export function FeaturedCarousel() {
                               style={{
                                 animation:
                                   currentlyPlaying === song.id &&
-                                  loadingSongId !== song.id
+                                    loadingSongId !== song.id
                                     ? "spin 20s linear infinite"
                                     : "none",
                               }}
@@ -593,8 +593,8 @@ export function FeaturedCarousel() {
                                 {loadingSongId === song.id
                                   ? `Loading ${song.title}`
                                   : currentlyPlaying === song.id
-                                  ? `Pause ${song.title}`
-                                  : `Play ${song.title}`}
+                                    ? `Pause ${song.title}`
+                                    : `Play ${song.title}`}
                               </span>
                             </Button>
                           </div>
