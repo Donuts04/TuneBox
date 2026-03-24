@@ -78,6 +78,32 @@ const featuredSongs: Song[] = [
   // },
 
   {
+    id: "1",
+    title: "Sienna",
+    artist: "The Marías",
+    coverImage:
+      "https://storage.googleapis.com/tunebox-stuff/featured/sienna/sienna.jpg",
+    audioUrl:
+      "https://storage.googleapis.com/tunebox-stuff/featured/sienna/original.mp3",
+    audioUrls: {
+      vocals:
+        "https://storage.googleapis.com/tunebox-stuff/featured/sienna/vocals.mp3",
+      drums:
+        "https://storage.googleapis.com/tunebox-stuff/featured/sienna/drums.mp3",
+      bass: "https://storage.googleapis.com/tunebox-stuff/featured/sienna/bass.mp3",
+      other:
+        "https://storage.googleapis.com/tunebox-stuff/featured/sienna/other.mp3",
+    },
+    audioEffects: {
+      speed: 1.2,
+      reverb: 0.6,
+      delay: 10.0,
+    },
+    // midi: "https://storage.googleapis.com/tunebox-stuff/featured/sienna/converted_piano.mid",
+    midi: null,
+  },
+
+  {
     id: "2",
     title: "Pretty Boy",
     artist: "The Neighbourhood",
